@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['supabase/tests/functions/**/*.test.ts'],
+    include: ['supabase/tests/functions/**/*.test.ts', 'supabase/tests/integracao/**/*.test.ts'],
     fileParallelism: false,
     testTimeout: 20_000,
     hookTimeout: 30_000,
