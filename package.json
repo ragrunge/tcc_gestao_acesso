@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "test": "vitest run && npm test -w packages/domain",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit && npm run typecheck -w packages/domain"
+    "typecheck": "tsc --noEmit && npm run typecheck -w packages/domain",
+    "test:supabase": "vitest run --config vitest.supabase.config.ts"
   },
   "engines": {
     "node": ">=22"
