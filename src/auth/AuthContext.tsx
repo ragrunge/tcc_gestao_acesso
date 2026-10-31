@@ -1,5 +1,6 @@
-// Sessão e guarda de rota por papel, conforme a matriz RBAC (spec seção 5.2). No modo http a sessão é o cookie
-// HttpOnly da API: aqui fica só o usuário em memória (nada em storage), reconstruído por /auth/me ao recarregar.
+// Sessão e guarda de rota por papel, conforme a matriz RBAC (spec seção 5.2). A sessão é a do Supabase Auth, guardada
+// pelo adaptador (src/api/supabase): aqui fica só o usuário em memória, reconstruído por api.auth.me() (RPC
+// api.sessao_atual) ao recarregar. O papel e a validade vêm sempre do banco, nunca do token.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -66,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.auth.logout();
     } catch {
-      // Sem limpar a tela: o cookie httpOnly continua e a sessão segue válida no servidor. Ir para o login daria a
-      // impressão de saída, e um recarregar traria o operador anterior de volta (RN-05: autoria de cada registro).
+      // Sem limpar a tela: a sessão segue válida no servidor (e no navegador). Ir para o login daria a impressão de
+      // saída, e um recarregar traria o operador anterior de volta (RN-05: autoria de cada registro).
       avisarRef.current({ tom: 'vermelho', texto: 'Não foi possível encerrar a sessão. Verifique a conexão e tente de novo.' });
       return false;
     }
