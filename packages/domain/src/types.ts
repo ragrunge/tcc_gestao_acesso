@@ -1,4 +1,4 @@
-// Tipos de domínio. Espelham as tabelas do schema (apps/api/src/db/schema.ts, spec seção 3).
+// Tipos de domínio. Espelham as tabelas do schema (a API antiga (db/schema.ts), spec seção 3).
 // Convenção: nomes do domínio em português (EventoAcesso, VinculoUnidade...), campos em camelCase.
 // Todos os instantes são epoch em milissegundos (UTC); a exibição usa o fuso de São Paulo.
 // As entidades guardam só ids de usuário e de pessoa; os nomes são resolvidos nas views (o banco faz join).
@@ -37,7 +37,7 @@ export interface Pessoa {
   documentoTipo: TipoDocumento;
   /** Sempre mascarado (ex.: 123.45*.***-** ou, no formato antigo, ***.456.789-**), "(sem CPF)" ou "(anonimizado)". O CPF nunca é guardado. */
   documentoMascarado: string;
-  /** HMAC-SHA256 hex dos 11 dígitos do CPF (mesmo algoritmo de apps/api/src/db/cpf.ts): busca exata e deduplicação. */
+  /** HMAC-SHA256 hex dos 11 dígitos do CPF (mesmo algoritmo de a API antiga (db/cpf.ts)): busca exata e deduplicação. */
   documentoBusca?: string;
   /** Cadastro sem CPF (exceção): só entra por `excecao_porteiro` e não pode ter vínculo aprovado. */
   semCpf?: boolean;

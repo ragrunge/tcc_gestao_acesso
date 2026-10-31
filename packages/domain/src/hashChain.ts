@@ -1,5 +1,5 @@
 // Cadeia de hash da trilha de acessos (RF-32, RF-37, RNF-01; spec §4.3 e §4.7). FONTE ÚNICA da serialização:
-// usada pelo front, pela API (apps/api/src/db/cadeia.ts) e pelo verificador da exportação.
+// usada pelo front, pela API (a API antiga (db/cadeia.ts)) e pelo verificador da exportação.
 // Reproduz byte a byte `evento_acesso_canonico(e)` do banco (migrações 0001 e 0013):
 //   hash = hex( SHA-256( UTF-8( hash_anterior || canonico ) ) )
 //   canonico = JSON compacto, chaves na ordem de CAMPOS_CANONICOS_V1 (precedidas de "v"), null explícito,

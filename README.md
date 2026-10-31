@@ -28,14 +28,13 @@ participou da pesquisa.
 |---|---|
 | `docs/requisitos.md` | Documento de requisitos: problemas levantados, escopo, requisitos funcionais e não funcionais, regras de negócio, proteção de dados (LGPD), casos de uso e matriz de rastreabilidade com os indicadores de avaliação |
 | `docs/rastreabilidade.md` | Ligação de cada requisito funcional ao código que o implementa |
-| `docs/api/` | Documentação da API: contrato OpenAPI 3.1 e coleções Bruno e Postman, gerados do código |
 | `diagramas/` | Diagramas de casos de uso (portaria, administração e auditoria), em PlantUML, SVG e PNG, e a visão geral da arquitetura |
 | `pesquisa/` | Instrumento de avaliação de aceitação (TAM) pós-uso, com termo de consentimento, roteiro da demonstração e plano de análise, e o registro do pré-teste do instrumento |
-| `apps/web` | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração) |
-| `apps/api` | Back-end: NestJS 11 + Drizzle ORM + PostgreSQL 17 (regras, permissões, trilha e LGPD) |
-| `packages/domain` | Regras de negócio puras compartilhadas pelo front e pela API (RBAC, hash chain, unidades, prazos) |
-| `db/` | Bootstrap dos papéis do PostgreSQL e notas de migração, testes e backup |
-| `scripts/` | Execução local (`npm run local`), geração das coleções da API, conferência das âncoras do selo e ícones |
+| `src/`, `public/`, `index.html` | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração) |
+| `packages/domain` | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco |
+| `supabase/` | Backend no Supabase. `legado-drizzle/` guarda as 16 migrações SQL da API NestJS antiga, base do port; as migrações novas ficam em `migrations/` |
+| `e2e/` | Specs Playwright, a portar para o Supabase local (foram escritas contra a API antiga) |
+| `scripts/` | Geração dos ícones e da marca |
 
 ## O sistema
 
@@ -53,62 +52,52 @@ O protótipo atende **um condomínio**, com um banco de dados só. Funções:
 - **Privacidade (LGPD):** pedidos do titular (exportação e anonimização), retenção por prazo e registro das
   anonimizações fora do banco, para reaplicá-las depois de uma restauração de backup.
 
-Segurança: sessão em cookie `HttpOnly; SameSite=Strict` (o front nunca vê token), senha com argon2id, troca obrigatória
-da senha provisória, limite de tentativas de login por usuário+IP e por IP, autorização por papel em toda rota e CPF
-guardado só como máscara e HMAC.
+Segurança (alvo da migração para o Supabase, ainda em andamento): autenticação pelo Supabase Auth, autorização por
+papel no banco (RLS e funções), trilha só de inclusão protegida por trigger e CPF guardado só como máscara e HMAC. A
+chave `service_role` nunca vai para o front nem para este repositório.
+
+> **Estado atual:** o backend está sendo migrado de uma API NestJS (removida deste repositório, disponível no histórico
+> do git até o commit `eae0555`) para o Supabase. Enquanto o adaptador do front não for concluído, as telas abrem mas
+> não carregam dados.
 
 ## Como rodar localmente
 
-Precisa de Node 22 ou mais novo (`.nvmrc`) e npm. Não precisa de Docker, PostgreSQL nem `.env`.
+Precisa de Node 22 ou mais novo (`.nvmrc`) e npm, e de um projeto Supabase (hospedado, ou local com a CLI e Docker).
 
 ```bash
 npm ci
-npm run local
+cp .env.example .env     # preencher VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (o .env não é versionado)
+npm run dev              # http://localhost:5173
 ```
 
-Abra http://localhost:5173 e entre com um destes usuários fictícios, todos com a senha `senha-demo-gestao-acesso`
-(válida só neste modo local):
+Use apenas a chave **anon/publishable** no `.env`: ela vai para o bundle público. Nunca a `service_role`, nem o token
+de acesso da conta nem a senha do banco.
 
-| Usuário | Papel |
-|---|---|
-| `roberto.faria` | síndico (acesso total) |
-| `paula.nogueira` | administração |
-| `joao.lima` | porteiro |
-| `luiza.campos` | auditor (só leitura) |
-
-O `npm run local` sobe a API de verdade (mesmas regras, permissões e trilha com hash chain) sobre um PostgreSQL em
-memória (PGlite), aplica as migrações reais e carrega dados fictícios. O banco nasce limpo a cada execução e some no
-Ctrl+C. A documentação interativa da API (Swagger) fica em http://127.0.0.1:3101/api/v1/docs enquanto ele roda.
-Roteiros do que testar em cada tela: [apps/web/README.md](apps/web/README.md#roteiros-de-demonstração).
-
-Com PostgreSQL 17 de verdade (dados persistentes), há um ambiente Docker de desenvolvimento:
+Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`):
 
 ```bash
-cp .env.example .env            # preencher senhas e chaves (o .env não é versionado)
-docker compose up -d --build    # db -> migrate -> api em http://127.0.0.1:3000
+supabase start           # sobe o Postgres e a API locais (http://127.0.0.1:54321)
+supabase db reset        # recria o banco e aplica supabase/migrations do zero
+supabase test db         # pgTAP de supabase/tests: superfície exposta e imutabilidade
 ```
 
-Detalhes em [apps/api/README.md](apps/api/README.md) e [db/README.md](db/README.md).
+Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-demonstração).
 
 ## Testes
 
 ```bash
-npm run typecheck -w packages/domain -w apps/api
-npm test -w packages/domain -w apps/api        # regras e API real sobre PGlite com as migrações reais
-npx tsc --noEmit -p apps/web
-npm test -w apps/web                            # Vitest + Testing Library
-npm run test:e2e -w apps/web                    # Playwright contra a API real sobre PGlite (1ª vez: npx playwright install chromium)
+npm run typecheck        # front e domain
+npm test                 # Vitest + Testing Library (front) e regras do domain
+npx playwright test      # e2e: a portar para o Supabase (1ª vez: npx playwright install chromium)
 ```
 
-No GitHub Actions, `testes-web.yml` roda tudo isso e `testes-postgres.yml` repete os testes de banco contra um
-PostgreSQL 17 real (papéis, migrações, concorrência e o boot da API).
+No GitHub Actions, `testes-web.yml` roda o typecheck, o build e os testes unitários, e `testes-banco.yml` aplica as
+migrações num Supabase local e roda o pgTAP.
 
 ## Versão publicada
 
-O front pode ser publicado na Vercel a partir de `apps/web` (`apps/web/vercel.json`). Ele precisa de uma API: o
-`vercel.json` repassa `/api` para um endereço **provisório e inválido** (`api-da-demonstracao.invalid`), de propósito,
-até que exista uma instância da API só para a demonstração, com dados fictícios. Para ligar, troque esse endereço pelo
-da API da demonstração (com https) e configure nela `TRUST_PROXY` conforme os proxies na frente.
+O front é publicado na Vercel a partir da raiz (`vercel.json`). A CSP libera `connect-src` apenas para o projeto
+Supabase da demonstração. Os dados são fictícios.
 
 ## Proteção de dados
 
