@@ -73,6 +73,14 @@ npm run dev              # http://localhost:5173
 Use apenas a chave **anon/publishable** no `.env`: ela vai para o bundle público. Nunca a `service_role`, nem o token
 de acesso da conta nem a senha do banco.
 
+Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`):
+
+```bash
+supabase start           # sobe o Postgres e a API locais (http://127.0.0.1:54321)
+supabase db reset        # recria o banco e aplica supabase/migrations do zero
+supabase test db         # pgTAP de supabase/tests: superfície exposta e imutabilidade
+```
+
 Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-demonstração).
 
 ## Testes
@@ -83,7 +91,8 @@ npm test                 # Vitest + Testing Library (front) e regras do domain
 npx playwright test      # e2e: a portar para o Supabase (1ª vez: npx playwright install chromium)
 ```
 
-No GitHub Actions, `testes-web.yml` roda o typecheck, o build e os testes unitários.
+No GitHub Actions, `testes-web.yml` roda o typecheck, o build e os testes unitários, e `testes-banco.yml` aplica as
+migrações num Supabase local e roda o pgTAP.
 
 ## Versão publicada
 
