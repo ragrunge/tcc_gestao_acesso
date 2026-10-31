@@ -62,13 +62,15 @@ SELECT throws_like('DELETE FROM evento_acesso_cadeia', '%append-only%', 'dono: c
 SET LOCAL ROLE app_rw;
 
 -- Controle positivo: a RLS (0016) não tirou do app_rw o que ele tinha; a política dele é USING (true).
-SELECT is((SELECT count(*)::int FROM evento_acesso), 1, 'app_rw lê evento_acesso com RLS habilitada');
+-- (relativo à fixture: o banco pode ter eventos de outras execuções, como o vitest de concorrência)
+SELECT is((SELECT count(*)::int FROM evento_acesso WHERE id = '00000000-0000-4000-8000-000000000007'), 1, 'app_rw lê evento_acesso com RLS habilitada');
 SELECT lives_ok($$
   INSERT INTO evento_acesso (tipo, categoria_pessoa, pessoa_id, unidade_destino_id, ponto_acesso_id, operador_id, operador_papel)
   VALUES ('entrada', 'morador', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000002',
           '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000003', 'porteiro')
 $$, 'app_rw insere evento (o trigger SECURITY DEFINER avança a cadeia)');
-SELECT is((SELECT max(seq)::int FROM evento_acesso), 2, 'a cadeia avançou para seq 2');
+SELECT is((SELECT count(*)::int FROM evento_acesso WHERE seq > (SELECT seq FROM evento_acesso WHERE id = '00000000-0000-4000-8000-000000000007')), 1,
+  'a cadeia avançou um seq depois da entrada da fixture');
 
 SELECT throws_like('UPDATE evento_acesso SET observacao = NULL', '%permission denied%', 'app_rw: UPDATE em evento_acesso negado');
 SELECT throws_like('DELETE FROM evento_acesso', '%permission denied%', 'app_rw: DELETE em evento_acesso negado');
