@@ -207,8 +207,9 @@ LANGUAGE sql IMMUTABLE SET search_path = '' AS $$ SELECT p_bloco || '-' || p_num
 -- normalizarNumero: "3" -> "03", "032" -> "32"; texto que não é só dígitos volta aparado.
 CREATE FUNCTION app.normalizar_numero(n text) RETURNS text
 LANGUAGE sql IMMUTABLE SET search_path = '' AS $$
-  SELECT CASE WHEN t ~ '^[0-9]+$' THEN lpad(regexp_replace(t, '^0+(?=[0-9])', ''), 2, '0') ELSE t END
-    FROM (SELECT btrim(coalesce(n, '')) AS t) x
+  -- lpad corta texto maior que o tamanho pedido ("101" viraria "10"): só completa quando falta (achado pelo teste de paridade).
+  SELECT CASE WHEN t !~ '^[0-9]+$' THEN t WHEN length(z) < 2 THEN lpad(z, 2, '0') ELSE z END
+    FROM (SELECT t, regexp_replace(t, '^0+(?=[0-9])', '') AS z FROM (SELECT btrim(coalesce(n, '')) AS t) y) x
 $$;
 
 -- Chave natural do bloco (chaveBloco do domain): cada sequência de dígitos com 3 casas, comparada byte a byte.
