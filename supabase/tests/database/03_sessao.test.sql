@@ -4,7 +4,7 @@
 -- Cada recusa é conferida pelo CÓDIGO do erro (JSON do RAISE PGRST), não só por "deu erro".
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(47);
+SELECT plan(50);
 
 -- ===== Fixtures ===================================================================================================
 -- uNN = usuario_sistema.id, aNN = auth_user_id (sub), sNN = sessao.id, gNN = auth_session_id (session_id da JWT).
@@ -170,9 +170,18 @@ SELECT ok((SELECT deve_trocar_senha AND senha_temporaria_expira_em BETWEEN now()
              FROM public.usuario_sistema WHERE id = pg_temp.id('u_ad')), 'redefinição: troca obrigatória com prazo de 72 h');
 
 -- ===== Troca obrigatória concluída ======================================================================================
+-- A troca pela API admin do Auth derruba os refresh tokens: a Edge entra de novo e a sessão nova substitui a atual.
 SELECT pg_temp.sessao('troca2', 'u_troca', '1 minute', '1 minute', '13 hours');
-SELECT is(pg_temp.srv(format('SELECT srv.troca_concluir(%L, NULL)', pg_temp.sid('troca'))), 'ok', 'troca concluída');
-SELECT is(pg_temp.criar_preparar('troca'), 'ok', 'depois da troca, a mesma sessão passa a operar');
+INSERT INTO sess (k, sub) VALUES ('troca_nova', pg_temp.id('a_troca'));
+SELECT is(pg_temp.srv(format('SELECT srv.troca_concluir(%L, NULL, %L, %L)', pg_temp.sid('troca2'), pg_temp.id('a_si'), gen_random_uuid())),
+  'SESSAO_INVALIDA', 'troca_concluir com auth_user_id de outra conta: recusa');
+SELECT is(pg_temp.srv(format('SELECT srv.troca_concluir(%L, NULL, %L, %L)', pg_temp.sid('troca'), pg_temp.id('a_troca'),
+  (SELECT gid FROM sess WHERE k = 'troca_nova'))), 'ok', 'troca concluída');
+UPDATE sess SET sid = (SELECT id FROM public.sessao WHERE auth_session_id = sess.gid) WHERE k = 'troca_nova';
+SELECT is(pg_temp.criar_preparar('troca_nova'), 'ok', 'a sessão nova (login com a senha nova) opera sem troca pendente');
+SELECT ok((SELECT n.criada_em = o.criada_em AND n.expira_em = o.expira_em FROM public.sessao n, public.sessao o
+            WHERE n.id = pg_temp.sid('troca_nova') AND o.id = pg_temp.sid('troca')), 'a sessão nova herda o prazo (trocar a senha não estica a sessão)');
+SELECT is(pg_temp.api('troca'), 'SESSAO_INVALIDA', 'a sessão de antes da troca é revogada');
 SELECT is(pg_temp.api('troca2'), 'SESSAO_INVALIDA', 'a troca revoga as OUTRAS sessões do usuário');
 
 -- ===== srv.* só por service_role; api.* não chama srv ==================================================================

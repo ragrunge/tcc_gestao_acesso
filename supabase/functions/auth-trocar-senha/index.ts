@@ -5,9 +5,11 @@
 //   1. api.sessao_atual com a JWT do usuário (PostgREST verifica a assinatura; app.ator() verifica a sessão).
 //   2. Política da senha nova; srv.troca_preparar conta a tentativa no par login+IP (a senha atual é um segredo).
 //   3. Confere a senha atual no Auth e revoga na hora a sessão que essa conferência abriu.
-//   4. Aplica a nova pela API admin; srv.troca_concluir limpa a pendência, revoga as OUTRAS sessões e desbloqueia.
+//   4. Aplica a nova pela API admin. Medido local: isso derruba TODOS os refresh tokens do usuário no Auth, inclusive
+//      o desta sessão; então entra de novo com a senha nova e srv.troca_concluir troca a sessão atual pela nova (mesmo
+//      prazo), limpa a pendência, revoga as outras e desbloqueia. A resposta leva os tokens novos para o front.
 import { ErroHttp, ipDoCliente, json, lerCorpo, servir, texto } from '../_shared/http.ts';
-import { anon, revogarSessaoAuth, rpc, servico, sessaoDoUsuario } from '../_shared/supabase.ts';
+import { anon, payloadDoToken, revogarSessaoAuth, rpc, servico, sessaoDoUsuario } from '../_shared/supabase.ts';
 import { problemasDaSenha, SENHA_MAX_BYTES } from '../_shared/senha.ts';
 
 interface Preparo { bloqueado: boolean; retry_after_s?: number; auth_email?: string; auth_user_id?: string }
@@ -52,6 +54,23 @@ servir(async (req) => {
     if (error.code === 'weak_password') throw new ErroHttp(422, 'SENHA_FRACA', 'A senha nova foi recusada pela política do Auth.');
     throw new ErroHttp(503, 'AUTH_INDISPONIVEL', 'Não foi possível trocar a senha agora. Tente novamente em instantes.');
   }
-  const r = await rpc<{ usuario: unknown }>(srv, 'troca_concluir', { p_sessao_id: eu.sessao.id, p_ip: ip });
-  return json(req, 200, { usuario: r.usuario });
+  const novo = await anon().auth.signInWithPassword({ email: prep.auth_email!, password: novaSenha });
+  if (novo.error || !novo.data.session) {
+    // A senha mudou, mas não deu para abrir a sessão nova: a pendência fica ligada e a pessoa entra de novo.
+    throw new ErroHttp(503, 'AUTH_INDISPONIVEL', 'A senha foi trocada, mas a sessão não pôde ser renovada. Entre novamente com a senha nova.');
+  }
+  const s = novo.data.session;
+  let r: { usuario: unknown };
+  try {
+    r = await rpc<{ usuario: unknown }>(srv, 'troca_concluir', {
+      p_sessao_id: eu.sessao.id, p_ip: ip, p_auth_user_id: prep.auth_user_id, p_auth_session_id: payloadDoToken(s.access_token).session_id ?? null,
+    });
+  } catch (e) {
+    await revogarSessaoAuth(s.access_token);
+    throw e;
+  }
+  return json(req, 200, {
+    usuario: r.usuario,
+    auth: { access_token: s.access_token, refresh_token: s.refresh_token, expires_in: s.expires_in, expires_at: s.expires_at, token_type: s.token_type },
+  });
 });

@@ -489,22 +489,34 @@ BEGIN
 END $$;
 
 -- A senha nova já foi aplicada no Auth pela Edge. Limpa a troca pendente, revoga as OUTRAS sessões e desbloqueia.
-CREATE FUNCTION srv.troca_concluir(p_sessao_id uuid, p_ip text) RETURNS jsonb
+-- Medido local: a troca de senha pela API admin do Auth derruba TODOS os refresh tokens do usuário, inclusive o desta
+-- sessão. Por isso a Edge entra de novo com a senha nova e passa aqui o session_id novo (p_auth_session_id): a linha
+-- atual é revogada e a nova herda criada_em, expira_em e manter_conectado (trocar a senha não estica o prazo).
+CREATE FUNCTION srv.troca_concluir(p_sessao_id uuid, p_ip text, p_auth_user_id uuid, p_auth_session_id uuid) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
   a app.ator_t := app.ator_da_sessao(p_sessao_id, NULL, true, false, true);
+  atual public.sessao;
   u public.usuario_sistema;
+  nova uuid;
   n integer;
 BEGIN
+  IF a.auth_user_id IS DISTINCT FROM p_auth_user_id OR p_auth_session_id IS NULL THEN PERFORM app.erro_sessao(); END IF;
+  SELECT * INTO atual FROM public.sessao WHERE id = p_sessao_id;
   UPDATE public.usuario_sistema SET deve_trocar_senha = false, senha_temporaria_expira_em = NULL,
          senha_alterada_em = now(), atualizado_em = now()
    WHERE id = a.usuario_id RETURNING * INTO u;
   UPDATE public.sessao SET revogada_em = now(), motivo_revogacao = 'troca_senha'
-   WHERE usuario_id = a.usuario_id AND revogada_em IS NULL AND id <> p_sessao_id;
+   WHERE usuario_id = a.usuario_id AND revogada_em IS NULL;
   GET DIAGNOSTICS n = ROW_COUNT;
+  INSERT INTO public.sessao (usuario_id, auth_session_id, criada_em, ultimo_uso_em, expira_em, manter_conectado, ip, user_agent)
+  VALUES (a.usuario_id, p_auth_session_id, atual.criada_em, now(), atual.expira_em, atual.manter_conectado,
+          coalesce(app.ip_ou_nulo(p_ip), atual.ip), atual.user_agent)
+  RETURNING id INTO nova;
   PERFORM app.limite_zerar_login(a.login);
   PERFORM app.auditar(a.usuario_id, a.nome, a.papel, 'auth.trocar_senha', 'usuario_sistema', a.usuario_id, p_ip,
-    jsonb_build_object('deve_trocar_senha', a.deve_trocar_senha), jsonb_build_object('deve_trocar_senha', false, 'sessoes_revogadas', n));
+    jsonb_build_object('deve_trocar_senha', a.deve_trocar_senha, 'sessao_id', p_sessao_id),
+    jsonb_build_object('deve_trocar_senha', false, 'sessoes_revogadas', n - 1, 'sessao_id', nova));
   RETURN jsonb_build_object('usuario', app.usuario_publico(u));
 END $$;
 
@@ -675,7 +687,7 @@ GRANT EXECUTE ON FUNCTION api.sessao_atual(), api.sessao_encerrar() TO authentic
 GRANT EXECUTE ON FUNCTION
   srv.login_preparar(text, text), srv.login_falhou(text, text),
   srv.login_registrar(text, text, text, uuid, uuid, boolean),
-  srv.troca_preparar(uuid, text), srv.troca_falhou(uuid, text), srv.troca_concluir(uuid, text),
+  srv.troca_preparar(uuid, text), srv.troca_falhou(uuid, text), srv.troca_concluir(uuid, text, uuid, uuid),
   srv.usuario_criar_preparar(uuid, text, text, public.papel),
   srv.usuario_criar(uuid, text, text, public.papel, uuid, text, text),
   srv.usuario_desativar(uuid, uuid, text), srv.usuario_reativar(uuid, uuid, text), srv.usuario_redefinir_senha(uuid, uuid, text)

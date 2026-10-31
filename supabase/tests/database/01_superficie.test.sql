@@ -15,7 +15,7 @@ CREATE TEMP TABLE allowlist_service_role (funcao regprocedure) ON COMMIT DROP;
 INSERT INTO allowlist_service_role VALUES
   ('srv.login_preparar(text, text)'), ('srv.login_falhou(text, text)'),
   ('srv.login_registrar(text, text, text, uuid, uuid, boolean)'),
-  ('srv.troca_preparar(uuid, text)'), ('srv.troca_falhou(uuid, text)'), ('srv.troca_concluir(uuid, text)'),
+  ('srv.troca_preparar(uuid, text)'), ('srv.troca_falhou(uuid, text)'), ('srv.troca_concluir(uuid, text, uuid, uuid)'),
   ('srv.usuario_criar_preparar(uuid, text, text, papel)'), ('srv.usuario_criar(uuid, text, text, papel, uuid, text, text)'),
   ('srv.usuario_desativar(uuid, uuid, text)'), ('srv.usuario_reativar(uuid, uuid, text)'),
   ('srv.usuario_redefinir_senha(uuid, uuid, text)');
