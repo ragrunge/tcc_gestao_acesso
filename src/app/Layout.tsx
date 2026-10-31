@@ -11,6 +11,7 @@ import { FichaPessoaModal } from '../features/cadastro/FichaPessoaModal';
 import { useAgora } from './useAsync';
 import { CHAVES, useBuscaGlobal, useContagemPendentes } from './consultas';
 import { useCatalogo } from './catalogo';
+import { useApi } from '../api';
 import { useTituloPagina } from './titulo';
 import { Marca } from '../components/Marca';
 
@@ -109,6 +110,7 @@ function BuscaGlobal({ onPessoa }: { onPessoa: (id: string) => void }) {
 
 export function Layout() {
   const { usuario, sair } = useAuth();
+  const api = useApi();
   const nav = useNavigate();
   const loc = useLocation();
   const qc = useQueryClient();
@@ -180,7 +182,7 @@ export function Layout() {
           </div>
         </div>
         {GRUPOS.map((g) => {
-          const itens = g.itens.filter((i) => rotaDisponivel(usuario!, i.rota));
+          const itens = g.itens.filter((i) => rotaDisponivel(usuario!, i.rota) && api.suporta?.(i.rota) !== false);
           if (itens.length === 0) return null;
           return (
             <nav key={g.titulo} aria-label={g.titulo} className="flex flex-col gap-0.5">

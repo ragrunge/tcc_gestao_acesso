@@ -106,10 +106,15 @@ export const rotaDisponivel = (u: UsuarioSessao, rota: Rota) => ROTAS[rota].incl
 /** Guarda de rota: sem sessão -> login; troca pendente -> troca; sem papel -> página inicial do perfil. */
 export function RequireRole({ rota, children }: { rota: Rota; children: ReactNode }) {
   const { usuario, pronto } = useAuth();
+  const api = useApi();
   if (!pronto) return <Splash />;
   if (!usuario) return <Navigate to="/login" replace />;
   if (usuario.deveTrocarSenha) return <Navigate to="/trocar-senha" replace />;
   if (!rotaDisponivel(usuario, rota)) return <Navigate to={`/${rotaInicial(usuario.papel)}`} replace />;
+  // Migração por fases (desenho §6): tela sem backend nesta versão mostra o aviso em vez de quebrar.
+  if (api.suporta?.(rota) === false) {
+    return <p role="status" className="p-6 text-[#56616B]">Esta função ainda não está disponível nesta versão do sistema.</p>;
+  }
   return <>{children}</>;
 }
 

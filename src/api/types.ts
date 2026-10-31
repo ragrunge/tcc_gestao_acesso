@@ -393,6 +393,11 @@ export interface ResultadoImportacao { importados: number; reaproveitados: numbe
 export interface Api {
   /** Assina avisos de sessão (401 fora do login, 403 TROCA_DE_SENHA_OBRIGATORIA). Devolve o cancelamento. */
   aoEventoSessao?(cb: (e: EventoSessao) => void): () => void;
+  /**
+   * Migração por fases (desenho §6): a rota (Rota de @portaria/domain/rbac) tem backend nesta versão? Ausente = tudo
+   * suportado (mocks, cliente HTTP antigo). O menu esconde o que não é suportado e a guarda de rota mostra o aviso.
+   */
+  suporta?(rota: string): boolean;
   auth: {
     // 2FA fica para a fase de segurança (pós-MVP).
     login(i: LoginInput): Promise<UsuarioSessao>;

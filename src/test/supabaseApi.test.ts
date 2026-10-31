@@ -199,7 +199,7 @@ describe('auth.trocarSenha e usuarios', () => {
 
   it('o que ainda não foi migrado rejeita com NAO_MIGRADO (501)', async () => {
     const m = mock();
-    const e = await erro(m.api.pessoas.listar());
+    const e = await erro(m.api.encomendas.listar());
     expect([e.status, e.code]).toEqual([501, 'NAO_MIGRADO']);
     expect((await erro(m.api.usuarios.listar())).code).toBe('NAO_MIGRADO');
   });
