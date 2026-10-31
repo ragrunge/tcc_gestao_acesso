@@ -3,7 +3,7 @@
 # Requer rsvg-convert (brew install librsvg) e python3. Rodar da raiz do monorepo: bash scripts/marca/gerar-icones.sh
 set -euo pipefail
 cd "$(dirname "$0")"
-WEB=../../apps/web/public
+WEB=../../public
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 
 ARCO='<path d="M9.5 24.5V15a6.5 6.5 0 0 1 13 0v9.5" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round"/><circle cx="16" cy="19.5" r="2.8" fill="#A9D2D8"/>'

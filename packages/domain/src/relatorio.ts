@@ -4,7 +4,7 @@
 import { fmtData } from './time';
 import { ROTULO_CATEGORIA, ROTULO_MEIO, type CategoriaPessoa, type MeioAutorizacao } from './types';
 
-/** Mesmo formato de `RelatorioResumo` (apps/web/src/api/types.ts). */
+/** Mesmo formato de `RelatorioResumo` (src/api/types.ts). */
 export interface ResumoRelatorio {
   periodo: { de: number; ate: number };
   acessosPorDia: { dia: number; entradas: number }[];

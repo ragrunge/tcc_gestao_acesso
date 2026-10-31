@@ -1,5 +1,7 @@
 # Rastreabilidade: requisito funcional → API → tela
 
+> **Nota (2026-10-31):** a coluna API (`apps/api/src/`) refere-se à API NestJS removida na migração para o Supabase (consulte o histórico até `eae0555`). Ela será refeita apontando para as funções SQL e as políticas RLS.
+
 Cada linha liga um RF de `docs/requisitos.md` ao código que o implementa. Caminhos a partir da raiz do repositório.
 Regras puras compartilhadas (UI e API) ficam em `packages/domain/src/` (`rules.ts`, `rbac.ts`, `units.ts`, `hashChain.ts`).
 A trilha RN/UC → arquivo mais detalhada está nos comentários do código (`git grep -n 'RF-'`).

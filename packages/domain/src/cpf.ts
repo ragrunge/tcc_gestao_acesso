@@ -1,5 +1,5 @@
 // CPF sem armazenar o número (decisão 18 da spec): máscara para exibição e HMAC-SHA256 para busca/unicidade.
-// Mesmo algoritmo de apps/api/src/db/cpf.ts (lá com node:crypto e a chave PORTARIA_HMAC_CPF_KEY); aqui por
+// Mesmo algoritmo de a API antiga (db/cpf.ts) (lá com node:crypto e a chave PORTARIA_HMAC_CPF_KEY); aqui por
 // WebCrypto, para rodar no navegador e no Node.
 export const soDigitos = (s: string) => s.replace(/\D/g, '');
 

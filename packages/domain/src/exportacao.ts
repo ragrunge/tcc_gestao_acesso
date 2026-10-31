@@ -1,6 +1,6 @@
 // Exportação verificável da trilha de acessos (RF-32, spec §4.7): JSONL com manifesto (versão 3), uma linha por evento no
 // formato canônico (o mesmo que entra no hash) e um resumo. FONTE ÚNICA do formato: usada pelo front (verificador) e pela
-// API (apps/api/src/auditoria). Os nomes vão à parte, em "exibicao", e não entram no hash.
+// API (a API antiga (auditoria)). Os nomes vão à parte, em "exibicao", e não entram no hash.
 // Manifesto v3 (0013): o evento pode estar no formato de hash 1 (sem veículo) ou 2 (entrada com veículo, `camposVeiculo`
 // no fim). Saíram `formatoHash` (um só) e entrou `formatosHash` (os que o arquivo pode ter); `ordemCampos` segue sendo a
 // ordem da v1. O nome do formato (`gestao-acesso/trilha-jsonl`) não muda.
