@@ -1,5 +1,8 @@
 # Gestão de Acesso — front-end do sistema de controle de acesso e gestão de portaria
 
+> **Desatualizado (2026-10-31):** este guia foi escrito para a API NestJS (`apps/api`) e a estrutura `apps/web`, ambas removidas. Hoje o front está na raiz do repositório (`npm run dev`, `.env` com as chaves do Supabase). Os roteiros de demonstração e o mapa de telas seguem válidos; os comandos de execução e testes não. Reescrever quando o adaptador do Supabase estiver pronto.
+
+
 Aplicação React (Vite + TypeScript estrito + Tailwind) do condomínio estudado, produto do TCC de Sistemas de
 Informação. É só cliente: todos os dados e regras vêm da API NestJS (`apps/api`), pelo cliente HTTP em `src/api/http`.
 Não existe modo de demonstração no navegador (API simulada, banco no `localStorage` ou relógio simulado): a hora da tela
