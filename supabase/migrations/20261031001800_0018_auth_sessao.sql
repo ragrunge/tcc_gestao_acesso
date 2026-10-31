@@ -98,12 +98,13 @@ CREATE TYPE app.ator_t AS (
   deve_trocar_senha boolean, expira_em timestamptz, inatividade_min integer
 );
 
--- Erro com status HTTP e corpo JSON pelo PostgREST. Nunca retorna.
+-- Erro com status HTTP e corpo JSON pelo PostgREST. Nunca retorna. O PostgREST (v16.5 local) só aceita `details` como TEXTO
+-- (objeto dá PGRST121 e vira 500): os detalhes estruturados vão serializados, e o adaptador os lê de volta.
 CREATE FUNCTION app.erro(p_status integer, p_codigo text, p_mensagem text, p_detalhes jsonb DEFAULT NULL) RETURNS void
 LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   RAISE SQLSTATE 'PGRST' USING
-    MESSAGE = json_build_object('code', p_codigo, 'message', p_mensagem, 'details', p_detalhes, 'hint', NULL)::text,
+    MESSAGE = json_build_object('code', p_codigo, 'message', p_mensagem, 'details', p_detalhes::text, 'hint', NULL)::text,
     DETAIL = json_build_object('status', p_status, 'headers', json_build_object())::text;
 END $$;
 
