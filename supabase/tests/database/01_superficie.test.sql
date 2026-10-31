@@ -4,7 +4,7 @@
 -- Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(26);
+SELECT plan(27);
 
 -- Allowlist explícita: (papel, função) que PODE ter EXECUTE. anon: nenhuma ainda (api.selos_publicos é da F5).
 CREATE TEMP TABLE allowlist_execute (papel name, funcao regprocedure) ON COMMIT DROP;
@@ -15,7 +15,7 @@ CREATE TEMP TABLE allowlist_service_role (funcao regprocedure) ON COMMIT DROP;
 INSERT INTO allowlist_service_role VALUES
   ('srv.login_preparar(text, text)'), ('srv.login_falhou(text, text)'),
   ('srv.login_registrar(text, text, text, uuid, uuid, boolean)'),
-  ('srv.troca_preparar(uuid, text)'), ('srv.troca_falhou(uuid, text)'), ('srv.troca_concluir(uuid, text, uuid, uuid)'),
+  ('srv.troca_preparar(uuid, text)'), ('srv.troca_autorizar(uuid)'), ('srv.troca_falhou(uuid, text)'), ('srv.troca_concluir(uuid, text, uuid, uuid)'),
   ('srv.usuario_criar_preparar(uuid, text, text, papel)'), ('srv.usuario_criar(uuid, text, text, papel, uuid, text, text)'),
   ('srv.usuario_desativar(uuid, uuid, text)'), ('srv.usuario_reativar(uuid, uuid, text)'),
   ('srv.usuario_redefinir_senha(uuid, uuid, text)');
@@ -70,6 +70,9 @@ SELECT is_empty($$
   SELECT f.oid::regprocedure FROM pg_proc f
    WHERE f.pronamespace = 'app'::regnamespace AND (f.proowner <> 'app_rw'::regrole OR f.prosecdef)
 $$, 'helpers de app: dono app_rw e SECURITY INVOKER (não elevam privilégio)');
+
+SELECT ok(EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'auth.users'::regclass AND tgname = 'portaria_guarda_credencial' AND tgenabled = 'O'),
+  'trigger que impede trocar senha/e-mail no Auth fora do fluxo do sistema está ativo');
 
 SELECT ok(NOT has_schema_privilege('anon', 'app', 'USAGE') AND NOT has_schema_privilege('authenticated', 'app', 'USAGE')
       AND NOT has_schema_privilege('service_role', 'app', 'USAGE'), 'schema app sem USAGE para os papéis do PostgREST');

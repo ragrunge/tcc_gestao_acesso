@@ -49,6 +49,8 @@ servir(async (req) => {
     throw new ErroHttp(422, 'SENHA_ATUAL_INCORRETA', 'A senha atual não confere.');
   }
 
+  // Abre a janela de 60 s em que o trigger de auth.users (0019) aceita a troca: fora dela, o Auth recusa.
+  await rpc(srv, 'troca_autorizar', { p_sessao_id: eu.sessao.id });
   const { error } = await srv.auth.admin.updateUserById(prep.auth_user_id!, { password: novaSenha });
   if (error) {
     if (error.code === 'weak_password') throw new ErroHttp(422, 'SENHA_FRACA', 'A senha nova foi recusada pela política do Auth.');

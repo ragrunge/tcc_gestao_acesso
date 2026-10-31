@@ -212,6 +212,7 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
     const tNova = await token('luiza.campos', r.corpo.senhaTemporaria);
     expect((await sessaoAtual(tNova)).corpo.usuario.deveTrocarSenha).toBe(true);
     // Devolve a senha de demonstração (a política recusa a senha DEMO como "comum": volta pelo SQL do Auth, só local).
+    sql("UPDATE public.usuario_sistema SET auth_alteracao_ate = now() + interval '1 minute' WHERE login = 'luiza.campos'");
     sql(`UPDATE auth.users SET encrypted_password = extensions.crypt('${SENHA_DEMO}', extensions.gen_salt('bf', 10))
           WHERE id = (SELECT auth_user_id FROM public.usuario_sistema WHERE login = 'luiza.campos')`);
     sql("UPDATE public.usuario_sistema SET deve_trocar_senha = false, senha_temporaria_expira_em = NULL WHERE login = 'luiza.campos'");
@@ -221,6 +222,20 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
     const id = sql("SELECT id FROM public.usuario_sistema WHERE login = 'roberto.faria'");
     expect((await admin(tokenSindico, { acao: 'desativar', id })).corpo.code).toBe('AUTO_DESATIVACAO');
     expect((await admin(tokenSindico, { acao: 'redefinir_senha', id })).corpo.code).toBe('AUTO_REDEFINICAO');
+  });
+});
+
+describe('credencial só muda pelo fluxo do sistema (0019)', () => {
+  it('access token sozinho não troca a senha nem o e-mail direto no GoTrue (PUT /auth/v1/user)', async () => {
+    const t = await token('joao.lima');
+    const senha = await fetch(`${API}/auth/v1/user`, { method: 'PUT', headers: { apikey: ANON, Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'Senha-Do-Atacante-99' }) });
+    expect(senha.ok).toBe(false);
+    const email = await fetch(`${API}/auth/v1/user`, { method: 'PUT', headers: { apikey: ANON, Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: `atacante.${sufixo()}@example.com` }) });
+    expect(email.ok).toBe(false);
+    expect((await entrar('joao.lima', 'Senha-Do-Atacante-99')).corpo.code).toBe('CREDENCIAIS_INVALIDAS');
+    expect((await entrar('joao.lima', SENHA_DEMO)).status).toBe(200);
   });
 });
 
