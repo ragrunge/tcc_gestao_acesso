@@ -1,15 +1,27 @@
 -- Superfície exposta (desenho §3.4, item 1): o que anon/authenticated/service_role alcançam nos schemas do sistema.
--- Fail-closed: a allowlist de funções começa VAZIA na F0. Quando a F1 criar RPCs em `api`, cada uma entra aqui de
--- propósito (por exemplo, `api.selos_publicos()` para anon). Rodar: `supabase test db`.
+-- Fail-closed: cada função que anon/authenticated/service_role podem executar entra na allowlist DE PROPÓSITO.
+-- F0: vazia. F1: as duas RPCs de sessão do front (authenticated) e as srv.* das Edge Functions (service_role).
+-- Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(19);
+SELECT plan(26);
 
--- Allowlist explícita: (papel, função) que PODE ter EXECUTE. Vazia na F0.
+-- Allowlist explícita: (papel, função) que PODE ter EXECUTE. anon: nenhuma ainda (api.selos_publicos é da F5).
 CREATE TEMP TABLE allowlist_execute (papel name, funcao regprocedure) ON COMMIT DROP;
+INSERT INTO allowlist_execute VALUES
+  ('authenticated', 'api.sessao_atual()'),
+  ('authenticated', 'api.sessao_encerrar()');
+CREATE TEMP TABLE allowlist_service_role (funcao regprocedure) ON COMMIT DROP;
+INSERT INTO allowlist_service_role VALUES
+  ('srv.login_preparar(text, text)'), ('srv.login_falhou(text, text)'),
+  ('srv.login_registrar(text, text, text, uuid, uuid, boolean)'),
+  ('srv.troca_preparar(uuid, text)'), ('srv.troca_falhou(uuid, text)'), ('srv.troca_concluir(uuid, text)'),
+  ('srv.usuario_criar_preparar(uuid, text, text, papel)'), ('srv.usuario_criar(uuid, text, text, papel, uuid, text, text)'),
+  ('srv.usuario_desativar(uuid, uuid, text)'), ('srv.usuario_reativar(uuid, uuid, text)'),
+  ('srv.usuario_redefinir_senha(uuid, uuid, text)');
 
 CREATE TEMP VIEW papeis_api AS SELECT unnest(ARRAY['anon', 'authenticated', 'service_role']::name[]) AS papel;
-CREATE TEMP VIEW schemas_sistema AS SELECT unnest(ARRAY['public', 'api', 'srv']::name[]) AS nsp;
+CREATE TEMP VIEW schemas_sistema AS SELECT unnest(ARRAY['public', 'api', 'srv', 'app']::name[]) AS nsp;
 
 -- ===== Tabelas, colunas e sequências ==============================================================================
 SELECT is_empty($$
@@ -32,12 +44,53 @@ SELECT is_empty($$
      AND p.papel IN ('anon', 'authenticated')
      AND has_function_privilege(p.papel, f.oid, 'EXECUTE')
   EXCEPT SELECT papel, funcao FROM allowlist_execute
-$$, 'toda função executável por anon/authenticated está na allowlist (vazia na F0)');
+$$, 'toda função executável por anon/authenticated está na allowlist');
+
+SELECT is_empty($$
+  SELECT f.oid::regprocedure FROM pg_proc f
+   WHERE f.pronamespace::regnamespace::name IN (SELECT nsp FROM schemas_sistema)
+     AND has_function_privilege('service_role', f.oid, 'EXECUTE')
+  EXCEPT SELECT funcao FROM allowlist_service_role
+$$, 'toda função executável por service_role está na allowlist (só srv.* das Edge Functions)');
+
+SELECT is_empty($$
+  SELECT a.papel, a.funcao FROM allowlist_execute a WHERE NOT has_function_privilege(a.papel, a.funcao, 'EXECUTE')
+  UNION ALL
+  SELECT 'service_role', s.funcao FROM allowlist_service_role s WHERE NOT has_function_privilege('service_role', s.funcao, 'EXECUTE')
+$$, 'a allowlist não tem entrada morta (cada função listada existe e está concedida)');
+
+SELECT is_empty($$
+  SELECT f.oid::regprocedure FROM pg_proc f
+   WHERE f.pronamespace IN ('api'::regnamespace, 'srv'::regnamespace)
+     AND (f.proowner <> 'app_rw'::regrole OR NOT f.prosecdef
+          OR NOT coalesce(f.proconfig @> ARRAY['search_path=""'], false))
+$$, 'RPCs de api/srv: dono app_rw, SECURITY DEFINER e search_path vazio (rodam com os GRANTs do app_rw)');
+
+SELECT is_empty($$
+  SELECT f.oid::regprocedure FROM pg_proc f
+   WHERE f.pronamespace = 'app'::regnamespace AND (f.proowner <> 'app_rw'::regrole OR f.prosecdef)
+$$, 'helpers de app: dono app_rw e SECURITY INVOKER (não elevam privilégio)');
+
+SELECT ok(NOT has_schema_privilege('anon', 'app', 'USAGE') AND NOT has_schema_privilege('authenticated', 'app', 'USAGE')
+      AND NOT has_schema_privilege('service_role', 'app', 'USAGE'), 'schema app sem USAGE para os papéis do PostgREST');
+
+SELECT ok(has_function_privilege('app_rw', 'public.login_limite_hmac(text)', 'EXECUTE')
+      AND NOT has_function_privilege('anon', 'public.login_limite_hmac(text)', 'EXECUTE')
+      AND NOT has_function_privilege('authenticated', 'public.login_limite_hmac(text)', 'EXECUTE')
+      AND NOT has_function_privilege('service_role', 'public.login_limite_hmac(text)', 'EXECUTE'),
+  'HMAC do limite de login (lê o Vault): só app_rw');
+
+-- service_role lê vault.* por GRANT do próprio Supabase (concedido por supabase_admin; o postgres não revoga). Não
+-- alcança pela API porque `vault` não está em [api] schemas (só api e srv); a chave service_role sozinha não abre SQL.
+SELECT ok(NOT has_table_privilege('app_rw', 'vault.decrypted_secrets', 'SELECT')
+      AND NOT has_table_privilege('authenticated', 'vault.decrypted_secrets', 'SELECT')
+      AND NOT has_table_privilege('anon', 'vault.decrypted_secrets', 'SELECT'),
+  'app_rw, authenticated e anon não leem o Vault direto');
 
 SELECT is_empty($$
   SELECT f.oid::regprocedure FROM pg_proc f
    WHERE f.pronamespace = 'public'::regnamespace AND has_function_privilege('service_role', f.oid, 'EXECUTE')
-$$, 'service_role não executa nenhuma função do public (só alcançará srv.*)');
+$$, 'service_role não executa nenhuma função do public (só alcança srv.*)');
 
 -- ===== RLS como contenção =========================================================================================
 SELECT is_empty($$
