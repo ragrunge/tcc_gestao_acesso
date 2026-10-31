@@ -126,7 +126,8 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
     expect(temporaria).toMatch(/^[a-z2-9]{4}(-[a-z2-9]{4}){3}$/);
     expect(criado.corpo.usuario).toMatchObject({ login, deveTrocarSenha: true });
 
-    const t = await token(login, temporaria);
+    const login1 = await entrar(login, temporaria);
+    const t: string = login1.corpo.auth.access_token;
     expect((await sessaoAtual(t)).corpo.usuario.deveTrocarSenha).toBe(true);
     const bloqueadoPelaTroca = await admin(t, { acao: 'criar', nome: 'Outro', login: `x.${sufixo()}`, papel: 'porteiro' });
     expect(bloqueadoPelaTroca.status).toBe(403);
@@ -143,7 +144,13 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
     const ok = await trocar(t, temporaria, nova);
     expect(ok.status, JSON.stringify(ok.corpo)).toBe(200);
     expect(ok.corpo.usuario.deveTrocarSenha).toBe(false);
-    expect((await sessaoAtual(t)).status).toBe(200); // a sessão que trocou continua
+    // A troca pela API admin derruba os refresh tokens do Auth: a sessão antiga cai e a resposta traz a nova.
+    expect((await sessaoAtual(t)).corpo.code).toBe('SESSAO_INVALIDA');
+    expect((await post('/auth/v1/token?grant_type=refresh_token', { refresh_token: login1.corpo.auth.refresh_token })).status).toBe(400);
+    expect((await sessaoAtual(ok.corpo.auth.access_token)).corpo.usuario.deveTrocarSenha).toBe(false);
+    const renovado = await post('/auth/v1/token?grant_type=refresh_token', { refresh_token: ok.corpo.auth.refresh_token });
+    expect(renovado.status).toBe(200);
+    expect((await sessaoAtual(renovado.corpo.access_token)).status).toBe(200);
 
     expect((await entrar(login, temporaria)).corpo.code).toBe('CREDENCIAIS_INVALIDAS');
     expect((await sessaoAtual(await token(login, nova))).corpo.usuario.deveTrocarSenha).toBe(false);

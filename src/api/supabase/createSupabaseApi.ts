@@ -217,9 +217,20 @@ export function createSupabaseApi(sb: SupabaseClient, opcoes: OpcoesSupabaseApi)
         }
       },
       async trocarSenha(i) {
-        const r = await edge<{ usuario: unknown }>('auth-trocar-senha', { senhaAtual: i.senhaAtual, novaSenha: i.novaSenha });
+        const r = await edge<{ usuario: unknown; auth?: { access_token?: string; refresh_token?: string } }>('auth-trocar-senha',
+          { senhaAtual: i.senhaAtual, novaSenha: i.novaSenha });
+        const usuario = usuarioDe(r?.usuario);
+        // A troca derruba a sessão antiga no Auth: a Edge devolve a nova, que substitui a atual (mesmo storage).
+        if (!r.auth?.access_token || !r.auth.refresh_token) throw respostaInvalida();
+        encerrando = true; // a troca de sessão pode emitir SIGNED_OUT: não é "expirada"
+        try {
+          const { error } = await sb.auth.setSession({ access_token: r.auth.access_token, refresh_token: r.auth.refresh_token });
+          if (error) throw respostaInvalida();
+        } finally {
+          encerrando = false;
+        }
         sessaoAtiva();
-        return usuarioDe(r?.usuario);
+        return usuario;
       },
     },
     usuarios: {

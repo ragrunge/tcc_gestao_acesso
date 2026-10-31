@@ -181,9 +181,12 @@ describe('auth.trocarSenha e usuarios', () => {
     m.invoke.mockResolvedValueOnce({ data: null, error: httpErro(422, { code: 'SENHA_FRACA', message: 'Curta.', details: [{ field: 'novaSenha', message: 'Curta.' }] }) });
     const e = await erro(m.api.auth.trocarSenha({ senhaAtual: 'a', novaSenha: 'b' }));
     expect([e.status, e.code, e.detalhes]).toEqual([422, 'SENHA_FRACA', [{ field: 'novaSenha', message: 'Curta.' }]]);
-    m.invoke.mockResolvedValueOnce({ data: { usuario: { ...USUARIO, deveTrocarSenha: false } }, error: null });
+    m.invoke.mockResolvedValueOnce({ data: { usuario: { ...USUARIO, deveTrocarSenha: false }, auth: { access_token: 'n.o.v', refresh_token: 'r2' } }, error: null });
     expect((await m.api.auth.trocarSenha({ senhaAtual: 'a', novaSenha: 'b' })).deveTrocarSenha).toBe(false);
     expect(m.invoke).toHaveBeenLastCalledWith('auth-trocar-senha', { body: { senhaAtual: 'a', novaSenha: 'b' } });
+    // A troca derruba os refresh tokens no Auth: a sessão nova devolvida pela Edge substitui a atual.
+    expect(m.cliente.auth.setSession).toHaveBeenCalledWith({ access_token: 'n.o.v', refresh_token: 'r2' });
+    expect(m.eventos).toEqual([]);
   });
 
   it('criar usuário devolve a senha temporária uma vez', async () => {
