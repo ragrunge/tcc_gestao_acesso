@@ -1,15 +1,17 @@
 import { createContext, createElement, useContext, useMemo, type ReactNode } from 'react';
 import type { Api } from './types';
-import { createHttpApi } from './http/createHttpApi';
+import { createSupabaseApi } from './supabase/createSupabaseApi';
+import { criarClienteSupabase } from '../lib/supabase';
 
 export * from './types';
 
 /**
- * Cliente da API real. Base padrão relativa '/api/v1' (mesma origem): proxy do Vite em dev, rewrite da Vercel em
- * produção. Base absoluta em outra origem quebraria o cookie SameSite=Strict e exigiria CORS: evitar.
+ * Cliente da API: Supabase (Auth + RPC + Edge Functions), desenho §6. Fase F1: auth e a gestão de contas pela Edge;
+ * o resto responde NAO_MIGRADO até as fases seguintes (createSupabaseApi.ts).
  */
 export function criarApi(): Api {
-  return createHttpApi(import.meta.env.VITE_API_URL || '/api/v1');
+  const { cliente, chaveAnon, armazenamento } = criarClienteSupabase();
+  return createSupabaseApi(cliente, { chaveAnon, armazenamento });
 }
 
 const ApiContext = createContext<Api | null>(null);

@@ -12,7 +12,7 @@ port = 54321
 # endpoints. `public` and `graphql_public` schemas are included by default.
 # F0: só `api` (RPCs do front). `public` guarda as tabelas e NÃO é exposto; `graphql_public` fora (sem GraphQL).
 # `srv` também não é exposto: é chamado pelas Edge Functions com service_role via conexão própria (F1).
-schemas = ["api"]
+schemas = ["api", "srv"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -224,7 +224,10 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-enable_signup = false
+# F1: LIGADO de propósito. Na CLI 2.122 este campo vira GOTRUE_EXTERNAL_EMAIL_ENABLED: desligado, o provedor de e-mail
+# inteiro some e nem o login por senha funciona (422 email_provider_disabled). Quem barra o cadastro é o
+# `[auth] enable_signup = false` acima (GOTRUE_DISABLE_SIGNUP): o teste das Edge Functions confere 422 signup_disabled.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true

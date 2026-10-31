@@ -57,8 +57,8 @@ papel no banco (RLS e funções), trilha só de inclusão protegida por trigger 
 chave `service_role` nunca vai para o front nem para este repositório.
 
 > **Estado atual:** o backend está sendo migrado de uma API NestJS (removida deste repositório, disponível no histórico
-> do git até o commit `eae0555`) para o Supabase. Enquanto o adaptador do front não for concluído, as telas abrem mas
-> não carregam dados.
+> do git até o commit `eae0555`) para o Supabase. Já migrados: login, troca obrigatória de senha, logout e a gestão de
+> contas (fase F1). As demais telas abrem, mas respondem "Função ainda não disponível nesta versão" até as próximas fases.
 
 ## Como rodar localmente
 
@@ -76,10 +76,24 @@ de acesso da conta nem a senha do banco.
 Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`):
 
 ```bash
-supabase start           # sobe o Postgres e a API locais (http://127.0.0.1:54321)
-supabase db reset        # recria o banco e aplica supabase/migrations do zero
-supabase test db         # pgTAP de supabase/tests: superfície exposta e imutabilidade
+supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
+supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed.sql
+supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login e matriz RBAC
+supabase functions serve # Edge Functions de auth (auth-entrar, auth-trocar-senha, usuarios-admin)
 ```
+
+Para o front falar com o stack local, passe a URL e a anon key **locais** por variável de ambiente (elas vencem o
+`.env`): `VITE_SUPABASE_URL=http://127.0.0.1:54321 VITE_SUPABASE_ANON_KEY=<ANON_KEY de supabase status> npm run dev`.
+
+**Usuários de demonstração (só no banco local, criados por `supabase/seed.sql`; dados fictícios):** `roberto.faria`
+(síndico), `paula.nogueira` (administração), `joao.lima` (porteiro) e `luiza.campos` (auditor), todos com a senha
+`Demo-Portaria-2026`. Essa senha é pública: o seed nunca deve rodar no projeto hospedado.
+
+Como o login funciona: o front chama a Edge `auth-entrar` com o **usuário** (não e-mail). A conta do Supabase Auth de
+cada usuário tem um e-mail sintético aleatório que só o banco conhece, e a Edge aplica o limite de tentativas por
+login+IP e a trilha de falhas antes de consultar o Auth. Papel, desativação, troca obrigatória e prazos da sessão são
+lidos do banco a cada chamada (`app.ator()`), nunca do token. A matriz de permissões do banco é gerada de
+`packages/domain/src/rbac.ts` (`node scripts/rbac-sql.mjs`).
 
 Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-demonstração).
 
@@ -88,8 +102,11 @@ Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-d
 ```bash
 npm run typecheck        # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
-npx playwright test      # e2e: a portar para o Supabase (1ª vez: npx playwright install chromium)
+npm run test:supabase    # integração das Edge Functions de auth (exige o stack local e `supabase functions serve`)
+npx playwright test e2e/30-supabase-auth.spec.ts  # e2e de login, troca obrigatória e logout contra o stack local
 ```
+
+As outras specs de `e2e/` ainda são da API NestJS e serão portadas nas próximas fases (1ª vez: `npx playwright install chromium`).
 
 No GitHub Actions, `testes-web.yml` roda o typecheck, o build e os testes unitários, e `testes-banco.yml` aplica as
 migrações num Supabase local e roda o pgTAP.
