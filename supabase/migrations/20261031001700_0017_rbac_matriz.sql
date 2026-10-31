@@ -1,0 +1,167 @@
+-- 0017 — Matriz RBAC no banco (desenho §2.3, F1). Nova: não existe no legado Drizzle.
+-- O papel NÃO vem da JWT: vem de usuario_sistema.papel, lido a cada chamada por app.ator() (0018). Esta tabela diz o que
+-- cada papel pode fazer. Ela é GERADA de packages/domain/src/rbac.ts (`node scripts/rbac-sql.mjs migracao`): mudar a
+-- matriz no TS exige uma migração NOVA com o bloco regenerado; o teste pgTAP 04_rbac_matriz (também gerado) e o
+-- teste de paridade src/test/rbac-paridade.test.ts ficam vermelhos até isso acontecer.
+-- rbac_acao existe à parte para que app.pode() distinga "ação que nenhum papel tem" de "ação digitada errada"
+-- (a segunda é erro de programação e falha fechada, como a rota sem política do PapelGuard antigo).
+-- Só leitura para app_rw; ninguém mais alcança (RLS + sem GRANT para anon/authenticated/service_role).
+
+CREATE TABLE public.rbac_acao (
+  acao text PRIMARY KEY,
+  CONSTRAINT rbac_acao_formato_ck CHECK (acao ~ '^[a-z]+\.[a-z_]+$')
+);
+
+CREATE TABLE public.rbac_matriz (
+  acao text NOT NULL REFERENCES public.rbac_acao (acao),
+  papel public.papel NOT NULL,
+  CONSTRAINT rbac_matriz_pk PRIMARY KEY (acao, papel)
+);
+
+-- ===== Bloco gerado (scripts/rbac-sql.mjs migracao) ===========================================================
+INSERT INTO public.rbac_acao (acao) VALUES
+  ('auditoria.exportar'),
+  ('auditoria.selar'),
+  ('auditoria.verificar'),
+  ('autorizacao.area_comum'),
+  ('autorizacao.criar'),
+  ('documento.ver'),
+  ('encomenda.autorizar_retirada'),
+  ('encomenda.operar'),
+  ('encomenda.ver'),
+  ('evento.corrigir'),
+  ('evento.registrar'),
+  ('evento.retroativo'),
+  ('evento.ver'),
+  ('funcionario.gerenciar'),
+  ('funcionario.ver'),
+  ('importacao.executar'),
+  ('lgpd.anonimizar'),
+  ('lgpd.exportar'),
+  ('lgpd.retencao'),
+  ('ocorrencia.operar'),
+  ('ocorrencia.ver'),
+  ('pessoa.cadastrar_externo'),
+  ('pessoa.cadastrar_morador'),
+  ('pessoa.desativar'),
+  ('pessoa.editar'),
+  ('pessoa.ver'),
+  ('relatorio.ver'),
+  ('restricao.aprovar'),
+  ('restricao.criar'),
+  ('turno.ver'),
+  ('unidade.editar'),
+  ('unidade.ver'),
+  ('usuario.gerenciar'),
+  ('usuario.gerenciar_sindico'),
+  ('veiculo.cadastrar'),
+  ('vinculo.criar'),
+  ('vinculo.decidir'),
+  ('vinculo.ver');
+
+INSERT INTO public.rbac_matriz (acao, papel) VALUES
+  ('auditoria.exportar', 'sindico'),
+  ('auditoria.exportar', 'administracao'),
+  ('auditoria.exportar', 'auditor'),
+  ('auditoria.selar', 'sindico'),
+  ('auditoria.selar', 'auditor'),
+  ('auditoria.verificar', 'sindico'),
+  ('auditoria.verificar', 'administracao'),
+  ('auditoria.verificar', 'auditor'),
+  ('autorizacao.area_comum', 'sindico'),
+  ('autorizacao.area_comum', 'administracao'),
+  ('autorizacao.criar', 'sindico'),
+  ('autorizacao.criar', 'administracao'),
+  ('autorizacao.criar', 'porteiro'),
+  ('documento.ver', 'sindico'),
+  ('documento.ver', 'administracao'),
+  ('encomenda.autorizar_retirada', 'sindico'),
+  ('encomenda.autorizar_retirada', 'administracao'),
+  ('encomenda.autorizar_retirada', 'porteiro'),
+  ('encomenda.operar', 'sindico'),
+  ('encomenda.operar', 'administracao'),
+  ('encomenda.operar', 'porteiro'),
+  ('encomenda.ver', 'sindico'),
+  ('encomenda.ver', 'administracao'),
+  ('encomenda.ver', 'porteiro'),
+  ('encomenda.ver', 'auditor'),
+  ('evento.corrigir', 'sindico'),
+  ('evento.corrigir', 'administracao'),
+  ('evento.registrar', 'sindico'),
+  ('evento.registrar', 'administracao'),
+  ('evento.registrar', 'porteiro'),
+  ('evento.retroativo', 'sindico'),
+  ('evento.retroativo', 'administracao'),
+  ('evento.retroativo', 'porteiro'),
+  ('evento.ver', 'sindico'),
+  ('evento.ver', 'administracao'),
+  ('evento.ver', 'porteiro'),
+  ('evento.ver', 'auditor'),
+  ('funcionario.gerenciar', 'sindico'),
+  ('funcionario.gerenciar', 'administracao'),
+  ('funcionario.ver', 'sindico'),
+  ('funcionario.ver', 'administracao'),
+  ('funcionario.ver', 'auditor'),
+  ('importacao.executar', 'sindico'),
+  ('importacao.executar', 'administracao'),
+  ('lgpd.anonimizar', 'sindico'),
+  ('lgpd.exportar', 'sindico'),
+  ('lgpd.exportar', 'administracao'),
+  ('lgpd.retencao', 'sindico'),
+  ('ocorrencia.operar', 'sindico'),
+  ('ocorrencia.operar', 'administracao'),
+  ('ocorrencia.operar', 'porteiro'),
+  ('ocorrencia.ver', 'sindico'),
+  ('ocorrencia.ver', 'administracao'),
+  ('ocorrencia.ver', 'porteiro'),
+  ('ocorrencia.ver', 'auditor'),
+  ('pessoa.cadastrar_externo', 'sindico'),
+  ('pessoa.cadastrar_externo', 'administracao'),
+  ('pessoa.cadastrar_externo', 'porteiro'),
+  ('pessoa.cadastrar_morador', 'sindico'),
+  ('pessoa.cadastrar_morador', 'administracao'),
+  ('pessoa.desativar', 'sindico'),
+  ('pessoa.desativar', 'administracao'),
+  ('pessoa.editar', 'sindico'),
+  ('pessoa.editar', 'administracao'),
+  ('pessoa.ver', 'sindico'),
+  ('pessoa.ver', 'administracao'),
+  ('pessoa.ver', 'porteiro'),
+  ('pessoa.ver', 'auditor'),
+  ('relatorio.ver', 'sindico'),
+  ('relatorio.ver', 'administracao'),
+  ('relatorio.ver', 'auditor'),
+  ('restricao.aprovar', 'sindico'),
+  ('restricao.criar', 'sindico'),
+  ('restricao.criar', 'administracao'),
+  ('restricao.criar', 'porteiro'),
+  ('turno.ver', 'sindico'),
+  ('turno.ver', 'administracao'),
+  ('turno.ver', 'porteiro'),
+  ('unidade.editar', 'sindico'),
+  ('unidade.editar', 'administracao'),
+  ('unidade.ver', 'sindico'),
+  ('unidade.ver', 'administracao'),
+  ('unidade.ver', 'porteiro'),
+  ('unidade.ver', 'auditor'),
+  ('usuario.gerenciar', 'sindico'),
+  ('usuario.gerenciar', 'administracao'),
+  ('usuario.gerenciar_sindico', 'sindico'),
+  ('veiculo.cadastrar', 'sindico'),
+  ('veiculo.cadastrar', 'administracao'),
+  ('vinculo.criar', 'sindico'),
+  ('vinculo.criar', 'administracao'),
+  ('vinculo.decidir', 'sindico'),
+  ('vinculo.decidir', 'administracao'),
+  ('vinculo.ver', 'sindico'),
+  ('vinculo.ver', 'administracao'),
+  ('vinculo.ver', 'auditor');
+-- ===== Fim do bloco gerado ======================================================================================
+
+-- Contenção, no padrão da 0016 (tabela nova no public: RLS com política só para app_rw).
+REVOKE ALL ON public.rbac_acao, public.rbac_matriz FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON public.rbac_acao, public.rbac_matriz TO app_rw;
+ALTER TABLE public.rbac_acao ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rbac_matriz ENABLE ROW LEVEL SECURITY;
+CREATE POLICY app_rw_acesso ON public.rbac_acao TO app_rw USING (true) WITH CHECK (true);
+CREATE POLICY app_rw_acesso ON public.rbac_matriz TO app_rw USING (true) WITH CHECK (true);
