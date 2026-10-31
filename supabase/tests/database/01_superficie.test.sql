@@ -1,16 +1,37 @@
 -- Superfície exposta (desenho §3.4, item 1): o que anon/authenticated/service_role alcançam nos schemas do sistema.
 -- Fail-closed: cada função que anon/authenticated/service_role podem executar entra na allowlist DE PROPÓSITO.
 -- F0: vazia. F1: as duas RPCs de sessão do front (authenticated) e as srv.* das Edge Functions (service_role).
+-- F2: as RPCs da portaria (authenticated). Justificativa de cada uma: é o contrato do front (src/api/types.ts) e começa
+-- por app.exigir(ação) (ou app.ator(), no catálogo), conferido abaixo; nenhuma devolve documento_busca nem telefone completo.
 -- Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(27);
+SELECT plan(30);
 
 -- Allowlist explícita: (papel, função) que PODE ter EXECUTE. anon: nenhuma ainda (api.selos_publicos é da F5).
 CREATE TEMP TABLE allowlist_execute (papel name, funcao regprocedure) ON COMMIT DROP;
 INSERT INTO allowlist_execute VALUES
   ('authenticated', 'api.sessao_atual()'),
-  ('authenticated', 'api.sessao_encerrar()');
+  ('authenticated', 'api.sessao_encerrar()'),
+  -- F2, catálogo e unidades (unidade.ver; catálogo: só sessão)
+  ('authenticated', 'api.catalogo()'), ('authenticated', 'api.unidades_listar(jsonb)'), ('authenticated', 'api.unidade_detalhe(text)'),
+  -- F2, vínculos só leitura (unidade.ver / vinculo.ver)
+  ('authenticated', 'api.vinculos_autorizadores(uuid)'), ('authenticated', 'api.vinculos_contar(text)'), ('authenticated', 'api.vinculos_listar(jsonb)'),
+  -- F2, busca e pessoas (pessoa.ver, pessoa.cadastrar_*, pessoa.desativar, evento.registrar para a escala)
+  ('authenticated', 'api.pessoas_buscar(jsonb)'), ('authenticated', 'api.busca_global(jsonb)'), ('authenticated', 'api.pessoas_listar(jsonb)'),
+  ('authenticated', 'api.pessoa_ficha(uuid)'), ('authenticated', 'api.pessoa_funcionario(uuid)'), ('authenticated', 'api.pessoa_criar(jsonb)'),
+  ('authenticated', 'api.pessoa_desativar(uuid, text)'), ('authenticated', 'api.pessoa_reativar(uuid)'),
+  -- F2, registro de acesso (evento.registrar / evento.retroativo / evento.corrigir / evento.ver / turno.ver)
+  ('authenticated', 'api.evento_entrada(jsonb)'), ('authenticated', 'api.evento_recusa(jsonb)'), ('authenticated', 'api.evento_saida(uuid, jsonb)'),
+  ('authenticated', 'api.evento_corrigir(uuid, jsonb)'), ('authenticated', 'api.evento_prorrogar(uuid)'), ('authenticated', 'api.eventos_listar(jsonb)'),
+  ('authenticated', 'api.evento_obter(uuid)'), ('authenticated', 'api.evento_correcoes(uuid)'), ('authenticated', 'api.eventos_presentes()'),
+  ('authenticated', 'api.evento_ultimo_veiculo(uuid)'), ('authenticated', 'api.turno_resumo()'),
+  -- F2, autorizações prévias e restrições (autorizacao.criar / autorizacao.area_comum / restricao.* / unidade.ver / unidade.editar)
+  ('authenticated', 'api.autorizacao_criar(jsonb)'), ('authenticated', 'api.autorizacao_revogar(uuid)'),
+  ('authenticated', 'api.autorizacoes_vigentes(uuid, uuid, boolean)'), ('authenticated', 'api.autorizacoes_hoje()'),
+  ('authenticated', 'api.autorizacoes_previstas(integer)'), ('authenticated', 'api.restricao_verificar(uuid, uuid)'),
+  ('authenticated', 'api.restricao_criar(jsonb)'), ('authenticated', 'api.restricao_aprovar(uuid)'), ('authenticated', 'api.restricao_revogar(uuid)'),
+  ('authenticated', 'api.restricoes_pendentes()');
 CREATE TEMP TABLE allowlist_service_role (funcao regprocedure) ON COMMIT DROP;
 INSERT INTO allowlist_service_role VALUES
   ('srv.login_preparar(text, text)'), ('srv.login_falhou(text, text)'),
@@ -94,6 +115,27 @@ SELECT is_empty($$
   SELECT f.oid::regprocedure FROM pg_proc f
    WHERE f.pronamespace = 'public'::regnamespace AND has_function_privilege('service_role', f.oid, 'EXECUTE')
 $$, 'service_role não executa nenhuma função do public (só alcança srv.*)');
+
+-- F2: o HMAC do CPF (lê o Vault) não é oráculo: só o app_rw executa, dentro das RPCs, que devolvem pessoa e nunca hash.
+SELECT ok(has_function_privilege('app_rw', 'public.cpf_hmac(text)', 'EXECUTE')
+      AND NOT has_function_privilege('anon', 'public.cpf_hmac(text)', 'EXECUTE')
+      AND NOT has_function_privilege('authenticated', 'public.cpf_hmac(text)', 'EXECUTE')
+      AND NOT has_function_privilege('service_role', 'public.cpf_hmac(text)', 'EXECUTE'),
+  'HMAC do CPF (lê o Vault): só app_rw');
+
+-- F2: nenhuma RPC do front sem a checagem de sessão/RBAC no começo (app.exigir(ação), ou app.ator() no catálogo e na sessão).
+SELECT is_empty($$
+  SELECT f.oid::regprocedure FROM pg_proc f
+   WHERE f.pronamespace = 'api'::regnamespace
+     AND substring(f.prosrc FROM '^\s*(?:#variable_conflict use_variable\s*)?DECLARE\s+a app\.ator_t := (app\.exigir|app\.ator)\(') IS NULL
+$$, 'toda RPC de api começa por app.exigir(...) ou app.ator(...) na primeira declaração');
+
+-- F2: trigger e helper do public com search_path fixo (sem ele, o trigger herdava o search_path vazio das RPCs).
+SELECT is_empty($$
+  SELECT f.oid::regprocedure FROM pg_proc f
+   WHERE f.pronamespace = 'public'::regnamespace AND f.proconfig IS NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = f.oid AND d.deptype = 'e')
+$$, 'funções do public (triggers e helpers) têm search_path fixo');
 
 -- ===== RLS como contenção =========================================================================================
 SELECT is_empty($$
