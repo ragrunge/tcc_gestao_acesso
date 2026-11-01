@@ -1,0 +1,67 @@
+# Integração contra o Supabase LOCAL do runner (Docker): vitest (Edge Functions, paridade TS-SQL, concorrência, operação)
+# e Playwright dos specs 30+ (os anteriores apontam para a API NestJS removida e não rodam). Sem segredos e sem link com
+# projeto hospedado: as chaves são as padrão do CLI local (descartáveis), lidas de `supabase status -o env` pelos testes.
+name: Integração (Supabase local)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: integracao-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integracao:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.122.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+          cache: npm
+      # Banco + Auth + API (postgrest, kong). As Edge Functions sobem no `functions serve` abaixo.
+      - run: supabase start -x studio,imgproxy,realtime,storage-api,logflare,vector,supavisor,mailpit,postgres-meta
+      - run: supabase db reset
+      - run: npm ci --no-audit --no-fund
+      - name: Edge Functions (background)
+        run: |
+          nohup supabase functions serve > "$RUNNER_TEMP/functions.log" 2>&1 &
+          anon=$(supabase status -o env | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')
+          # Pronta quando a função responde 400 (validação do corpo vazio); 401/404/5xx = ainda subindo.
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:54321/functions/v1/auth-entrar -H "apikey: $anon" -H 'content-type: application/json' -d '{}' || true)
+            [ "$code" = "400" ] && exit 0
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/functions.log"; exit 1
+      - run: npm run test:supabase
+      # Os testes acima sujam o banco (usuários, bloqueios de login): recomeça do seed para o e2e.
+      - run: supabase db reset
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts
+      - name: Logs das Edge Functions
+        if: failure()
+        run: cat "$RUNNER_TEMP/functions.log" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
