@@ -1,12 +1,13 @@
 -- Superfície exposta (desenho §3.4, item 1): o que anon/authenticated/service_role alcançam nos schemas do sistema.
 -- Fail-closed: cada função que anon/authenticated/service_role podem executar entra na allowlist DE PROPÓSITO.
 -- F0: vazia. F1: as duas RPCs de sessão do front (authenticated) e as srv.* das Edge Functions (service_role).
--- F2: as RPCs da portaria (authenticated). Justificativa de cada uma: é o contrato do front (src/api/types.ts) e começa
+-- F2: as RPCs da portaria (authenticated). F3: as de operação (vínculos, encomendas, ocorrências, funcionários, cadastros,
+-- auditoria, relatórios e importação), mesmo critério. Justificativa de cada uma: é o contrato do front (src/api/types.ts) e começa
 -- por app.exigir(ação) (ou app.ator(), no catálogo), conferido abaixo; nenhuma devolve documento_busca nem telefone completo.
 -- Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(30);
+SELECT plan(31);
 
 -- Allowlist explícita: (papel, função) que PODE ter EXECUTE. anon: nenhuma ainda (api.selos_publicos é da F5).
 CREATE TEMP TABLE allowlist_execute (papel name, funcao regprocedure) ON COMMIT DROP;
@@ -31,7 +32,27 @@ INSERT INTO allowlist_execute VALUES
   ('authenticated', 'api.autorizacoes_vigentes(uuid, uuid, boolean)'), ('authenticated', 'api.autorizacoes_hoje()'),
   ('authenticated', 'api.autorizacoes_previstas(integer)'), ('authenticated', 'api.restricao_verificar(uuid, uuid)'),
   ('authenticated', 'api.restricao_criar(jsonb)'), ('authenticated', 'api.restricao_aprovar(uuid)'), ('authenticated', 'api.restricao_revogar(uuid)'),
-  ('authenticated', 'api.restricoes_pendentes()');
+  ('authenticated', 'api.restricoes_pendentes()'),
+  -- F3, vínculos: escrita (vinculo.criar / vinculo.decidir)
+  ('authenticated', 'api.vinculo_criar(jsonb)'), ('authenticated', 'api.vinculo_conferir(uuid, jsonb)'), ('authenticated', 'api.vinculo_aprovar(uuid)'),
+  ('authenticated', 'api.vinculo_rejeitar(uuid, jsonb)'), ('authenticated', 'api.vinculo_regularizar(uuid, jsonb)'), ('authenticated', 'api.vinculo_encerrar(uuid, jsonb)'),
+  -- F3, encomendas (encomenda.ver / encomenda.operar / encomenda.autorizar_retirada)
+  ('authenticated', 'api.encomendas_listar(jsonb)'), ('authenticated', 'api.encomendas_resumo(integer)'), ('authenticated', 'api.encomenda_obter(uuid)'),
+  ('authenticated', 'api.encomenda_receber(jsonb)'), ('authenticated', 'api.encomenda_entregar(uuid, uuid)'), ('authenticated', 'api.encomenda_autorizar_retirada(uuid, jsonb)'),
+  -- F3, ocorrências sem anexo (ocorrencia.ver / ocorrencia.operar)
+  ('authenticated', 'api.ocorrencias_listar(jsonb)'), ('authenticated', 'api.ocorrencia_obter(uuid)'), ('authenticated', 'api.ocorrencia_criar(jsonb)'),
+  ('authenticated', 'api.ocorrencia_alterar_status(uuid, text)'), ('authenticated', 'api.ocorrencia_vincular_eventos(uuid, jsonb)'),
+  -- F3, funcionários (funcionario.ver / funcionario.gerenciar)
+  ('authenticated', 'api.funcionarios_listar(jsonb)'), ('authenticated', 'api.funcionario_criar(jsonb)'), ('authenticated', 'api.funcionario_editar(uuid, jsonb)'),
+  -- F3, cadastros (veiculo.cadastrar / pessoa.editar / unidade.editar)
+  ('authenticated', 'api.veiculo_criar(jsonb)'), ('authenticated', 'api.veiculo_editar(uuid, jsonb)'), ('authenticated', 'api.pessoa_editar(uuid, jsonb)'),
+  ('authenticated', 'api.unidade_criar(jsonb)'), ('authenticated', 'api.unidade_editar(uuid, jsonb)'), ('authenticated', 'api.unidade_desativar(uuid)'),
+  ('authenticated', 'api.unidade_reativar(uuid)'),
+  -- F3, auditoria (auditoria.verificar / auditoria.exportar) e relatórios (relatorio.ver)
+  ('authenticated', 'api.auditoria_alteracoes(jsonb)'), ('authenticated', 'api.auditoria_cadeia(jsonb)'), ('authenticated', 'api.auditoria_exportar(jsonb)'),
+  ('authenticated', 'api.relatorio_resumo(jsonb)'),
+  -- F3, importação (importacao.executar)
+  ('authenticated', 'api.importacao_analisar(jsonb)'), ('authenticated', 'api.importacao_confirmar(uuid, jsonb)');
 CREATE TEMP TABLE allowlist_service_role (funcao regprocedure) ON COMMIT DROP;
 INSERT INTO allowlist_service_role VALUES
   ('srv.login_preparar(text, text)'), ('srv.login_falhou(text, text)'),
@@ -122,6 +143,14 @@ SELECT ok(has_function_privilege('app_rw', 'public.cpf_hmac(text)', 'EXECUTE')
       AND NOT has_function_privilege('authenticated', 'public.cpf_hmac(text)', 'EXECUTE')
       AND NOT has_function_privilege('service_role', 'public.cpf_hmac(text)', 'EXECUTE'),
   'HMAC do CPF (lê o Vault): só app_rw');
+
+-- F3: a impressão da importação (HMAC com a mesma chave, domínio importacao:v1) também só para o app_rw.
+SELECT ok(has_function_privilege('app_rw', 'public.importacao_impressao(text)', 'EXECUTE')
+      AND NOT has_function_privilege('anon', 'public.importacao_impressao(text)', 'EXECUTE')
+      AND NOT has_function_privilege('authenticated', 'public.importacao_impressao(text)', 'EXECUTE')
+      AND NOT has_function_privilege('service_role', 'public.importacao_impressao(text)', 'EXECUTE')
+      AND (SELECT prosecdef AND proowner = 'postgres'::regrole FROM pg_proc WHERE oid = 'public.importacao_impressao(text)'::regprocedure),
+  'impressão da importação (lê o Vault): dono postgres, só app_rw executa');
 
 -- F2: nenhuma RPC do front sem a checagem de sessão/RBAC no começo (app.exigir(ação), ou app.ator() no catálogo e na sessão).
 SELECT is_empty($$
