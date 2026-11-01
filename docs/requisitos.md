@@ -203,7 +203,7 @@ O artigo apresenta este resumo; esta especificação é a referência completa.
 | ID | Categoria | Requisito | Prioridade | Origem |
 | --- | --- | --- | --- | --- |
 | RNF-01 | Auditabilidade | Registros de acesso protegidos contra alteração e exclusão, com verificação de integridade (encadeamento de hashes). | M | P3, P9 |
-| RNF-02 | Segurança | Autenticação individual; senhas armazenadas com hash forte (argon2id). Segundo fator (TOTP) para síndico e administração fica para a fase de segurança, após o MVP. | M | P3, RN-05 |
+| RNF-02 | Segurança | Autenticação individual; senhas armazenadas com hash forte (bcrypt, pelo Supabase Auth). Segundo fator (TOTP) para síndico e administração fica para a fase de segurança, após o MVP. | M | P3, RN-05 |
 | RNF-03 | Segurança | Comunicação criptografada (TLS) e fotos e anexos de ocorrência criptografados em repouso. | M | P6 |
 | RNF-04 | Controle de acesso lógico | Permissões por papel (síndico, administração, porteiro, auditor), com privilégio mínimo. | M | P3, RN-03 |
 | RNF-05 | Disponibilidade | Portaria é 24h: o sistema precisa de procedimento de contingência documentado para queda de internet ou energia, com lançamento posterior marcado como retroativo. | M | P3 |
