@@ -32,7 +32,7 @@ participou da pesquisa.
 | `pesquisa/` | Instrumento de avaliação de aceitação (TAM) pós-uso, com termo de consentimento, roteiro da demonstração e plano de análise, e o registro do pré-teste do instrumento |
 | `src/`, `public/`, `index.html` | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração) |
 | `packages/domain` | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco |
-| `supabase/` | Backend no Supabase. `legado-drizzle/` guarda as 16 migrações SQL da API NestJS antiga, base do port; as migrações novas ficam em `migrations/` |
+| `supabase/` | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/` |
 | `e2e/` | Specs Playwright, a portar para o Supabase local (foram escritas contra a API antiga) |
 | `scripts/` | Geração dos ícones e da marca |
 
