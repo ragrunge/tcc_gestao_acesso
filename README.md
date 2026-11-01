@@ -28,42 +28,47 @@ participou da pesquisa.
 |---|---|
 | `docs/requisitos.md` | Documento de requisitos: problemas levantados, escopo, requisitos funcionais e não funcionais, regras de negócio, proteção de dados (LGPD), casos de uso e matriz de rastreabilidade com os indicadores de avaliação |
 | `docs/rastreabilidade.md` | Ligação de cada requisito funcional ao código que o implementa |
+| `docs/arquitetura.md`, `docs/anexos.md`, `docs/front.md` | Decisões de segurança do backend, dos anexos cifrados e guia do front |
 | `diagramas/` | Diagramas de casos de uso (portaria, administração e auditoria), em PlantUML, SVG e PNG, e a visão geral da arquitetura |
 | `pesquisa/` | Instrumento de avaliação de aceitação (TAM) pós-uso, com termo de consentimento, roteiro da demonstração e plano de análise, e o registro do pré-teste do instrumento |
 | `src/`, `public/`, `index.html` | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração) |
 | `src/domain` | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco |
 | `supabase/` | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/` |
-| `e2e/` | Specs Playwright, a portar para o Supabase local (foram escritas contra a API antiga) |
-| `scripts/` | Geração dos ícones e da marca |
+| `e2e/` | Testes de ponta a ponta (Playwright) contra o Supabase local |
+| `scripts/` | Geração dos ícones e da marca e do SQL da matriz de permissões (`rbac-sql.mjs`) |
 
 ## O sistema
 
 O protótipo atende **um condomínio**, com um banco de dados só. Funções:
+
+**Implementadas**
 
 - **Portaria:** registro de entrada e saída; meios de autorização (interfone, celular, morador presente, autorização
   prévia, escala de funcionário e exceção do porteiro com justificativa); registro retroativo para queda do sistema
   (contingência); prazo de permanência por tipo de visita; restrições de acesso; painel do turno; encomendas e
   ocorrências com anexos cifrados (AES-256-GCM).
 - **Administração:** cadastro de pessoas, vínculos com a unidade e conferência do comprovante, unidades e veículos,
-  funcionários e escala, usuários por papel (síndico, administração, porteiro, auditor), importação de planilha e
-  relatórios.
-- **Auditoria:** trilha de acessos só de inclusão, encadeada por hash (SHA-256), com verificação de integridade,
-  exportação verificável, filtro por placa e selo diário com âncora externa.
-- **Privacidade (LGPD):** pedidos do titular (exportação e anonimização), retenção por prazo e registro das
-  anonimizações fora do banco, para reaplicá-las depois de uma restauração de backup.
+  funcionários e escala, importação de planilha e relatórios com exportação em CSV.
+- **Auditoria:** trilha de acessos só de inclusão, encadeada por hash (SHA-256), com verificação de integridade no
+  navegador e exportação verificável.
+- **Acesso:** login por usuário e senha pelo Supabase Auth, quatro papéis (síndico, administração, porteiro e
+  auditor), com permissões decididas no banco.
 
-Segurança (alvo da migração para o Supabase, ainda em andamento): autenticação pelo Supabase Auth, autorização por
-papel no banco (RLS e funções), trilha só de inclusão protegida por trigger e CPF guardado só como máscara e HMAC. A
-chave `service_role` nunca vai para o front nem para este repositório.
+**Previstas, ainda não migradas** (essas telas somem do menu e mostram "ainda não está disponível nesta versão")
 
-> **Estado atual:** o backend está sendo migrado de uma API NestJS (removida deste repositório, disponível no histórico
-> do git até o commit `eae0555`) para o Supabase. Já migrados: login, troca obrigatória de senha, logout e a gestão de
-> contas (fase F1); a portaria (fase F2): busca e cadastro de pessoas, catálogo e unidades (leitura), vínculos (leitura),
-> entrada, saída, recusa, correção, permanência, autorizações prévias e restrições; a operação (fase F3): decisão de
-> vínculos, encomendas, ocorrências, funcionários e escala, edição de veículos, pessoas e unidades, relatórios com CSV,
-> verificação e exportação da trilha e importação da planilha; e os anexos de ocorrência (fase F4). Ainda não migrados:
-> LGPD, retenção e selo diário (F5) e a tela de usuários; essas telas somem do menu e mostram "ainda não está
-> disponível nesta versão".
+- **Privacidade (LGPD):** pedidos do titular (exportação e anonimização) e retenção por prazo.
+- **Selo diário da trilha** com âncora externa.
+- **Tela de gestão de usuários** (a criação de contas já existe no backend, pela Edge `usuarios-admin`).
+
+**Segurança:** autenticação pelo Supabase Auth, autorização por papel no banco (funções SQL com RLS como contenção),
+trilha só de inclusão protegida por trigger e CPF guardado só como máscara e HMAC. A chave `service_role` nunca vai para
+o front nem para este repositório. O backend foi migrado de uma API NestJS própria para o Supabase; a versão anterior
+está na tag `nestjs-final`.
+
+## Artigo e demonstração
+
+- Artigo: *a definir*.
+- Demonstração publicada: *a definir* (ver "Versão publicada").
 
 ## Como rodar localmente
 
@@ -98,36 +103,11 @@ Para o front falar com o stack local, passe a URL e a anon key **locais** por va
 **Usuários de demonstração (só no banco local, criados por `supabase/seed.sql`; dados fictícios):** `roberto.faria`
 (síndico), `paula.nogueira` (administração), `joao.lima` (porteiro) e `luiza.campos` (auditor), todos com a senha
 `Demo-Portaria-2026`. Essa senha é pública: o seed nunca deve rodar no projeto hospedado. O seed também cria a
-estrutura do condomínio (162 unidades, áreas comuns, a portaria) e pessoas fictícias para demonstrar a portaria: moradores
+estrutura do condomínio (blocos, unidades, áreas comuns, a portaria) e pessoas fictícias para demonstrar a portaria: moradores
 com vínculo (por exemplo Fernanda Costa na B-21 e Carla Mendes na A-11), visitantes, prestadores, um funcionário em
 escala, uma autorização prévia e uma restrição (Sérgio Prado na A-11). Os CPFs são inventados, com dígito válido.
 
-Como o login funciona: o front chama a Edge `auth-entrar` com o **usuário** (não e-mail). A conta do Supabase Auth de
-cada usuário tem um e-mail sintético aleatório que só o banco conhece, e a Edge aplica o limite de tentativas por
-login+IP e a trilha de falhas antes de consultar o Auth. Papel, desativação, troca obrigatória e prazos da sessão são
-lidos do banco a cada chamada (`app.ator()`), nunca do token. A matriz de permissões do banco é gerada de
-`src/domain/rbac.ts` (`node scripts/rbac-sql.mjs`).
-
-Portaria (F2): cada operação é uma função `api.*` no Postgres (migrações 0020–0024) que começa por `app.exigir(ação)` e
-roda com as permissões mínimas do papel `app_rw`; nenhuma tabela é exposta. O hash da trilha continua sendo calculado
-pelo trigger do banco. O CPF é guardado como máscara e HMAC, com a chave no Supabase Vault (nunca sai do banco); a busca
-devolve a pessoa, nunca o hash. As regras do servidor (autorização da entrada, restrições, escala, permanência) têm uma
-versão em SQL e um teste de paridade com as de `src/domain`.
-
-Operação (F3, migrações 0025–0032): mesmo padrão. Funcionário nunca devolve o telefone inteiro; a conferência de
-vínculo recusa número de pessoa em texto livre (função e CHECK da tabela); a integridade da trilha é verificada no
-navegador, em lotes devolvidos por `api.auditoria_cadeia`, e a exportação registra na trilha os filtros sem o nome nem a
-placa digitados. A importação guarda só a impressão HMAC de cada linha (chave no Vault), nunca a planilha.
-
-Anexos (F4, migração 0033 e Edge `anexos`): o bucket `anexos` do Storage é privado e não tem política para `anon` nem
-`authenticated` (só o `service_role` da Edge alcança). Envio e leitura passam pela Edge, que decide no banco
-(`srv.anexo_*`: sessão, papel, porteiro só na própria ocorrência, encerrada, no máximo 5) e confere o tipo pelos
-primeiros bytes (JPEG, PNG ou PDF) e o tamanho (até 4 MiB). Cada arquivo é cifrado com AES-256-GCM e chave própria
-(envelope com a KEK, que fica nos secrets da Edge, fora do banco), guardado como `<id>.bin` (o nome original não é
-guardado) e registrado com o SHA-256 numa tabela só de inclusão. Só síndico e administração baixam o conteúdo, e cada
-leitura vai à trilha (`documento.ler`). Decisões e trade-offs: [docs/anexos.md](docs/anexos.md).
-
-Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-demonstração).
+Detalhes do login, da autorização no banco, da trilha, da importação e dos anexos: [docs/arquitetura.md](docs/arquitetura.md).
 
 ## Testes
 
