@@ -87,7 +87,7 @@ Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`
 
 ```bash
 supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
-supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed.sql
+supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed/demo.sql
 supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação e anexos
 # KEK local dos anexos (32 bytes aleatórios, só desta máquina; o arquivo é ignorado pelo git). Uma vez:
 (umask 077; printf 'PORTARIA_KEK_V1=%s\n' "$(openssl rand -base64 32)" > supabase/functions/.env.local)
@@ -100,20 +100,35 @@ ilegíveis os anexos já enviados com a anterior (só dado fictício).
 Para o front falar com o stack local, passe a URL e a anon key **locais** por variável de ambiente (elas vencem o
 `.env`): `VITE_SUPABASE_URL=http://127.0.0.1:54321 VITE_SUPABASE_ANON_KEY=<ANON_KEY de supabase status> npm run dev`.
 
-**Usuários de demonstração (só no banco local, criados por `supabase/seed.sql`; dados fictícios):** `roberto.faria`
+O banco tem duas partes de dados, e só a primeira vai ao projeto hospedado:
+
+| O quê | Onde | Roda em |
+|---|---|---|
+| **Estrutura do condomínio:** configuração (agrupamento "Bloco"), o ponto de acesso "Portaria social", as 7 áreas comuns e as unidades (9 blocos, A a I, 162 unidades) | migração `supabase/migrations/…_0035_estrutura_condominio.sql` | local e hospedado (`db push`), como as outras migrações |
+| **Demonstração:** usuários, pessoas, vínculos, veículos, funcionário, autorização e restrição fictícios | `supabase/seed/demo.sql` (`[db.seed]` do `supabase/config.toml`) | **só local** (`supabase db reset`) |
+
+A estrutura não tem usuário, pessoa nem senha, e só insere: reaplicada num banco já usado, não muda nada (as unidades
+só entram com a tabela vazia; depois da carga, unidades se cadastram, editam e desativam nas telas do sistema, com
+trilha). **A contagem de unidades é provisória:** o térreo sem os finais 01 e 02 (162 unidades) ainda precisa ser
+confirmado com o síndico (há a hipótese de 165).
+
+**Usuários de demonstração (só no banco local, criados por `supabase/seed/demo.sql`; dados fictícios):** `roberto.faria`
 (síndico), `paula.nogueira` (administração), `joao.lima` (porteiro) e `luiza.campos` (auditor), todos com a senha
-`Demo-Portaria-2026`. Essa senha é pública: o seed nunca deve rodar no projeto hospedado. O seed também cria a
-estrutura do condomínio (blocos, unidades, áreas comuns, a portaria) e pessoas fictícias para demonstrar a portaria: moradores
-com vínculo (por exemplo Fernanda Costa na B-21 e Carla Mendes na A-11), visitantes, prestadores, um funcionário em
-escala, uma autorização prévia e uma restrição (Sérgio Prado na A-11). Os CPFs são inventados, com dígito válido.
+`Demo-Portaria-2026`. Essa senha é pública: a demonstração nunca roda no projeto hospedado (não use `--include-seed` no
+`db push`), e o arquivo recusa um banco que já tenha usuário ou pessoa. Ela cria também pessoas fictícias para
+demonstrar a portaria: moradores com vínculo (por exemplo Fernanda Costa na B-21 e Carla Mendes na A-11), visitantes,
+prestadores, um funcionário em escala, uma autorização prévia e uma restrição (Sérgio Prado na A-11). Os CPFs são
+inventados, com dígito válido.
 
 ## Primeiro síndico (projeto hospedado)
 
-O projeto hospedado nasce sem nenhum usuário, e a gestão de usuários exige alguém logado. O primeiro usuário, um
-síndico, é criado por um script que o dono do projeto roda no próprio terminal:
+O projeto hospedado nasce sem nenhum usuário, e a gestão de usuários exige alguém logado. A estrutura do condomínio
+chega pelas migrações; o primeiro usuário, um síndico, é criado por um script que o dono do projeto roda no próprio
+terminal:
 
 ```bash
-npm run db:push          # aplica as migrações pendentes (a 0034 traz as funções do bootstrap)
+npm run db:push:dry      # confere o que vai subir (só migrações; nunca use --include-seed)
+npm run db:push          # aplica as migrações pendentes (a 0034 traz o bootstrap; a 0035, a estrutura do condomínio)
 npm run sb:sindico       # pede nome, login e senha (sem eco, duas vezes) e o ID do projeto para confirmar
 ```
 
@@ -124,8 +139,8 @@ no primeiro acesso, porque foi escolhida por quem vai usá-la. O banco recusa se
 execuções simultâneas se enfileiram: a segunda recusa e apaga a conta que tinha criado no Auth. Os demais usuários são
 criados pelo síndico, no sistema.
 
-**O seed (`supabase/seed.sql`) nunca roda no projeto hospedado**: a senha de demonstração dele é pública. O bootstrap
-não depende do seed.
+**A demonstração (`supabase/seed/demo.sql`) nunca roda no projeto hospedado**: a senha dela é pública. O bootstrap
+não depende dela.
 
 Detalhes do login, da autorização no banco, da trilha, da importação e dos anexos: [docs/arquitetura.md](docs/arquitetura.md).
 
@@ -135,7 +150,7 @@ Detalhes do login, da autorização no banco, da trilha, da importação e dos a
 npm run typecheck        # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
 npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
-npm run test:supabase:sindico  # primeiro síndico: refaz o banco local SEM seed (rode `supabase db reset` depois, para as outras suítes)
+npm run test:supabase:sindico  # banco local SEM a demonstração, como o hospedado: primeiro síndico e estrutura (rode `supabase db reset` depois, para as outras suítes)
 npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts  # e2e (stack local)
 ```
 
@@ -146,7 +161,8 @@ Não há CI: os testes rodam só na máquina, com os comandos acima (o pgTAP e a
 ## Versão publicada
 
 O front é publicado na Vercel a partir da raiz (`vercel.json`). A CSP libera `connect-src` apenas para o projeto
-Supabase da demonstração. Os dados são fictícios.
+Supabase hospedado, que recebe só as migrações (com a estrutura do condomínio), nunca a demonstração: os usuários de
+lá são criados pelo primeiro síndico e pelas telas do sistema.
 
 ## Proteção de dados
 

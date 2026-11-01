@@ -27,3 +27,14 @@ primeiros bytes (JPEG, PNG ou PDF) e o tamanho (até 4 MiB). Cada arquivo é cif
 (envelope com a KEK, que fica nos secrets da Edge, fora do banco), guardado como `<id>.bin` (o nome original não é
 guardado) e registrado com o SHA-256 numa tabela só de inclusão. Só síndico e administração baixam o conteúdo, e cada
 leitura vai à trilha (`documento.ler`). Decisões e trade-offs: [docs/anexos.md](docs/anexos.md).
+
+**Estrutura e demonstração** (migração 0035 e `supabase/seed/demo.sql`): a estrutura do condomínio (configuração,
+ponto de acesso "Portaria social", áreas comuns e unidades) é dado de referência numa migração, para chegar ao projeto
+hospedado pelo mesmo `db push` revisável das outras, com registro de aplicação e sem credencial nova. Ela só insere
+(`ON CONFLICT DO NOTHING`; as unidades só com a tabela vazia), não toca na trilha nem na cabeça da cadeia (a gênese é
+da 0001) e não troca o id do ponto nem das unidades, que entram no hash dos eventos. Depois da carga, mudanças de
+unidade são feitas nas telas, com trilha; a contagem de 162 unidades é provisória até a confirmação do síndico. A
+demonstração (usuários com a senha pública `Demo-Portaria-2026`, pessoas e cadastros fictícios) roda só no
+`supabase db reset` local e recusa banco que já tenha usuário ou pessoa. O teste `supabase/tests/sem-seed` confere,
+num banco só com as migrações, a estrutura completa, a ausência de qualquer dado da demonstração e que reaplicar a
+0035 num banco já usado não muda estrutura, eventos nem cadeia.
