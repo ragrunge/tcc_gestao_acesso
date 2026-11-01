@@ -119,8 +119,8 @@ INSERT INTO public.pessoa (id, nome, categoria, telefone, sem_cpf) VALUES
   (pg_temp.id('m3'), 'Legado Paginacao Tres', 'morador', '11966660003', true),
   (pg_temp.id('m4'), 'Legado Vencido Paginacao', 'morador', '11966660004', true),
   (pg_temp.id('m5'), 'Pendente Paginacao Cinco', 'morador', '11966660005', true);
-INSERT INTO public.pessoa (id, nome, categoria, telefone, sem_cpf)
-SELECT pg_temp.id(k), 'Zeca Igual Paginacao', 'prestador', '11966660009', true FROM unnest(ARRAY['zf', 'z0', 'z8']) k;
+INSERT INTO public.pessoa (id, nome, categoria, telefone, sem_cpf, empresa)
+SELECT pg_temp.id(k), 'Zeca Igual Paginacao', 'prestador', '11966660009', true, 'Empresa Teste' FROM unnest(ARRAY['zf', 'z0', 'z8']) k;
 -- un1: proprietária aprovada + pendente; un2: inquilino aprovado (alugada); un3: legado no prazo; un4: só legado vencido
 -- (não ocupa); un5: desativada.
 INSERT INTO public.vinculo_unidade (pessoa_id, unidade_id, tipo, status, vigencia_inicio, vigencia_fim, registrado_por_id) VALUES
@@ -143,15 +143,15 @@ SELECT 'outro', 'Ocorrencia de paginacao ' || i, pg_temp.id('un1'), pg_temp.id('
 UPDATE public.ocorrencia SET status = 'em_andamento' WHERE descricao = 'Ocorrencia de paginacao 3' AND unidade_id = pg_temp.id('un1');
 
 -- Trilha da un1: 5 entradas e 2 saídas da m1, mais uma entrada registrada na un2 e corrigida para a un1 (vale o efetivo).
-INSERT INTO public.evento_acesso (id, tipo, categoria_pessoa, pessoa_id, unidade_destino_id, ponto_acesso_id, operador_id, operador_papel)
+INSERT INTO public.evento_acesso (id, tipo, categoria_pessoa, pessoa_id, unidade_destino_id, ponto_acesso_id, operador_id, operador_papel, autorizado_por_tipo, justificativa)
 SELECT CASE i WHEN 1 THEN pg_temp.id('e1') WHEN 2 THEN pg_temp.id('e2') ELSE gen_random_uuid() END, 'entrada', 'morador', pg_temp.id('m1'),
-       pg_temp.id('un1'), (SELECT id FROM public.ponto_acesso ORDER BY nome LIMIT 1), pg_temp.id('u_po'), 'porteiro'
+       pg_temp.id('un1'), (SELECT id FROM public.ponto_acesso ORDER BY nome LIMIT 1), pg_temp.id('u_po'), 'porteiro', 'excecao_porteiro', 'Fixture de paginacao'
   FROM generate_series(1, 5) i ORDER BY i;
 INSERT INTO public.evento_acesso (tipo, categoria_pessoa, pessoa_id, unidade_destino_id, ponto_acesso_id, operador_id, operador_papel, refere_evento_id)
 SELECT 'saida', 'morador', pg_temp.id('m1'), pg_temp.id('un1'), (SELECT id FROM public.ponto_acesso ORDER BY nome LIMIT 1), pg_temp.id('u_po'), 'porteiro', pg_temp.id(k)
   FROM unnest(ARRAY['e1', 'e2']) k;
-INSERT INTO public.evento_acesso (id, tipo, categoria_pessoa, pessoa_id, unidade_destino_id, ponto_acesso_id, operador_id, operador_papel)
-VALUES (pg_temp.id('e6'), 'entrada', 'morador', pg_temp.id('m2'), pg_temp.id('un2'), (SELECT id FROM public.ponto_acesso ORDER BY nome LIMIT 1), pg_temp.id('u_po'), 'porteiro');
+INSERT INTO public.evento_acesso (id, tipo, categoria_pessoa, pessoa_id, unidade_destino_id, ponto_acesso_id, operador_id, operador_papel, autorizado_por_tipo, justificativa)
+VALUES (pg_temp.id('e6'), 'entrada', 'morador', pg_temp.id('m2'), pg_temp.id('un2'), (SELECT id FROM public.ponto_acesso ORDER BY nome LIMIT 1), pg_temp.id('u_po'), 'porteiro', 'excecao_porteiro', 'Fixture de paginacao');
 INSERT INTO public.evento_acesso (tipo, categoria_pessoa, pessoa_id, ponto_acesso_id, operador_id, operador_papel, corrige_evento_id, correcao_valores, justificativa)
 VALUES ('correcao', 'morador', pg_temp.id('m2'), (SELECT id FROM public.ponto_acesso ORDER BY nome LIMIT 1), pg_temp.id('u_ad'), 'administracao',
         pg_temp.id('e6'), jsonb_build_object('unidade_destino_id', pg_temp.id('un1')::text), 'Unidade digitada errada no registro');
@@ -281,8 +281,8 @@ SELECT is(pg_temp.por_cursor('au', 'api.eventos_listar', jsonb_build_object('uni
 SELECT is(cardinality(pg_temp.por_deslocamento('au', 'api.eventos_listar', jsonb_build_object('unidadeId', pg_temp.id('un1'), 'tipo', 'saida', 'pessoa', 'paginacao um'), 1)), 2,
   'eventos com tipo e nome: as 2 saídas');
 -- Evento novo depois da página 1: com o ateSeq da página 1, a página 2 é a mesma de antes e o total não muda.
-INSERT INTO public.evento_acesso (tipo, categoria_pessoa, pessoa_id, unidade_destino_id, ponto_acesso_id, operador_id, operador_papel)
-VALUES ('entrada', 'morador', pg_temp.id('m1'), pg_temp.id('un1'), (SELECT id FROM public.ponto_acesso ORDER BY nome LIMIT 1), pg_temp.id('u_po'), 'porteiro');
+INSERT INTO public.evento_acesso (tipo, categoria_pessoa, pessoa_id, unidade_destino_id, ponto_acesso_id, operador_id, operador_papel, autorizado_por_tipo, justificativa)
+VALUES ('entrada', 'morador', pg_temp.id('m1'), pg_temp.id('un1'), (SELECT id FROM public.ponto_acesso ORDER BY nome LIMIT 1), pg_temp.id('u_po'), 'porteiro', 'excecao_porteiro', 'Fixture de paginacao');
 INSERT INTO guardado SELECT 'ev2', pg_temp.rpc('au', 'api.eventos_listar', jsonb_build_object('unidadeId', pg_temp.id('un1'), 'limite', 3, 'deslocamento', 3,
   'ateSeq', (pg_temp.g('ev1') -> 'ateSeq')));
 SELECT is(ARRAY(SELECT (x ->> 'id')::uuid FROM jsonb_array_elements(pg_temp.g('ev2') -> 'itens') x), (pg_temp.p('vd'))[4:6],
