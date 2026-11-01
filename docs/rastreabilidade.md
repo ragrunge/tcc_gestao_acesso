@@ -42,7 +42,7 @@ Requisitos não funcionais com código próprio:
 |---|---|
 | RNF-01 (auditabilidade) | `apps/api/drizzle/` (triggers de imutabilidade), `apps/api/src/db/cadeia.ts`, `packages/domain/src/hashChain.ts` |
 | RNF-02 (autenticação) | `apps/api/src/auth/` |
-| RNF-03 (anexos cifrados) | `apps/api/src/documentos/cofre.ts` |
+| RNF-03 (anexos cifrados) | `supabase/functions/anexos/index.ts`, `supabase/functions/_shared/anexo.ts` (envelope AES-256-GCM), `supabase/migrations/20261031003300_0033_anexos.sql` (bucket privado, `srv.anexo_*`, append-only); antes: `apps/api/src/documentos/cofre.ts` (histórico) |
 | RNF-04 (RBAC) | `packages/domain/src/rbac.ts`, `apps/api/src/auth/guards.ts` (`PapelGuard`), `RequireRole` em `apps/web/src/auth/AuthContext.tsx` |
 | RNF-07 (teclado) | `apps/web/src/app/Layout.tsx` (F2 entrada, F8 saída, F3 encomenda, F4 ocorrência), `apps/web/src/features/portaria/EntradaPage.tsx`, `apps/web/src/features/portaria/SaidaPage.tsx`, `apps/web/src/components/TowerUnitPicker.tsx` |
 | RNF-09 (retenção e LGPD) | `apps/api/src/lgpd/lgpd.service.ts`, `apps/api/src/lgpd/retencao.service.ts` |

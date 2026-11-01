@@ -60,10 +60,10 @@ chave `service_role` nunca vai para o front nem para este repositório.
 > do git até o commit `eae0555`) para o Supabase. Já migrados: login, troca obrigatória de senha, logout e a gestão de
 > contas (fase F1); a portaria (fase F2): busca e cadastro de pessoas, catálogo e unidades (leitura), vínculos (leitura),
 > entrada, saída, recusa, correção, permanência, autorizações prévias e restrições; a operação (fase F3): decisão de
-> vínculos, encomendas, ocorrências (sem anexos), funcionários e escala, edição de veículos, pessoas e unidades,
-> relatórios com CSV, verificação e exportação da trilha e importação da planilha. Ainda não migrados: anexos de
-> ocorrência (F4), LGPD, retenção e selo diário (F5) e a tela de usuários; essas telas e campos somem do menu e mostram
-> "ainda não está disponível nesta versão".
+> vínculos, encomendas, ocorrências, funcionários e escala, edição de veículos, pessoas e unidades, relatórios com CSV,
+> verificação e exportação da trilha e importação da planilha; e os anexos de ocorrência (fase F4). Ainda não migrados:
+> LGPD, retenção e selo diário (F5) e a tela de usuários; essas telas somem do menu e mostram "ainda não está
+> disponível nesta versão".
 
 ## Como rodar localmente
 
@@ -83,9 +83,14 @@ Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`
 ```bash
 supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
 supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed.sql
-supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria e operação
-supabase functions serve # Edge Functions de auth (auth-entrar, auth-trocar-senha, usuarios-admin)
+supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação e anexos
+# KEK local dos anexos (32 bytes aleatórios, só desta máquina; o arquivo é ignorado pelo git). Uma vez:
+(umask 077; printf 'PORTARIA_KEK_V1=%s\n' "$(openssl rand -base64 32)" > supabase/functions/.env.local)
+supabase functions serve --env-file supabase/functions/.env.local  # Edge Functions (auth-entrar, auth-trocar-senha, usuarios-admin, anexos)
 ```
+
+Sem a KEK, a Edge `anexos` recusa envio e leitura com `CHAVE_INDISPONIVEL` (falha fechada). Trocar a KEK local torna
+ilegíveis os anexos já enviados com a anterior (só dado fictício).
 
 Para o front falar com o stack local, passe a URL e a anon key **locais** por variável de ambiente (elas vencem o
 `.env`): `VITE_SUPABASE_URL=http://127.0.0.1:54321 VITE_SUPABASE_ANON_KEY=<ANON_KEY de supabase status> npm run dev`.
@@ -114,6 +119,14 @@ vínculo recusa número de pessoa em texto livre (função e CHECK da tabela); a
 navegador, em lotes devolvidos por `api.auditoria_cadeia`, e a exportação registra na trilha os filtros sem o nome nem a
 placa digitados. A importação guarda só a impressão HMAC de cada linha (chave no Vault), nunca a planilha.
 
+Anexos (F4, migração 0033 e Edge `anexos`): o bucket `anexos` do Storage é privado e não tem política para `anon` nem
+`authenticated` (só o `service_role` da Edge alcança). Envio e leitura passam pela Edge, que decide no banco
+(`srv.anexo_*`: sessão, papel, porteiro só na própria ocorrência, encerrada, no máximo 5) e confere o tipo pelos
+primeiros bytes (JPEG, PNG ou PDF) e o tamanho (até 4 MiB). Cada arquivo é cifrado com AES-256-GCM e chave própria
+(envelope com a KEK, que fica nos secrets da Edge, fora do banco), guardado como `<id>.bin` (o nome original não é
+guardado) e registrado com o SHA-256 numa tabela só de inclusão. Só síndico e administração baixam o conteúdo, e cada
+leitura vai à trilha (`documento.ler`). Decisões e trade-offs: [docs/anexos.md](docs/anexos.md).
+
 Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-demonstração).
 
 ## Testes
@@ -121,14 +134,15 @@ Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-d
 ```bash
 npm run typecheck        # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
-npm run test:supabase    # Edge Functions de auth, paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
-npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts  # e2e (stack local)
+npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
+npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts  # e2e (stack local)
 ```
 
 As outras specs de `e2e/` ainda são da API NestJS e serão portadas nas próximas fases (1ª vez: `npx playwright install chromium`).
 
-No GitHub Actions, `testes-web.yml` roda o typecheck, o build e os testes unitários, e `testes-banco.yml` aplica as
-migrações num Supabase local e roda o pgTAP.
+No GitHub Actions, `testes-web.yml` roda o typecheck, o build e os testes unitários, `testes-banco.yml` aplica as
+migrações num Supabase local e roda o pgTAP, e `integracao.yml` sobe o Supabase local completo (com Storage e as Edge
+Functions, KEK aleatória por execução) e roda `npm run test:supabase` e o Playwright dos specs 30+.
 
 ## Versão publicada
 
