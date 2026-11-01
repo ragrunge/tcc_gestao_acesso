@@ -1,7 +1,7 @@
 // F1: login, troca obrigatória e logout no navegador contra o Supabase LOCAL (Auth + Edge Functions + RPC).
 // Pré-requisitos: supabase start && supabase db reset && supabase functions serve. Rodar:
 //   npx playwright test e2e/30-supabase-auth.spec.ts
-// Usuários do seed (supabase/seed.sql), senha de demonstração só local. Sem o reset de banco do helpers.ts (rota da
+// Usuários do seed (supabase/seed/demo.sql), senha de demonstração só local. Sem o reset de banco do helpers.ts (rota da
 // API NestJS antiga): cada teste usa logins próprios ou cria o seu pela Edge usuarios-admin.
 import { expect, test, type Page } from '@playwright/test';
 

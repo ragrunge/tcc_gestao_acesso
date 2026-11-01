@@ -18,7 +18,7 @@ BEGIN
 END $$;
 
 -- ===== Fixtures (como postgres, o dono) ============================================================================
--- Nomes próprios do teste: o seed (F2) já tem a 'Portaria social' e a D-32.
+-- Nomes próprios do teste: a estrutura (0035) já tem a 'Portaria social' e a D-32.
 INSERT INTO ponto_acesso (id, nome) VALUES ('00000000-0000-4000-8000-000000000001', 'Portaria do teste');
 INSERT INTO unidade (id, bloco, numero) VALUES ('00000000-0000-4000-8000-000000000002', 'Z', '32');
 INSERT INTO usuario_sistema (id, nome, login, papel) VALUES

@@ -3,7 +3,7 @@
 // com CSV, integridade da trilha verificada no navegador e as telas da F5 ainda escondidas.
 // Pré-requisitos: supabase start && supabase db reset && supabase functions serve. Rodar:
 //   npx playwright test e2e/32-supabase-operacao.spec.ts
-// Dados do seed (supabase/seed.sql, fictícios): moradora Fernanda Costa (B-21) e os usuários de demonstração.
+// Dados do seed (supabase/seed/demo.sql, fictícios): moradora Fernanda Costa (B-21) e os usuários de demonstração.
 import { expect, test, type Page } from '@playwright/test';
 
 const SUPABASE = process.env.E2E_SUPABASE_URL!;

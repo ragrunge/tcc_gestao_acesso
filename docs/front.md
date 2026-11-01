@@ -12,7 +12,7 @@ supabase start && supabase db reset
 npm run dev              # http://localhost:5173
 ```
 
-Usuários fictícios do `supabase/seed.sql` (só no local): `roberto.faria`, `paula.nogueira`, `joao.lima`, `luiza.campos`.
+Usuários fictícios do `supabase/seed/demo.sql` (só no local): `roberto.faria`, `paula.nogueira`, `joao.lima`, `luiza.campos`.
 O `.env` aponta para o projeto escolhido; nunca coloque nele a `service_role`.
 
 ## Testes

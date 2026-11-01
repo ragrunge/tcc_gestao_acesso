@@ -1,7 +1,7 @@
 // F2: entrada, saída e negado pelo navegador contra o Supabase LOCAL (Auth + Edge + RPCs da portaria).
 // Pré-requisitos: supabase start && supabase db reset && supabase functions serve. Rodar:
 //   npx playwright test e2e/31-supabase-portaria.spec.ts
-// Dados do seed (supabase/seed.sql, fictícios): moradora Fernanda Costa (B-21), Carla Mendes (A-11) e o visitante
+// Dados do seed (supabase/seed/demo.sql, fictícios): moradora Fernanda Costa (B-21), Carla Mendes (A-11) e o visitante
 // Sérgio Prado com restrição na A-11. Cada execução cria o próprio visitante (CPF de teste válido) pela RPC
 // api.pessoa_criar com a sessão do porteiro, para não depender de quem ficou "dentro" numa execução anterior.
 import { expect, test, type Page } from '@playwright/test';

@@ -16,7 +16,7 @@ export const nesteAgrupamento = (a: Agrupamento) => `${FEMININO[a] ? 'nesta' : '
 export const oAgrupamento = (a: Agrupamento) => `${FEMININO[a] ? 'A' : 'O'} ${a.toLowerCase()}`;
 
 /**
- * Estrutura inicial, declarativa (lida pelo seed da API). Número = andar * 10 + final, com 2 dígitos
+ * Estrutura inicial, declarativa (espelhada na migração 0035 do Supabase). Número = andar * 10 + final, com 2 dígitos
  * ("03", "32"). `ausentes` tira da grade: "01" vale para todos os blocos; "A-01", só para aquele bloco.
  * Exceções que fogem da grade (cobertura, unidade desmembrada) entram pelo CRUD de unidades ou pela planilha.
  */
@@ -36,7 +36,7 @@ export const ESTRUTURA_PADRAO: ConfigEstrutura = {
   blocos: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'],
   andares: [0, 1, 2, 3, 4],
   finais: [1, 2, 3, 4],
-  // PROVISÓRIO (falta o síndico confirmar): o térreo só teria 03 e 04. Se tiver 01 e 02, troque por [].
+  // PROVISÓRIO (falta o síndico confirmar): o térreo só teria 03 e 04. Se tiver 01 e 02, troque por [] (e a migração 0035, se ainda não foi ao hospedado).
   ausentes: ['01', '02'],
 };
 
