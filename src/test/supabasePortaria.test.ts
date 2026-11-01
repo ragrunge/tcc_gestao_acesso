@@ -145,16 +145,17 @@ describe('unidades, autorizações e restrições', () => {
 });
 
 describe('migração por fases', () => {
-  it('suporta: as telas da portaria sim; encomendas, ocorrências, LGPD e afins não', () => {
+  it('suporta: portaria (F2) e operação (F3) sim; usuários, LGPD e o envio de anexo (F4) não', () => {
     const m = mock();
-    for (const r of ['painel', 'entrada', 'saida', 'pessoas', 'unidades', 'cadastro', 'historico', 'vinculos']) expect(m.api.suporta!(r)).toBe(true);
-    for (const r of ['encomendas', 'ocorrencias', 'funcionarios', 'importar', 'relatorios', 'privacidade', 'usuarios']) expect(m.api.suporta!(r)).toBe(false);
+    for (const r of ['painel', 'entrada', 'saida', 'pessoas', 'unidades', 'cadastro', 'historico', 'vinculos',
+      'encomendas', 'ocorrencias', 'funcionarios', 'importar', 'relatorios']) expect(m.api.suporta!(r)).toBe(true);
+    for (const r of ['privacidade', 'usuarios', 'anexos']) expect(m.api.suporta!(r)).toBe(false);
   });
 
-  it('escritas de F3 nos namespaces da portaria respondem NAO_MIGRADO sem chamar o banco', async () => {
+  it('anexos (F4), selo (F5) e LGPD (F5) respondem NAO_MIGRADO sem chamar o banco', async () => {
     const m = mock();
-    for (const p of [m.api.pessoas.editar({ id: 'p' }), m.api.unidades.criar({ bloco: 'A', numero: '1' }), m.api.veiculos.criar({ unidadeId: 'u', placa: 'x', modelo: 'y', cor: 'z' }),
-      m.api.vinculos.decidir({ id: 'v', decisao: 'aprovar' })]) {
+    for (const p of [m.api.ocorrencias.anexar('o', new File(['x'], 'a.pdf')), m.api.ocorrencias.baixarAnexo('o', 'd'), m.api.auditoria.selos(),
+      m.api.auditoria.selar(), m.api.lgpd.exportarPessoa('p')]) {
       expect((await erro(p)).code).toBe('NAO_MIGRADO');
     }
     expect(m.rpc).not.toHaveBeenCalled();

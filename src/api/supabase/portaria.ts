@@ -1,4 +1,5 @@
-// Adaptador da portaria (F2) sobre as RPCs api.* (migrações 0022–0024). O banco já devolve o formato do domínio
+// Adaptador da portaria (F2) sobre as RPCs api.* (migrações 0022–0024), com as escritas que a F3 completou (vínculos,
+// veículos, correção de pessoa e unidades: migrações 0025 e 0029). O banco já devolve o formato do domínio
 // (EventoView, VinculoView, AutorizacaoView...) com instantes e datas de calendário em epoch ms; aqui ficam só as
 // conversões que o contrato do createHttpApi fazia: placa com hífen no veículo da unidade, datas de calendário
 // ('AAAA-MM-DD') na ida, o "negado" vindo como sucesso virando o 422 de sempre e a paginação percorrida.
@@ -17,8 +18,8 @@ import type {
 
 export type Rpc = <T>(nome: string, args?: Record<string, unknown>) => Promise<T>;
 
-const respostaInvalida = () => new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.');
-const naoMigrado = (op: string) => () => Promise.reject(new ApiError(501, 'NAO_MIGRADO', `Função ainda não disponível nesta versão (${op}).`));
+export const respostaInvalida = () => new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.');
+export const naoMigrado = (op: string) => () => Promise.reject(new ApiError(501, 'NAO_MIGRADO', `Função ainda não disponível nesta versão (${op}).`));
 
 /** Limite de páginas por listagem completa (como o createHttpApi): só impede laço infinito. */
 const MAX_PAGINAS = 20;
@@ -26,35 +27,45 @@ const MAX_PAGINAS = 20;
 /** 'ABC1D23' -> 'ABC-1D23' (como a tela exibe o veículo da unidade). */
 export const formatarPlaca = (p: string) => (/^[A-Z0-9]{7}$/.test(p) ? `${p.slice(0, 3)}-${p.slice(3)}` : p);
 /** Início do dia BRT (ms) -> 'AAAA-MM-DD'. */
-const dia = (ms: number | null | undefined) => (ms === null || ms === undefined ? null : toInputDate(ms));
+export const dia = (ms: number | null | undefined) => (ms === null || ms === undefined ? null : toInputDate(ms));
 
 /** Pessoa do banco: `telefoneMascarado` nulo some (como o pessoaDe do createHttpApi); o telefone completo nunca vem. */
-function pessoaDe<T extends object>(p: T): T & Pessoa {
+export function pessoaDe<T extends object>(p: T): T & Pessoa {
   if (!p || typeof (p as { id?: unknown }).id !== 'string') throw respostaInvalida();
   const { telefoneMascarado, ...resto } = p as T & { telefoneMascarado?: string | null };
   return { ...resto, documentoTipo: 'cpf', ...(telefoneMascarado ? { telefoneMascarado } : {}) } as unknown as T & Pessoa;
 }
-function eventoDe(e: EventoView): EventoView {
+export function eventoDe(e: EventoView): EventoView {
   if (!e || typeof e.id !== 'string' || typeof e.seq !== 'number' || typeof e.ocorridoEm !== 'number') throw respostaInvalida();
   return e;
 }
-const lista = <T>(x: unknown, f: (y: T) => T = (y) => y): T[] => {
+export const lista = <T>(x: unknown, f: (y: T) => T = (y) => y): T[] => {
   if (!Array.isArray(x)) throw respostaInvalida();
   return (x as T[]).map(f);
 };
-function paginaDe<T>(x: unknown, f: (y: T) => T = (y) => y): Pagina<T> {
+export function paginaDe<T>(x: unknown, f: (y: T) => T = (y) => y): Pagina<T> {
   const p = x as { itens?: unknown; cursor?: unknown; temMais?: unknown } | null;
   if (!p || !Array.isArray(p.itens) || typeof p.temMais !== 'boolean') throw respostaInvalida();
   return { itens: (p.itens as T[]).map(f), cursor: typeof p.cursor === 'string' ? p.cursor : null, temMais: p.temMais };
 }
-const unidadeDe = (u: Unidade): Unidade => ({ id: u.id, bloco: u.bloco, numero: u.numero, ativo: u.ativo });
-const veiculoDe = (v: Veiculo): Veiculo => ({ ...v, placa: formatarPlaca(v.placa) });
+const unidadeDe = (u: Unidade): Unidade => {
+  if (!u || typeof u.id !== 'string') throw respostaInvalida();
+  return { id: u.id, bloco: u.bloco, numero: u.numero, ativo: u.ativo };
+};
+function vinculoDe(v: VinculoView): VinculoView {
+  if (!v || typeof v.id !== 'string' || typeof v.status !== 'string') throw respostaInvalida();
+  return v;
+}
+const veiculoDe = (v: Veiculo): Veiculo => {
+  if (!v || typeof v.id !== 'string' || typeof v.placa !== 'string') throw respostaInvalida();
+  return { ...v, placa: formatarPlaca(v.placa) };
+};
 const funcionarioBase = (f: Funcionario): Funcionario => ({ pessoaId: f.pessoaId, funcao: f.funcao, escala: f.escala, ativo: f.ativo });
 /** Corpo sem as chaves `undefined`. */
-const semIndefinidos = <T extends object>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+export const semIndefinidos = <T extends object>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 
 /** Filtros de evento no corpo (o nome e a placa são dado pessoal: nunca em URL). */
-function filtroEventos(f: FiltroEventos): Record<string, unknown> {
+export function filtroEventos(f: FiltroEventos): Record<string, unknown> {
   return semIndefinidos({
     eventoId: f.eventoId, de: f.de !== undefined ? Math.trunc(f.de) : undefined, ate: f.ate !== undefined ? Math.trunc(f.ate) : undefined,
     unidadeId: f.unidadeId, pessoaId: f.pessoaId, pessoa: f.pessoa?.trim() || undefined, placa: f.placa?.trim() || undefined,
@@ -64,7 +75,7 @@ function filtroEventos(f: FiltroEventos): Record<string, unknown> {
 }
 
 /** Percorre a listagem por cursor até `temMais` falso (a interface devolve a lista inteira). */
-async function todas<T>(pagina: (cursor: string | null) => Promise<Pagina<T>>, mensagem: string): Promise<T[]> {
+export async function todas<T>(pagina: (cursor: string | null) => Promise<Pagina<T>>, mensagem: string): Promise<T[]> {
   const itens: T[] = [];
   let cursor: string | null = null;
   for (let i = 0; i < MAX_PAGINAS; i++) {
@@ -76,8 +87,14 @@ async function todas<T>(pagina: (cursor: string | null) => Promise<Pagina<T>>, m
   throw new ApiError(502, 'PAGINACAO_EXCEDIDA', mensagem);
 }
 
-/** Rotas cuja tela tem backend nesta fase (F2): as demais somem do menu e mostram "não disponível" (desenho §6, `suporta`). */
-export const ROTAS_MIGRADAS = new Set(['painel', 'entrada', 'saida', 'pessoas', 'unidades', 'vinculos', 'cadastro', 'historico']);
+/**
+ * Rotas (e partes de tela) com backend nesta fase: as demais somem do menu e mostram "não disponível" (desenho §6,
+ * `suporta`). F2: a portaria. F3: encomendas, ocorrências, funcionários, relatórios e importação. Ficam de fora:
+ * `usuarios` (listar e alterar papel ainda não migrados), `privacidade` (LGPD, F5) e `anexos` (envio e leitura de anexo de
+ * ocorrência, F4: a tela de ocorrências esconde só o envio).
+ */
+export const ROTAS_MIGRADAS = new Set(['painel', 'entrada', 'saida', 'pessoas', 'unidades', 'vinculos', 'cadastro', 'historico',
+  'encomendas', 'ocorrencias', 'funcionarios', 'relatorios', 'importar']);
 
 type Portaria = Pick<Api, 'busca' | 'pessoas' | 'catalogo' | 'unidades' | 'veiculos' | 'vinculos' | 'autorizacoes' | 'restricoes' | 'eventos' | 'turno'>;
 
@@ -128,7 +145,7 @@ export function criarPortaria(rpc: Rpc): Portaria {
           servico: i.servico?.trim() || undefined, semCpf: i.semCpf ? true : undefined, menorIdade: i.menorIdade ? true : undefined,
         }) }));
       },
-      editar: naoMigrado('pessoas.editar'),
+      async editar({ id, ...resto }) { return pessoaDe(await rpc<Pessoa>('pessoa_editar', { p_id: id, p: semIndefinidos(resto) })); },
       async funcionario(id) {
         const f = await rpc<Funcionario | null>('pessoa_funcionario', { p_id: id });
         return f ? funcionarioBase(f) : null;
@@ -154,12 +171,15 @@ export function criarPortaria(rpc: Rpc): Portaria {
           autorizacoes: lista(d.autorizacoes), restricoes: lista(d.restricoes), eventos: lista(d.eventos, eventoDe),
         };
       },
-      criar: naoMigrado('unidades.criar'),
-      editar: naoMigrado('unidades.editar'),
-      desativar: naoMigrado('unidades.desativar'),
-      reativar: naoMigrado('unidades.reativar'),
+      async criar(i) { return unidadeDe(await rpc<Unidade>('unidade_criar', { p: { bloco: i.bloco, numero: i.numero } })); },
+      async editar(i) { return unidadeDe(await rpc<Unidade>('unidade_editar', { p_id: i.id, p: { bloco: i.bloco, numero: i.numero } })); },
+      async desativar(id) { return unidadeDe(await rpc<Unidade>('unidade_desativar', { p_id: id })); },
+      async reativar(id) { return unidadeDe(await rpc<Unidade>('unidade_reativar', { p_id: id })); },
     },
-    veiculos: { criar: naoMigrado('veiculos.criar'), editar: naoMigrado('veiculos.editar') },
+    veiculos: {
+      async criar(i) { return veiculoDe(await rpc<Veiculo>('veiculo_criar', { p: { unidadeId: i.unidadeId, placa: i.placa, modelo: i.modelo, cor: i.cor } })); },
+      async editar({ id, ...resto }) { return veiculoDe(await rpc<Veiculo>('veiculo_editar', { p_id: id, p: semIndefinidos(resto) })); },
+    },
     vinculos: {
       async listar(f) { return todas((cursor) => vinculosPagina({ limite: 100, cursor, status: f?.status ? [f.status] : undefined }), 'A lista de vínculos tem mais páginas do que esta tela consegue mostrar.'); },
       listarPagina: (f = {}) => vinculosPagina(f),
@@ -172,11 +192,31 @@ export function criarPortaria(rpc: Rpc): Portaria {
         const r = await rpc<{ pessoa: Pessoa; vinculo: VinculoUnidade }[]>('vinculos_autorizadores', { p_unidade: unidadeId });
         return lista<{ pessoa: Pessoa; vinculo: VinculoUnidade }>(r).map((a): Autorizador => ({ pessoa: pessoaDe(a.pessoa), vinculo: a.vinculo }));
       },
-      criar: naoMigrado('vinculos.criar'),
-      registrarConferencia: naoMigrado('vinculos.registrarConferencia'),
-      decidir: naoMigrado('vinculos.decidir'),
-      regularizar: naoMigrado('vinculos.regularizar'),
-      encerrar: naoMigrado('vinculos.encerrar'),
+      // Escrita (F3, 0025). Datas de calendário vão como 'AAAA-MM-DD' (dia BRT); o banco devolve a VinculoView em ms.
+      async criar(i) {
+        return vinculoDe(await rpc<VinculoView>('vinculo_criar', { p: {
+          pessoaId: i.pessoaId, unidadeId: i.unidadeId, tipo: i.tipo, vigenciaInicio: dia(i.vigenciaInicio), vigenciaFim: dia(i.vigenciaFim),
+        } }));
+      },
+      async registrarConferencia(id, i) {
+        return vinculoDe(await rpc<VinculoView>('vinculo_conferir', { p_id: id, p: semIndefinidos({
+          tipo: i.tipo, descricao: i.descricao, observacao: i.observacao, data: i.data !== undefined ? dia(i.data) : undefined,
+        }) }));
+      },
+      async decidir({ id, decisao, justificativa }) {
+        return vinculoDe(decisao === 'aprovar'
+          ? await rpc<VinculoView>('vinculo_aprovar', { p_id: id })
+          : await rpc<VinculoView>('vinculo_rejeitar', { p_id: id, p: { justificativa: justificativa ?? '' } }));
+      },
+      async regularizar(id, opcoes) {
+        return vinculoDe(await rpc<VinculoView>('vinculo_regularizar', { p_id: id,
+          p: opcoes?.vigenciaFim !== undefined ? { vigenciaFim: dia(opcoes.vigenciaFim) } : {} }));
+      },
+      async encerrar(id, i) {
+        return vinculoDe(await rpc<VinculoView>('vinculo_encerrar', { p_id: id, p: semIndefinidos({
+          motivo: i.motivo, data: i.data !== undefined ? dia(i.data) : undefined,
+        }) }));
+      },
     },
     autorizacoes: {
       async criar(i) {

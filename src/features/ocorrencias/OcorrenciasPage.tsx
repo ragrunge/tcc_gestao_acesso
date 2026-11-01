@@ -172,7 +172,8 @@ function DetalheModal({ id, inicial, onClose, podeOperarDe }: {
   const aberta = o.status !== 'encerrada';
   const docs = o.documentos ?? [];
   const nAnexos = Math.max(docs.length, o.anexos.length);
-  const podeAnexar = podeOperar && aberta && nAnexos < ANEXO_MAX_POR_OCORRENCIA;
+  // Migração por fases (desenho §6): sem o backend de anexos (F4), o envio some; a lista de anexos já gravados continua.
+  const podeAnexar = api.suporta?.('anexos') !== false && podeOperar && aberta && nAnexos < ANEXO_MAX_POR_OCORRENCIA;
 
   async function anexar(f: File | undefined) {
     if (!f) return;
@@ -302,6 +303,8 @@ const TIPOS = Object.keys(ROTULO_TIPO_OCORRENCIA) as TipoOcorrencia[];
 
 function NovaOcorrenciaModal({ inicial, onClose, onFeito }: { inicial: Record<string, string>; onClose: () => void; onFeito: (o: Ocorrencia, falhas: string[]) => void }) {
   const api = useApi();
+  // Sem o backend de anexos (F4, desenho §6): o campo some e nada é enviado depois de criar.
+  const anexosDisponiveis = api.suporta?.('anexos') !== false;
   const catalogo = useCatalogo();
   // O tipo começa vazio (o porteiro escolhe; tudo virar "Outro" estraga o relatório), exceto quando o link já traz um
   const [tipo, setTipo] = useState<TipoOcorrencia | null>((TIPOS as string[]).includes(inicial.tipo) ? (inicial.tipo as TipoOcorrencia) : null);
@@ -358,7 +361,7 @@ function NovaOcorrenciaModal({ inicial, onClose, onFeito }: { inicial: Record<st
     catch (err) { setErro(mensagemErro(err)); setSalvando(false); return; }
     // Anexos depois de criada, um por vez (cada um é cifrado e auditado na API). A ocorrência fica registrada mesmo se um falhar.
     const falhas: string[] = [];
-    for (const f of arquivos) {
+    for (const f of anexosDisponiveis ? arquivos : []) {
       try { await api.ocorrencias.anexar(o.id, f); } catch (err) { falhas.push(`${f.name}: ${mensagemErro(err)}`); }
     }
     onFeito(o, falhas);
@@ -421,7 +424,7 @@ function NovaOcorrenciaModal({ inicial, onClose, onFeito }: { inicial: Record<st
 
         <Field label="Descrição"><textarea className="input" rows={4} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="O que aconteceu, onde e quando" /></Field>
 
-        <div className="flex flex-col gap-2">
+        {anexosDisponiveis && <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-[14px] font-medium">Anexos</span>
             <label htmlFor="anexos-oc"
@@ -444,7 +447,7 @@ function NovaOcorrenciaModal({ inicial, onClose, onFeito }: { inicial: Record<st
             </ul>
           )}
           {problemas.length > 0 && <Alert tom="ambar">{problemas.join(' ')}</Alert>}
-        </div>
+        </div>}
 
         <div className="rounded-[10px] border border-[#DCE1E5]">
           <div className="flex flex-wrap items-center justify-between gap-2 px-[14px] py-[10px]">
