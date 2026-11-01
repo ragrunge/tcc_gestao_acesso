@@ -1,4 +1,4 @@
-// Estrutura do condomínio (migração 0035) contra o Supabase LOCAL SEM seed, o estado em que o projeto hospedado fica
+// Estrutura do condomínio (migrações 0035 e 0036) contra o Supabase LOCAL SEM seed, o estado em que o projeto hospedado fica
 // depois do `db push`. Roda no `npm run test:supabase:sindico` (faz `supabase db reset --no-seed`), junto com o
 // bootstrap do síndico; por isso nada aqui depende de rodar antes ou depois dele.
 import { execFileSync } from 'node:child_process';
@@ -9,6 +9,7 @@ import { AREAS_COMUNS_INICIAIS, codigoUnidade, ESTRUTURA_PADRAO, gerarUnidades, 
 const CONTAINER = 'supabase_db_tcc-gestao-acesso';
 const raiz = (caminho: string) => fileURLToPath(new URL(`../../../${caminho}`, import.meta.url));
 const ESTRUTURA = readFileSync(raiz('supabase/migrations/20261031003500_0035_estrutura_condominio.sql'), 'utf8');
+const TERREO_02 = readFileSync(raiz('supabase/migrations/20261031003600_0036_estrutura_terreo_02.sql'), 'utf8');
 const DEMO = readFileSync(raiz('supabase/seed/demo.sql'), 'utf8');
 
 // Mesmo papel do `db push` (postgres: dono das tabelas, não superusuário).
@@ -26,9 +27,12 @@ beforeAll(() => {
 describe('estrutura do condomínio sem a demonstração', () => {
   it('só as migrações deixam unidades, áreas, a portaria e a configuração', () => {
     expect(valor(`SELECT count(*) || '|' || count(DISTINCT bloco) || '|' || bool_and(ativo)
-                    || '|' || count(*) FILTER (WHERE numero IN ('01', '02')) FROM public.unidade`)).toBe('162|9|true|0');
+                    || '|' || count(*) FILTER (WHERE numero IN ('01', '02')) FROM public.unidade`)).toBe('165|9|true|3');
     expect(valor(`SELECT string_agg(bloco, '' ORDER BY bloco) FROM (SELECT DISTINCT bloco FROM public.unidade) b`)).toBe('ABCDEFGHI');
-    expect(valor(`SELECT min(numero) || '|' || max(numero) FROM public.unidade`)).toBe('03|44');
+    expect(valor(`SELECT string_agg(bloco || ':' || n, ',' ORDER BY bloco) FROM (SELECT bloco, count(*) n FROM public.unidade GROUP BY bloco) b`))
+      .toBe('A:18,B:18,C:18,D:18,E:18,F:18,G:19,H:19,I:19');
+    expect(valor(`SELECT string_agg(bloco || '-' || numero, ',' ORDER BY bloco) FROM public.unidade WHERE numero = '02'`)).toBe('G-02,H-02,I-02');
+    expect(valor(`SELECT min(numero) || '|' || max(numero) FROM public.unidade`)).toBe('02|44');
     expect(valor(`SELECT string_agg(nome || ':' || ativo, ',' ORDER BY nome) FROM public.ponto_acesso`)).toBe('Portaria social:true');
     expect(valor(`SELECT id || '|' || agrupamento || '|' || fuso FROM public.configuracao`)).toBe('1|Bloco|America/Sao_Paulo');
     expect(valor(`SELECT string_agg(nome, ',' ORDER BY nome) FROM public.area_comum WHERE ativo`))
@@ -57,11 +61,15 @@ describe('estrutura do condomínio sem a demonstração', () => {
     expect(valor(`SELECT count(*) FROM auth.users WHERE encrypted_password = extensions.crypt('Demo-Portaria-2026', encrypted_password)`)).toBe('0');
   });
 
-  it('o arquivo da estrutura só insere nas 4 tabelas de estrutura e não cita usuário, Auth nem senha', () => {
-    const codigo = ESTRUTURA.split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n');
-    const alvos = [...codigo.matchAll(/\b(INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE|MERGE\s+INTO)\s+([\w.]+)/gi)].map((m) => `${m[1].toUpperCase()} ${m[2]}`);
-    expect(alvos.sort()).toEqual(['INSERT INTO public.area_comum', 'INSERT INTO public.configuracao', 'INSERT INTO public.ponto_acesso', 'INSERT INTO public.unidade']);
-    expect(codigo).not.toMatch(/\bauth\.|usuario_sistema|crypt|senha|password|Demo-Portaria|\bpessoa\b/i);
+  it('os arquivos da estrutura só inserem nas 4 tabelas de estrutura e não citam usuário, Auth nem senha', () => {
+    const semComentario = (s: string) => s.split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n');
+    const escritas = (s: string) => [...semComentario(s).matchAll(/\b(INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE|MERGE\s+INTO)\s+([\w.]+)/gi)]
+      .map((m) => `${m[1].toUpperCase()} ${m[2]}`);
+    expect(escritas(ESTRUTURA).sort()).toEqual(['INSERT INTO public.area_comum', 'INSERT INTO public.configuracao', 'INSERT INTO public.ponto_acesso', 'INSERT INTO public.unidade']);
+    expect(escritas(TERREO_02)).toEqual(['INSERT INTO public.unidade']);
+    for (const arquivo of [ESTRUTURA, TERREO_02]) {
+      expect(semComentario(arquivo)).not.toMatch(/\bauth\.|usuario_sistema|crypt|senha|password|Demo-Portaria|\bpessoa\b/i);
+    }
   });
 
   it('reaplicada num banco já usado não muda nada: estrutura editada pelo sistema, eventos e cadeia de hash intactos', () => {
@@ -92,7 +100,9 @@ describe('estrutura do condomínio sem a demonstração', () => {
       $f$;
       CREATE TEMP TABLE antes AS SELECT pg_temp.foto() AS f, (SELECT count(*) FROM public.unidade) AS n;
       ${ESTRUTURA}
+      ${TERREO_02}
       ${ESTRUTURA}
+      ${TERREO_02}
       SELECT 'igual=' || ((SELECT f FROM antes) = pg_temp.foto()) || ';unidades=' || (SELECT n FROM antes) || '>' || (SELECT count(*) FROM public.unidade)
           || ';eventos=' || (SELECT count(*) FROM public.evento_acesso)
           || ';hash_invalido=' || (SELECT count(*) FROM public.evento_acesso e LEFT JOIN public.evento_acesso p ON p.seq = e.seq - 1
@@ -100,7 +110,7 @@ describe('estrutura do condomínio sem a demonstração', () => {
                                        OR e.hash_anterior <> coalesce(p.hash, encode(sha256(convert_to('genesis', 'UTF8')), 'hex')))
           || ';cabeca=' || ((SELECT ultimo_hash FROM public.evento_acesso_cadeia) = (SELECT hash FROM public.evento_acesso ORDER BY seq DESC LIMIT 1));
       ROLLBACK;`);
-    expect(saida).toBe('igual=true;unidades=163>163;eventos=2;hash_invalido=0;cabeca=true');
+    expect(saida).toBe('igual=true;unidades=166>166;eventos=2;hash_invalido=0;cabeca=true');
   });
 
   it('a demonstração recusa banco que já tem usuário (o hospedado depois do primeiro síndico)', () => {

@@ -14,17 +14,21 @@ import { calcularHashExportado, codigoEvento, hashGenese, jsonCanonico, jsonCano
 import { normalizarPlaca } from './cpf';
 
 describe('unidades', () => {
-  it('estrutura padrão: 9 blocos (A a I) x 18 unidades = 162 (térreo só com 03 e 04, provisório)', () => {
+  it('estrutura padrão: 9 blocos (A a I), 6 com 18 unidades e 3 (G, H, I) com 19 = 165 (provisório)', () => {
     const us = gerarUnidades();
-    expect(us.length).toBe(162);
+    expect(us.length).toBe(165);
     expect(new Set(us.map((u) => u.bloco))).toEqual(new Set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']));
     expect(us.filter((u) => u.bloco === 'A').map((u) => u.numero)).toEqual([
       '03', '04', '11', '12', '13', '14', '21', '22', '23', '24', '31', '32', '33', '34', '41', '42', '43', '44',
     ]);
+    const porBloco = Object.fromEntries(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map((b) => [b, us.filter((u) => u.bloco === b).length]));
+    expect(porBloco).toEqual({ A: 18, B: 18, C: 18, D: 18, E: 18, F: 18, G: 19, H: 19, I: 19 });
+    expect(us.filter((u) => u.numero === '02').map(codigoUnidade)).toEqual(['G-02', 'H-02', 'I-02']);
     const codigos = new Set(us.map(codigoUnidade));
-    expect(codigos.size).toBe(162);
+    expect(codigos.size).toBe(165);
     expect(codigos.has('D-32')).toBe(true);
     expect(codigos.has('A-01')).toBe(false);
+    expect(codigos.has('A-02')).toBe(false);
     expect(codigos.has('A-51')).toBe(false);
     expect(codigos.has('J-11')).toBe(false);
   });

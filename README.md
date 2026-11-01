@@ -104,13 +104,14 @@ O banco tem duas partes de dados, e só a primeira vai ao projeto hospedado:
 
 | O quê | Onde | Roda em |
 |---|---|---|
-| **Estrutura do condomínio:** configuração (agrupamento "Bloco"), o ponto de acesso "Portaria social", as 7 áreas comuns e as unidades (9 blocos, A a I, 162 unidades) | migração `supabase/migrations/…_0035_estrutura_condominio.sql` | local e hospedado (`db push`), como as outras migrações |
+| **Estrutura do condomínio:** configuração (agrupamento "Bloco"), o ponto de acesso "Portaria social", as 7 áreas comuns e as unidades (9 blocos, A a I, 165 unidades) | migrações `supabase/migrations/…_0035_estrutura_condominio.sql` e `…_0036_estrutura_terreo_02.sql` | local e hospedado (`db push`), como as outras migrações |
 | **Demonstração:** usuários, pessoas, vínculos, veículos, funcionário, autorização e restrição fictícios | `supabase/seed/demo.sql` (`[db.seed]` do `supabase/config.toml`) | **só local** (`supabase db reset`) |
 
 A estrutura não tem usuário, pessoa nem senha, e só insere: reaplicada num banco já usado, não muda nada (as unidades
-só entram com a tabela vazia; depois da carga, unidades se cadastram, editam e desativam nas telas do sistema, com
-trilha). **A contagem de unidades é provisória:** o térreo sem os finais 01 e 02 (162 unidades) ainda precisa ser
-confirmado com o síndico (há a hipótese de 165).
+da 0035 só entram com a tabela vazia, e as três da 0036 só se ainda não existirem; depois da carga, unidades se cadastram, editam e desativam nas telas do sistema, com
+trilha). **A distribuição das unidades é provisória:** as 165 do estudo de caso ficaram como 18 por bloco (térreo com 03
+e 04) e 19 nos blocos G, H e I (térreo também com 02), escolha da demonstração que ainda precisa ser confirmada com o
+síndico.
 
 **Usuários de demonstração (só no banco local, criados por `supabase/seed/demo.sql`; dados fictícios):** `roberto.faria`
 (síndico), `paula.nogueira` (administração), `joao.lima` (porteiro) e `luiza.campos` (auditor), todos com a senha
@@ -128,7 +129,7 @@ terminal:
 
 ```bash
 npm run db:push:dry      # confere o que vai subir (só migrações; nunca use --include-seed)
-npm run db:push          # aplica as migrações pendentes (a 0034 traz o bootstrap; a 0035, a estrutura do condomínio)
+npm run db:push          # aplica as migrações pendentes (a 0034 traz o bootstrap; a 0035 e a 0036, a estrutura do condomínio)
 npm run sb:sindico       # pede nome, login e senha (sem eco, duas vezes) e o ID do projeto para confirmar
 ```
 

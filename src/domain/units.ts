@@ -16,7 +16,7 @@ export const nesteAgrupamento = (a: Agrupamento) => `${FEMININO[a] ? 'nesta' : '
 export const oAgrupamento = (a: Agrupamento) => `${FEMININO[a] ? 'A' : 'O'} ${a.toLowerCase()}`;
 
 /**
- * Estrutura inicial, declarativa (espelhada na migração 0035 do Supabase). Número = andar * 10 + final, com 2 dígitos
+ * Estrutura inicial, declarativa (espelhada nas migrações 0035 e 0036 do Supabase). Número = andar * 10 + final, com 2 dígitos
  * ("03", "32"). `ausentes` tira da grade: "01" vale para todos os blocos; "A-01", só para aquele bloco.
  * Exceções que fogem da grade (cobertura, unidade desmembrada) entram pelo CRUD de unidades ou pela planilha.
  */
@@ -30,14 +30,18 @@ export interface ConfigEstrutura {
   ausentes: readonly string[];
 }
 
-/** Condomínio do estudo de caso: 9 blocos (A a I), térreo e 4 andares, 4 apartamentos por andar. */
+/**
+ * Condomínio do estudo de caso: 9 blocos (A a I), térreo e 4 andares, 4 apartamentos por andar; o térreo tem 03 e 04 em
+ * todos os blocos e também o 02 em G, H e I = 165 unidades (6 blocos com 18, 3 com 19).
+ */
 export const ESTRUTURA_PADRAO: ConfigEstrutura = {
   agrupamento: 'Bloco',
   blocos: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'],
   andares: [0, 1, 2, 3, 4],
   finais: [1, 2, 3, 4],
-  // PROVISÓRIO (falta o síndico confirmar): o térreo só teria 03 e 04. Se tiver 01 e 02, troque por [] (e a migração 0035, se ainda não foi ao hospedado).
-  ausentes: ['01', '02'],
+  // PROVISÓRIO (falta o síndico confirmar): a contagem de 165 é a do estudo, mas quais blocos têm o 02 no térreo foi escolha
+  // da demonstração. As migrações 0035 e 0036 já foram (ou vão) ao hospedado: mudança agora é pelas telas de unidade.
+  ausentes: ['01', 'A-02', 'B-02', 'C-02', 'D-02', 'E-02', 'F-02'],
 };
 
 /** Formato do bloco depois de normalizado (mesmo CHECK `unidade_bloco_ck` do banco). */

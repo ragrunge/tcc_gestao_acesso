@@ -16,7 +16,7 @@
 
 | Característica | Valor |
 | --- | --- |
-| Unidades | 162 (provisório: confirmar o térreo) |
+| Unidades | 165 (provisório: confirmar quais blocos têm o 02 no térreo) |
 | Blocos | 9 (A a I) |
 | Moradores (estimativa) | 500 a 600 |
 | Veículos cadastrados | ~175 |
