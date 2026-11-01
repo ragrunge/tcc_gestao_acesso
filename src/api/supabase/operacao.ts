@@ -16,9 +16,9 @@ import { toInputDate } from '@domain/time';
 import { ApiError } from '../types';
 import type {
   Api, EncomendaView, FiltroEncomendas, FiltroOcorrencias, FiltroRelatorio, FuncionarioView, LinhaPlanilha, OcorrenciaView, Pagina,
-  RelatorioImportacao, RelatorioResumo,
+  RelatorioImportacao, RelatorioResumo, ResumoOcorrencias,
 } from '../types';
-import { filtroEventos, naoMigrado, paginaDe, pessoaDe, respostaInvalida, semIndefinidos, todas, type Rpc } from './portaria';
+import { contagem, filtroEventos, naoMigrado, paginaDe, pessoaDe, posicao, respostaInvalida, semIndefinidos, todas, type Rpc } from './portaria';
 
 const DIA_MS = 86_400_000;
 /** Lote da verificação (o banco entrega no máximo 2000 eventos por chamada). */
@@ -87,16 +87,16 @@ export function criarOperacao(rpc: Rpc, anexos: Pick<Api['ocorrencias'], 'anexar
 
   const encomendasPagina = async (f: FiltroEncomendas = {}) =>
     paginaDe<EncomendaView>(await rpc('encomendas_listar', { p: semIndefinidos({
-      limite: f.limite ?? 50, status: f.status, unidadeId: f.unidadeId, atrasadasDias: f.atrasadasDias, cursor: f.cursor ?? undefined,
+      ...posicao(f), status: f.status, unidadeId: f.unidadeId, atrasadasDias: f.atrasadasDias,
     }) }), encomendaDe);
   const ocorrenciasPagina = async (f: FiltroOcorrencias = {}) =>
     paginaDe<OcorrenciaView>(await rpc('ocorrencias_listar', { p: semIndefinidos({
-      limite: f.limite ?? 50, status: f.status?.length ? f.status : undefined, tipo: f.tipo, unidadeId: f.unidadeId, cursor: f.cursor ?? undefined,
+      ...posicao(f), status: f.status?.length ? f.status : undefined, tipo: f.tipo, unidadeId: f.unidadeId,
     }) }), ocorrenciaDe);
   const alteracoesPagina = async (f: Parameters<Api['auditoria']['alteracoesPagina']>[0] = {}): Promise<Pagina<RegistroAlteracao>> =>
     paginaDe<RegistroAlteracao>(await rpc('auditoria_alteracoes', { p: semIndefinidos({
-      limite: f.limite ?? 50, de: f.de !== undefined ? Math.trunc(f.de) : undefined, ate: f.ate !== undefined ? Math.trunc(f.ate) : undefined,
-      usuarioId: f.usuarioId, acao: f.acao, entidade: f.entidade, cursor: f.cursor ?? undefined,
+      ...posicao(f), de: f.de !== undefined ? Math.trunc(f.de) : undefined, ate: f.ate !== undefined ? Math.trunc(f.ate) : undefined,
+      usuarioId: f.usuarioId, acao: f.acao, entidade: f.entidade,
     }) }));
   const resumoRelatorio = async (f?: number | FiltroRelatorio) => {
     const r = await rpc<RelatorioResumo & { filtroUnidadeCodigo?: string | null }>('relatorio_resumo', { p: filtroRelatorio(f) });
@@ -138,6 +138,11 @@ export function criarOperacao(rpc: Rpc, anexos: Pick<Api['ocorrencias'], 'anexar
     ocorrencias: {
       async listar() { return todas((cursor) => ocorrenciasPagina({ limite: 100, cursor }), 'A lista de ocorrências tem mais páginas do que esta tela consegue mostrar.'); },
       listarPagina: ocorrenciasPagina,
+      async resumo(): Promise<ResumoOcorrencias> {
+        const r = await rpc<Record<string, unknown>>('ocorrencias_resumo');
+        if (!r) throw respostaInvalida();
+        return { total: contagem(r.total), aberta: contagem(r.aberta), emAndamento: contagem(r.emAndamento), encerrada: contagem(r.encerrada) };
+      },
       async obter(id) { return ocorrenciaDe(await rpc<OcorrenciaView>('ocorrencia_obter', { p_id: id })); },
       // Os anexos não vão aqui: a tela envia cada arquivo por `anexar` depois de criar (Edge anexos, anexos.ts).
       async criar(i) {

@@ -93,7 +93,7 @@ export interface OpcoesSaida {
 
 export interface FiltroAlteracoes { de?: number; ate?: number; usuarioId?: string; acao?: string; entidade?: string }
 /** Uma página da trilha de alterações (mais recentes primeiro). */
-export interface FiltroAlteracoesPagina extends FiltroAlteracoes { cursor?: string | null; limite?: number }
+export interface FiltroAlteracoesPagina extends FiltroAlteracoes, PosicaoTrilha {}
 
 export interface FiltroEventos {
   /** RF-32: restringe a um único evento (exportação isolada). */
@@ -111,7 +111,7 @@ export interface FiltroEventos {
   excluirTipos?: TipoEvento[];
 }
 /** Uma página de eventos (mais recentes primeiro, por seq). */
-export interface FiltroEventosPagina extends FiltroEventos { cursor?: string | null; limite?: number }
+export interface FiltroEventosPagina extends FiltroEventos, PosicaoTrilha {}
 
 export interface NovoVinculoInput {
   pessoaId: string; unidadeId: string; tipo: TipoVinculo; vigenciaInicio: number; vigenciaFim: number | null;
@@ -245,18 +245,36 @@ export interface AnexoOcorrencia { id: string; nome: string; mime: string; taman
 export interface ArquivoBaixado { nome: string; mime: string; conteudo: Blob }
 
 /** Filas de encomendas (RF-26), paginadas. `atrasadasDias`: só as aguardando há mais de N dias. */
-export interface FiltroEncomendas { status?: 'aguardando' | 'entregue'; unidadeId?: string; atrasadasDias?: number; cursor?: string | null; limite?: number }
+export interface FiltroEncomendas extends PosicaoPagina { status?: 'aguardando' | 'entregue'; unidadeId?: string; atrasadasDias?: number }
 /** Contagens das abas e do painel sem carregar as listas. */
 export interface ResumoEncomendas { aguardando: number; atrasadas: number; entregues: number; diasAtraso: number }
-export interface FiltroOcorrencias { status?: StatusOcorrencia[]; tipo?: TipoOcorrencia; unidadeId?: string; cursor?: string | null; limite?: number }
+export interface FiltroOcorrencias extends PosicaoPagina { status?: StatusOcorrencia[]; tipo?: TipoOcorrencia; unidadeId?: string }
+/** Contagens por status (cartões do topo da tela). */
+export interface ResumoOcorrencias { total: number; aberta: number; emAndamento: number; encerrada: number }
 
 /** Catálogo leve para a UI: todas as unidades (inclusive inativas, para o histórico) e áreas comuns. */
 /** `agrupamento`: como o condomínio chama o bloco ("Bloco"/"Torre"), configurado na API; só muda os rótulos. */
 export interface Catalogo { agrupamento: Agrupamento; unidades: Unidade[]; areasComuns: AreaComum[] }
 
-/** Página de uma listagem por cursor (o envelope REST `{ data, pagination }` já desembrulhado). */
-export interface Pagina<T> { itens: T[]; cursor: string | null; temMais: boolean }
+/**
+ * Posição da página: `cursor` (seguir da última linha) ou `deslocamento` (página numerada), nunca os dois. Teto de 100
+ * por página no servidor.
+ */
+export interface PosicaoPagina { cursor?: string | null; limite?: number; deslocamento?: number }
+/** Nas trilhas (só de inclusão), `ateSeq` da primeira página segura as seguintes contra registro novo. */
+export interface PosicaoTrilha extends PosicaoPagina { ateSeq?: number }
+/**
+ * Página de uma listagem. `total`: linhas que atendem ao filtro (null na trilha de acessos percorrida por cursor).
+ * `ateSeq`: só nas trilhas, sem cursor.
+ */
+export interface Pagina<T> { itens: T[]; cursor: string | null; temMais: boolean; total: number | null; ateSeq?: number }
+/** Página da trilha de acessos: também as contagens por tipo do mesmo filtro (sem cursor). */
+export interface PaginaEventos extends Pagina<EventoView> { porTipo?: Record<TipoEvento, number> }
 export interface FiltroUnidades { bloco?: string; cursor?: string | null; limite?: number }
+/** Ocupada: ativa com vínculo válido hoje; alugada: com inquilino válido; vazia: ativa sem vínculo válido. */
+export interface ResumoUnidades {
+  total: number; ativas: number; inativas: number; ocupadas: number; alugadas: number; vazias: number; cadastroCompleto: number; veiculosAtivos: number;
+}
 
 /** Busca do topo: pessoas (até 6) e unidades pelo código ou pela placa. */
 export interface ResultadoBuscaGlobal {
@@ -351,10 +369,16 @@ export interface PessoaLista extends PessoaBusca {
  * prevalece sobre `pendente` (de condomínio aguardando o síndico). `unidadeCodigo` null: todo o condomínio.
  */
 export interface RestricaoResumo { estado: 'ativa' | 'pendente'; unidadeCodigo: string | null; total: number }
-export interface FiltroPessoas { categoria?: CategoriaPessoa; cursor?: string | null; limite?: number; incluirDesativadas?: boolean }
+export interface FiltroPessoas extends PosicaoPagina { categoria?: CategoriaPessoa; incluirDesativadas?: boolean }
+/** `ativas` e `porCategoria` contam só os cadastros não desativados (o padrão da lista). */
+export interface ResumoPessoas { ativas: number; desativadas: number; porCategoria: Record<CategoriaPessoa, number> }
 /** recentes: solicitação mais nova primeiro; decisao: decisão/encerramento mais novo; prazo: prazo de regularização (vencidos primeiro). */
 export type OrdemVinculos = 'recentes' | 'decisao' | 'prazo';
-export interface FiltroVinculos { status?: StatusVinculo[]; unidadeId?: string; pessoaId?: string; ordem?: OrdemVinculos; cursor?: string | null; limite?: number }
+export interface FiltroVinculos extends PosicaoPagina { status?: StatusVinculo[]; unidadeId?: string; pessoaId?: string; ordem?: OrdemVinculos }
+/** Por status, legados vencidos e, entre os vínculos válidos hoje, por tipo e por pessoa distinta. */
+export interface ResumoVinculos {
+  porStatus: Record<StatusVinculo, number>; legadosVencidos: number; validosPorTipo: Record<TipoVinculo, number>; pessoasComVinculoValido: number;
+}
 /** RF-07: encerramento manual. `data` (início do dia BRT): padrão hoje, ou o fim da vigência se ele já passou. */
 export interface EncerrarVinculoInput { motivo: string; data?: number }
 export interface EditarVeiculoInput { id: string; placa?: string; modelo?: string; cor?: string; ativo?: boolean }
@@ -414,6 +438,7 @@ export interface Api {
     listar(): Promise<PessoaBusca[]>;
     /** Uma página (cursor), em ordem alfabética; `categoria` filtra no servidor. Texto livre vai por `buscar` (pode ser CPF). */
     listarPagina(f?: FiltroPessoas): Promise<Pagina<PessoaLista>>;
+    resumo(): Promise<ResumoPessoas>;
     ficha(id: string): Promise<FichaPessoa>;
     criar(i: NovaPessoaInput): Promise<Pessoa>;
     /** pessoa.editar (SI/AD): completa ou corrige o cadastro, com antes/depois na trilha. */
@@ -429,6 +454,7 @@ export interface Api {
     listar(): Promise<UnidadeResumo[]>;
     /** Uma página (cursor), na ordem bloco/número; `bloco` filtra. Padrão de 50 por página. */
     listarPagina(f?: FiltroUnidades): Promise<Pagina<UnidadeResumo>>;
+    resumo(): Promise<ResumoUnidades>;
     /** `id` aceita o uuid ou o código "D-32". */
     detalhe(id: string): Promise<UnidadeDetalhe>;
     criar(i: NovaUnidadeInput): Promise<Unidade>;
@@ -453,6 +479,7 @@ export interface Api {
     listarPagina(f?: FiltroVinculos): Promise<Pagina<VinculoView>>;
     /** Quantos vínculos há no status (badge "Vínculos pendentes" do menu). */
     contar(status: StatusVinculo): Promise<number>;
+    resumo(): Promise<ResumoVinculos>;
     criar(i: NovoVinculoInput): Promise<VinculoUnidade>;
     /** RF-05: registra (ou refaz, enquanto pendente/legado) a conferência do comprovante. Só síndico/administração. */
     registrarConferencia(id: string, i: ConferenciaInput): Promise<VinculoUnidade>;
@@ -489,7 +516,7 @@ export interface Api {
     /** Lista inteira (percorre as páginas, com teto). As telas usam `listarPagina`. */
     listar(f?: FiltroEventos): Promise<EventoView[]>;
     /** Uma página (cursor), mais recentes primeiro (seq decrescente). Padrão de 50. */
-    listarPagina(f?: FiltroEventosPagina): Promise<Pagina<EventoView>>;
+    listarPagina(f?: FiltroEventosPagina): Promise<PaginaEventos>;
     /** Correções registradas para o evento (linha do tempo da gaveta), da mais antiga para a mais nova. */
     correcoesDe(id: string): Promise<EventoView[]>;
     obter(id: string): Promise<EventoView>;
@@ -516,6 +543,7 @@ export interface Api {
     listar(): Promise<OcorrenciaView[]>;
     /** Uma página, mais recentes primeiro (abertura). Padrão de 50. */
     listarPagina(f?: FiltroOcorrencias): Promise<Pagina<OcorrenciaView>>;
+    resumo(): Promise<ResumoOcorrencias>;
     obter(id: string): Promise<OcorrenciaView>;
     criar(i: NovaOcorrenciaInput): Promise<Ocorrencia>;
     alterarStatus(id: string, status: StatusOcorrencia): Promise<Ocorrencia>;

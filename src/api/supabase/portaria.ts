@@ -12,8 +12,9 @@ import { AGRUPAMENTOS } from '@domain/units';
 import { toInputDate } from '@domain/time';
 import { ApiError } from '../types';
 import type {
-  Api, Autorizador, AutorizacaoView, Catalogo, FichaPessoa, FiltroEventos, FiltroEventosPagina, Pagina, PessoaBusca, PessoaLista,
-  PrevistoView, RestricaoView, ResultadoBuscaGlobal, ResultadoRestricao, ResumoTurno, UnidadeDetalhe, UnidadeResumo, VinculoView,
+  Api, Autorizador, AutorizacaoView, Catalogo, FichaPessoa, FiltroEventos, FiltroEventosPagina, Pagina, PaginaEventos, PessoaBusca, PessoaLista,
+  PosicaoTrilha, PrevistoView, RestricaoView, ResultadoBuscaGlobal, ResultadoRestricao, ResumoPessoas, ResumoTurno, ResumoUnidades, ResumoVinculos,
+  UnidadeDetalhe, UnidadeResumo, VinculoView,
 } from '../types';
 
 export type Rpc = <T>(nome: string, args?: Record<string, unknown>) => Promise<T>;
@@ -44,10 +45,32 @@ export const lista = <T>(x: unknown, f: (y: T) => T = (y) => y): T[] => {
   return (x as T[]).map(f);
 };
 export function paginaDe<T>(x: unknown, f: (y: T) => T = (y) => y): Pagina<T> {
-  const p = x as { itens?: unknown; cursor?: unknown; temMais?: unknown } | null;
+  const p = x as { itens?: unknown; cursor?: unknown; temMais?: unknown; total?: unknown; ateSeq?: unknown } | null;
   if (!p || !Array.isArray(p.itens) || typeof p.temMais !== 'boolean') throw respostaInvalida();
-  return { itens: (p.itens as T[]).map(f), cursor: typeof p.cursor === 'string' ? p.cursor : null, temMais: p.temMais };
+  if (p.total !== undefined && p.total !== null && (typeof p.total !== 'number' || p.total < 0)) throw respostaInvalida();
+  return {
+    itens: (p.itens as T[]).map(f), cursor: typeof p.cursor === 'string' ? p.cursor : null, temMais: p.temMais,
+    total: typeof p.total === 'number' ? p.total : null, ...(typeof p.ateSeq === 'number' ? { ateSeq: p.ateSeq } : {}),
+  };
 }
+/** Corpo da posição da página: cursor OU deslocamento (o banco recusa os dois), e o ateSeq das trilhas. */
+export function posicao(f: PosicaoTrilha, padrao = 50): Record<string, unknown> {
+  const desl = f.cursor ? undefined : f.deslocamento;
+  return semIndefinidos({
+    limite: f.limite ?? padrao, cursor: f.cursor || undefined, deslocamento: desl,
+    ateSeq: desl !== undefined ? f.ateSeq : undefined,
+  });
+}
+/** Contagem não negativa de um resumo do banco (o resto é recusado como resposta inválida). */
+export function contagem(x: unknown): number {
+  if (typeof x !== 'number' || !Number.isInteger(x) || x < 0) throw respostaInvalida();
+  return x;
+}
+const contagens = <K extends string>(x: unknown, chaves: readonly K[]): Record<K, number> => {
+  if (!x || typeof x !== 'object') throw respostaInvalida();
+  return Object.fromEntries(chaves.map((k) => [k, contagem((x as Record<string, unknown>)[k])])) as Record<K, number>;
+};
+const TIPOS_EVENTO = ['entrada', 'saida', 'negado', 'recusado', 'correcao'] as const;
 const unidadeDe = (u: Unidade): Unidade => {
   if (!u || typeof u.id !== 'string') throw respostaInvalida();
   return { id: u.id, bloco: u.bloco, numero: u.numero, ativo: u.ativo };
@@ -99,18 +122,20 @@ export const ROTAS_MIGRADAS = new Set(['painel', 'entrada', 'saida', 'pessoas', 
 type Portaria = Pick<Api, 'busca' | 'pessoas' | 'catalogo' | 'unidades' | 'veiculos' | 'vinculos' | 'autorizacoes' | 'restricoes' | 'eventos' | 'turno'>;
 
 export function criarPortaria(rpc: Rpc): Portaria {
-  const eventosPagina = async (f: FiltroEventosPagina = {}): Promise<Pagina<EventoView>> =>
-    paginaDe<EventoView>(await rpc('eventos_listar', { p: { ...filtroEventos(f), limite: f.limite ?? 50, ...(f.cursor ? { cursor: f.cursor } : {}) } }), eventoDe);
+  const eventosPagina = async (f: FiltroEventosPagina = {}): Promise<PaginaEventos> => {
+    const r = await rpc<{ porTipo?: unknown }>('eventos_listar', { p: { ...filtroEventos(f), ...posicao(f) } });
+    const pagina = paginaDe<EventoView>(r, eventoDe);
+    return r?.porTipo ? { ...pagina, porTipo: contagens(r.porTipo, TIPOS_EVENTO) } : pagina;
+  };
   const unidadesPagina = async (f: { bloco?: string; cursor?: string | null; limite?: number } = {}) =>
     paginaDe<UnidadeResumo>(await rpc('unidades_listar', { p: semIndefinidos({ limite: f.limite ?? 50, bloco: f.bloco, cursor: f.cursor ?? undefined }) }));
-  const pessoasPagina = async (f: { categoria?: string; cursor?: string | null; limite?: number; incluirDesativadas?: boolean } = {}) =>
+  const pessoasPagina = async (f: { categoria?: string; cursor?: string | null; limite?: number; deslocamento?: number; incluirDesativadas?: boolean } = {}) =>
     paginaDe<PessoaLista>(await rpc('pessoas_listar', { p: semIndefinidos({
-      limite: f.limite ?? 50, categoria: f.categoria, incluirDesativadas: f.incluirDesativadas || undefined, cursor: f.cursor ?? undefined,
+      ...posicao(f), categoria: f.categoria, incluirDesativadas: f.incluirDesativadas || undefined,
     }) }), pessoaDe);
-  const vinculosPagina = async (f: { status?: string[]; unidadeId?: string; pessoaId?: string; ordem?: string; cursor?: string | null; limite?: number } = {}) =>
+  const vinculosPagina = async (f: { status?: string[]; unidadeId?: string; pessoaId?: string; ordem?: string; cursor?: string | null; limite?: number; deslocamento?: number } = {}) =>
     paginaDe<VinculoView>(await rpc('vinculos_listar', { p: semIndefinidos({
-      limite: f.limite ?? 50, status: f.status?.length ? f.status : undefined, unidadeId: f.unidadeId, pessoaId: f.pessoaId, ordem: f.ordem,
-      cursor: f.cursor ?? undefined,
+      ...posicao(f), status: f.status?.length ? f.status : undefined, unidadeId: f.unidadeId, pessoaId: f.pessoaId, ordem: f.ordem,
     }) }));
 
   return {
@@ -129,6 +154,12 @@ export function criarPortaria(rpc: Rpc): Portaria {
       },
       async listar() { return todas((cursor) => pessoasPagina({ limite: 100, cursor }), 'A lista de pessoas tem mais páginas do que esta tela consegue mostrar.'); },
       listarPagina: (f = {}) => pessoasPagina(f),
+      async resumo(): Promise<ResumoPessoas> {
+        const r = await rpc<Record<string, unknown>>('pessoas_resumo');
+        if (!r) throw respostaInvalida();
+        return { ativas: contagem(r.ativas), desativadas: contagem(r.desativadas),
+          porCategoria: contagens(r.porCategoria, ['morador', 'visitante', 'prestador', 'funcionario'] as const) };
+      },
       async ficha(id) {
         const f = await rpc<{ pessoa: Pessoa; funcionario: Funcionario | null; vinculos: VinculoView[]; eventos: EventoView[] }>('pessoa_ficha', { p_id: id });
         if (!f?.pessoa || !Array.isArray(f.vinculos)) throw respostaInvalida();
@@ -163,6 +194,10 @@ export function criarPortaria(rpc: Rpc): Portaria {
     unidades: {
       async listar() { return todas((cursor) => unidadesPagina({ limite: 100, cursor }), 'A lista de unidades tem mais páginas do que esta tela consegue mostrar.'); },
       listarPagina: (f = {}) => unidadesPagina(f),
+      async resumo(): Promise<ResumoUnidades> {
+        return contagens(await rpc('unidades_resumo'),
+          ['total', 'ativas', 'inativas', 'ocupadas', 'alugadas', 'vazias', 'cadastroCompleto', 'veiculosAtivos'] as const);
+      },
       async detalhe(ref) {
         const d = await rpc<UnidadeDetalhe>('unidade_detalhe', { p_ref: ref });
         if (!d?.unidade || !Array.isArray(d.veiculos)) throw respostaInvalida();
@@ -187,6 +222,16 @@ export function criarPortaria(rpc: Rpc): Portaria {
         const n = await rpc<number>('vinculos_contar', { p_status: status });
         if (typeof n !== 'number') throw respostaInvalida();
         return n;
+      },
+      async resumo(): Promise<ResumoVinculos> {
+        const r = await rpc<Record<string, unknown>>('vinculos_resumo');
+        if (!r) throw respostaInvalida();
+        return {
+          porStatus: contagens(r.porStatus, ['pendente', 'aprovado', 'legado', 'rejeitado', 'encerrado'] as const),
+          legadosVencidos: contagem(r.legadosVencidos),
+          validosPorTipo: contagens(r.validosPorTipo, ['proprietario', 'inquilino', 'dependente'] as const),
+          pessoasComVinculoValido: contagem(r.pessoasComVinculoValido),
+        };
       },
       async autorizadores(unidadeId) {
         const r = await rpc<{ pessoa: Pessoa; vinculo: VinculoUnidade }[]>('vinculos_autorizadores', { p_unidade: unidadeId });
