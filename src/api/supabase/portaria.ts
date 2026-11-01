@@ -89,12 +89,12 @@ export async function todas<T>(pagina: (cursor: string | null) => Promise<Pagina
 
 /**
  * Rotas (e partes de tela) com backend nesta fase: as demais somem do menu e mostram "não disponível" (desenho §6,
- * `suporta`). F2: a portaria. F3: encomendas, ocorrências, funcionários, relatórios e importação. Ficam de fora:
- * `usuarios` (listar e alterar papel ainda não migrados), `privacidade` (LGPD, F5) e `anexos` (envio e leitura de anexo de
- * ocorrência, F4: a tela de ocorrências esconde só o envio).
+ * `suporta`). F2: a portaria. F3: encomendas, ocorrências, funcionários, relatórios e importação. F4: `anexos` (envio e
+ * leitura de anexo de ocorrência pela Edge anexos). Ficam de fora: `usuarios` (listar e alterar papel ainda não migrados)
+ * e `privacidade` (LGPD, F5).
  */
 export const ROTAS_MIGRADAS = new Set(['painel', 'entrada', 'saida', 'pessoas', 'unidades', 'vinculos', 'cadastro', 'historico',
-  'encomendas', 'ocorrencias', 'funcionarios', 'relatorios', 'importar']);
+  'encomendas', 'ocorrencias', 'funcionarios', 'relatorios', 'importar', 'anexos']);
 
 type Portaria = Pick<Api, 'busca' | 'pessoas' | 'catalogo' | 'unidades' | 'veiculos' | 'vinculos' | 'autorizacoes' | 'restricoes' | 'eventos' | 'turno'>;
 

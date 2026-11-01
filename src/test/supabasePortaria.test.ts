@@ -16,7 +16,7 @@ function mock() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const api = createSupabaseApi(cliente as any, { chaveAnon: 'chave-anon' });
   const responder = (data: unknown) => rpc.mockResolvedValueOnce({ data, error: null, status: 200 });
-  return { api, rpc, schema, responder };
+  return { api, rpc, schema, responder, cliente };
 }
 
 async function erro(p: Promise<unknown>): Promise<ApiError> {
@@ -145,19 +145,67 @@ describe('unidades, autorizações e restrições', () => {
 });
 
 describe('migração por fases', () => {
-  it('suporta: portaria (F2) e operação (F3) sim; usuários, LGPD e o envio de anexo (F4) não', () => {
+  it('suporta: portaria (F2), operação (F3) e anexos (F4) sim; usuários e LGPD não', () => {
     const m = mock();
     for (const r of ['painel', 'entrada', 'saida', 'pessoas', 'unidades', 'cadastro', 'historico', 'vinculos',
-      'encomendas', 'ocorrencias', 'funcionarios', 'importar', 'relatorios']) expect(m.api.suporta!(r)).toBe(true);
-    for (const r of ['privacidade', 'usuarios', 'anexos']) expect(m.api.suporta!(r)).toBe(false);
+      'encomendas', 'ocorrencias', 'funcionarios', 'importar', 'relatorios', 'anexos']) expect(m.api.suporta!(r)).toBe(true);
+    for (const r of ['privacidade', 'usuarios']) expect(m.api.suporta!(r)).toBe(false);
   });
 
-  it('anexos (F4), selo (F5) e LGPD (F5) respondem NAO_MIGRADO sem chamar o banco', async () => {
+  it('selo (F5) e LGPD (F5) respondem NAO_MIGRADO sem chamar o banco', async () => {
     const m = mock();
-    for (const p of [m.api.ocorrencias.anexar('o', new File(['x'], 'a.pdf')), m.api.ocorrencias.baixarAnexo('o', 'd'), m.api.auditoria.selos(),
-      m.api.auditoria.selar(), m.api.lgpd.exportarPessoa('p')]) {
+    for (const p of [m.api.auditoria.selos(), m.api.auditoria.selar(), m.api.lgpd.exportarPessoa('p')]) {
       expect((await erro(p)).code).toBe('NAO_MIGRADO');
     }
     expect(m.rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe('anexos (F4, Edge anexos)', () => {
+  const OCORRENCIA = { id: 'o-1', abertaEm: 1, historicoStatus: [], eventoIds: [], anexos: ['anexo-1a2b3c4d.pdf'],
+    documentos: [{ id: '1a2b3c4d-0000-4000-8000-000000000000', nome: 'anexo-1a2b3c4d.pdf', mime: 'application/pdf', tamanhoBytes: 9, enviadoEm: 1, enviadoPorNome: 'João' }] };
+
+  it('anexar: POST com o arquivo como octet-stream (nome e tipo do File não vão), ids na query, sem RPC direta', async () => {
+    const m = mock();
+    const cliente = m.cliente;
+    cliente.functions.invoke.mockResolvedValueOnce({ data: OCORRENCIA, error: null, response: new Response() });
+    const arquivo = new File(['%PDF-1.7'], '../../Fulano CPF.pdf', { type: 'text/html' });
+    const v = await m.api.ocorrencias.anexar('o-1', arquivo);
+    expect(cliente.functions.invoke).toHaveBeenCalledWith('anexos?acao=enviar&ocorrencia=o-1',
+      { method: 'POST', body: arquivo, headers: { 'Content-Type': 'application/octet-stream' } });
+    expect(v.documentos).toEqual(OCORRENCIA.documentos);
+    expect(m.rpc).not.toHaveBeenCalled();
+  });
+
+  it('baixarAnexo: nome e tipo dos cabeçalhos, só no formato gerado pelo servidor', async () => {
+    const m = mock();
+    const corpo = new Blob([new Uint8Array([0x25, 0x50, 0x44, 0x46])], { type: 'application/octet-stream' });
+    m.cliente.functions.invoke.mockResolvedValueOnce({ data: corpo, error: null, response: new Response(null, { headers: {
+      'Content-Disposition': 'attachment; filename="anexo-1a2b3c4d.pdf"', 'X-Anexo-Tipo': 'application/pdf' } }) });
+    const a = await m.api.ocorrencias.baixarAnexo('o-1', 'd&x=1');
+    expect(m.cliente.functions.invoke).toHaveBeenCalledWith('anexos?acao=baixar&ocorrencia=o-1&documento=d%26x%3D1', { method: 'POST' });
+    expect(a).toMatchObject({ nome: 'anexo-1a2b3c4d.pdf', mime: 'application/pdf' });
+    expect(a.conteudo.type).toBe('application/pdf');
+    expect(new Uint8Array(await a.conteudo.arrayBuffer())).toEqual(new Uint8Array([0x25, 0x50, 0x44, 0x46]));
+
+    m.cliente.functions.invoke.mockResolvedValueOnce({ data: corpo, error: null, response: new Response(null, { headers: {
+      'Content-Disposition': 'attachment; filename="../../segredo.html"', 'X-Anexo-Tipo': 'text/html' } }) });
+    const b = await m.api.ocorrencias.baixarAnexo('o-1', 'd');
+    expect(b).toMatchObject({ nome: 'anexo', mime: 'application/octet-stream' });
+  });
+
+  it('erro da Edge vira ApiError com o código do servidor; 401 avisa sessão expirada', async () => {
+    const { FunctionsHttpError } = await import('@supabase/supabase-js');
+    const m = mock();
+    const eventos: string[] = [];
+    m.api.aoEventoSessao!((e) => eventos.push(e));
+    const resposta = (status: number, corpo: unknown) => new FunctionsHttpError(new Response(JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } }));
+    m.cliente.functions.invoke.mockResolvedValueOnce({ data: null, error: resposta(415, { code: 'TIPO_NAO_PERMITIDO', message: 'Tipo de arquivo não permitido.' }) });
+    const e = await erro(m.api.ocorrencias.anexar('o-1', new File(['GIF89a'], 'x.png')));
+    expect([e.status, e.code]).toEqual([415, 'TIPO_NAO_PERMITIDO']);
+    expect(eventos).toEqual([]);
+    m.cliente.functions.invoke.mockResolvedValueOnce({ data: null, error: resposta(401, { code: 'NAO_AUTENTICADO', message: 'Entre no sistema.' }) });
+    expect((await erro(m.api.ocorrencias.baixarAnexo('o-1', 'd'))).status).toBe(401);
+    expect(eventos).toEqual(['expirada']);
   });
 });

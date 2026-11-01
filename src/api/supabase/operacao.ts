@@ -1,4 +1,4 @@
-// Adaptador da operação (F3) sobre as RPCs api.* das migrações 0026–0032: encomendas, ocorrências (sem anexo: F4),
+// Adaptador da operação (F3) sobre as RPCs api.* das migrações 0026–0032: encomendas, ocorrências (anexos: anexos.ts, F4),
 // funcionários, relatórios, auditoria do histórico e importação. O banco devolve o formato do domínio (instantes em
 // epoch ms); aqui ficam as conversões que o createHttpApi fazia e o que o desenho põe no navegador:
 //   * o CSV do relatório é montado com csvRelatorio (@portaria/domain/relatorio), a fonte única do formato;
@@ -28,7 +28,7 @@ function encomendaDe(e: EncomendaView): EncomendaView {
   if (!e || typeof e.id !== 'string' || typeof e.recebidaEm !== 'number' || !Array.isArray(e.autorizacoes)) throw respostaInvalida();
   return e;
 }
-function ocorrenciaDe(o: OcorrenciaView): OcorrenciaView {
+export function ocorrenciaDe(o: OcorrenciaView): OcorrenciaView {
   if (!o || typeof o.id !== 'string' || typeof o.abertaEm !== 'number' || !Array.isArray(o.historicoStatus) || !Array.isArray(o.eventoIds)) throw respostaInvalida();
   return { ...o, anexos: Array.isArray(o.anexos) ? o.anexos : [], documentos: Array.isArray(o.documentos) ? o.documentos : [] };
 }
@@ -80,7 +80,8 @@ interface LoteCadeia {
 
 type Operacao = Pick<Api, 'encomendas' | 'ocorrencias' | 'funcionarios' | 'relatorios' | 'auditoria' | 'importacao'>;
 
-export function criarOperacao(rpc: Rpc): Operacao {
+/** `anexos`: envio e leitura pela Edge (anexos.ts); entram no namespace de ocorrências. */
+export function criarOperacao(rpc: Rpc, anexos: Pick<Api['ocorrencias'], 'anexar' | 'baixarAnexo'>): Operacao {
   // As linhas da planilha (com CPF) só nesta aba, entre analisar e confirmar (o banco guarda só a impressão HMAC).
   const linhasImportacao = new Map<string, LinhaPlanilha[]>();
 
@@ -138,7 +139,7 @@ export function criarOperacao(rpc: Rpc): Operacao {
       async listar() { return todas((cursor) => ocorrenciasPagina({ limite: 100, cursor }), 'A lista de ocorrências tem mais páginas do que esta tela consegue mostrar.'); },
       listarPagina: ocorrenciasPagina,
       async obter(id) { return ocorrenciaDe(await rpc<OcorrenciaView>('ocorrencia_obter', { p_id: id })); },
-      // Os anexos não vão aqui: a tela envia cada arquivo por `anexar` depois de criar (F4).
+      // Os anexos não vão aqui: a tela envia cada arquivo por `anexar` depois de criar (Edge anexos, anexos.ts).
       async criar(i) {
         return ocorrenciaDe(await rpc<OcorrenciaView>('ocorrencia_criar', { p: {
           tipo: i.tipo, descricao: i.descricao, unidadeId: i.unidadeId, envolvidos: i.envolvidos ?? '', eventoIds: i.eventoIds ?? [],
@@ -146,8 +147,7 @@ export function criarOperacao(rpc: Rpc): Operacao {
       },
       async alterarStatus(id, status) { return ocorrenciaDe(await rpc<OcorrenciaView>('ocorrencia_alterar_status', { p_id: id, p_status: status })) as Ocorrencia; },
       async vincularEventos(id, eventoIds) { return ocorrenciaDe(await rpc<OcorrenciaView>('ocorrencia_vincular_eventos', { p_id: id, p: { eventoIds } })); },
-      anexar: naoMigrado('ocorrencias.anexar'),
-      baixarAnexo: naoMigrado('ocorrencias.baixarAnexo'),
+      ...anexos,
     },
     funcionarios: {
       async listar() {

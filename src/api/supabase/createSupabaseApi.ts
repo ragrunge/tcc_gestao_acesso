@@ -1,9 +1,9 @@
 // Adaptador da interface Api sobre o Supabase (desenho §6). F1: autenticação e a parte de usuários que passa pela Edge
 // usuarios-admin. F2: a portaria (portaria.ts: pessoas, busca, catálogo, unidades, vínculos, eventos, autorizações,
-// restrições e turno). F3: as escritas de cadastro (portaria.ts) e a operação (operacao.ts: encomendas, ocorrências sem
-// anexo, funcionários, relatórios, auditoria do histórico e importação). Os demais métodos (usuários: listar e alterar
-// papel; anexos, F4; selo e LGPD, F5) respondem ApiError 501 NAO_MIGRADO e as rotas sem backend somem do menu por
-// `suporta` (desenho §6); o createHttpApi continua no repo como referência.
+// restrições e turno). F3: as escritas de cadastro (portaria.ts) e a operação (operacao.ts: encomendas, ocorrências,
+// funcionários, relatórios, auditoria do histórico e importação). F4: anexos de ocorrência pela Edge anexos (anexos.ts).
+// Os demais métodos (usuários: listar e alterar papel; selo e LGPD, F5) respondem ApiError 501 NAO_MIGRADO e as rotas
+// sem backend somem do menu por `suporta` (desenho §6); o createHttpApi continua no repo como referência.
 //
 // Sessão: o token do Supabase Auth (supabase-js) fica no navegador (armazenamento.ts). Quem decide se a sessão vale é
 // o banco (app.ator() em toda RPC): revogada, expirada, inativa ou de usuário desativado responde 401, e o adaptador
@@ -13,7 +13,8 @@ import type { UsuarioSistema } from '@portaria/domain/types';
 import { ApiError, type Api, type CondominioSessao, type EventoSessao, type UsuarioComSenhaTemporaria, type UsuarioSessao } from '../types';
 import { segundosRetryAfter, tempoLegivel } from '../http/cliente';
 import type { ArmazenamentoSessao } from './armazenamento';
-import { criarOperacao } from './operacao';
+import { criarAnexos } from './anexos';
+import { criarOperacao, ocorrenciaDe } from './operacao';
 import { criarPortaria, ROTAS_MIGRADAS } from './portaria';
 
 const respostaInvalida = () => new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.');
@@ -181,11 +182,22 @@ export function createSupabaseApi(sb: SupabaseClient, opcoes: OpcoesSupabaseApi)
     return data as T;
   }
 
+  /** Edge com corpo binário e/ou resposta binária: devolve também a Response (cabeçalhos do download). */
+  async function edgeBruta(nome: string, opc: { body?: Blob; headers?: Record<string, string> }) {
+    const { data, error, response } = await sb.functions.invoke(nome, { method: 'POST', ...opc });
+    if (error) {
+      const e = await erroDeEdge(error);
+      observar(e);
+      throw e;
+    }
+    return { data: data as unknown, response };
+  }
+
   const api = {
     aoEventoSessao(cb: (e: EventoSessao) => void) { ouvintes.add(cb); return () => { ouvintes.delete(cb); }; },
     suporta: (rota: string) => ROTAS_MIGRADAS.has(rota),
     ...criarPortaria((nome, args) => rpc(nome, args)),
-    ...criarOperacao((nome, args) => rpc(nome, args)),
+    ...criarOperacao((nome, args) => rpc(nome, args), criarAnexos(edgeBruta, ocorrenciaDe)),
     auth: {
       async login(i) {
         const corpo = i.manterConectado ? { login: i.login, senha: i.senha, manterConectado: true } : { login: i.login, senha: i.senha };

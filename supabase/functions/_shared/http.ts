@@ -14,7 +14,8 @@ export function cabecalhosCors(req: Request): Record<string, string> {
   const base: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Expose-Headers': 'Retry-After',
+    // Content-Disposition e X-Anexo-Tipo: nome e tipo do download de anexo (Edge anexos).
+    'Access-Control-Expose-Headers': 'Retry-After, Content-Disposition, X-Anexo-Tipo',
     Vary: 'Origin',
   };
   if (origem && origens().includes(origem)) base['Access-Control-Allow-Origin'] = origem;
