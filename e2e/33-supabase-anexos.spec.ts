@@ -69,7 +69,7 @@ test('porteiro anexa PDF ao abrir e foto depois; GIF disfarçado é recusado; el
 
 test('administração baixa o PDF original com o nome gerado; o token do navegador não abre o bucket', async ({ page }) => {
   expect(codigo, 'depende do teste anterior').toBeTruthy();
-  await entrar(page, 'paula.nogueira', /\/painel$/);
+  await entrar(page, 'paula.nogueira', /\/vinculos$/);
   await page.goto('/ocorrencias');
   await page.getByRole('table', { name: 'Ocorrências registradas' }).getByRole('row', { name: `Abrir ocorrência ${codigo}` }).click();
   const lista = page.getByRole('dialog').getByRole('list', { name: 'Anexos da ocorrência' });
