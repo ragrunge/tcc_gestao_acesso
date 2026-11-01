@@ -49,7 +49,6 @@ versão publicada. O front nunca lê nem guarda token.
   as specs esperam (Márcia Pereira, Pedro Almeida dentro do condomínio, restrição do Bruno Teixeira, ocorrências,
   encomenda K1...) estão em `apps/api/test/e2e/dados.ts`; as datas são relativas à hora real. As specs `21-26-api-*`
   são fluxos longos (serial) e resetam o banco uma vez, no início.
-- CI: `.github/workflows/testes-web.yml` (typecheck, build, unitários e e2e com Chromium).
 
 O domínio vive em `packages/domain` (`@portaria/domain`); os testes dele rodam com `npm test -w packages/domain`.
 

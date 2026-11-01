@@ -140,9 +140,7 @@ npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.t
 
 As outras specs de `e2e/` ainda são da API NestJS e serão portadas nas próximas fases (1ª vez: `npx playwright install chromium`).
 
-No GitHub Actions, `testes-web.yml` roda o typecheck, o build e os testes unitários, `testes-banco.yml` aplica as
-migrações num Supabase local e roda o pgTAP, e `integracao.yml` sobe o Supabase local completo (com Storage e as Edge
-Functions, KEK aleatória por execução) e roda `npm run test:supabase` e o Playwright dos specs 30+.
+Não há CI: os testes rodam só na máquina, com os comandos acima (o pgTAP e a integração precisam do Supabase local aberto).
 
 ## Versão publicada
 
