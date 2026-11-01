@@ -107,6 +107,26 @@ estrutura do condomínio (blocos, unidades, áreas comuns, a portaria) e pessoas
 com vínculo (por exemplo Fernanda Costa na B-21 e Carla Mendes na A-11), visitantes, prestadores, um funcionário em
 escala, uma autorização prévia e uma restrição (Sérgio Prado na A-11). Os CPFs são inventados, com dígito válido.
 
+## Primeiro síndico (projeto hospedado)
+
+O projeto hospedado nasce sem nenhum usuário, e a gestão de usuários exige alguém logado. O primeiro usuário, um
+síndico, é criado por um script que o dono do projeto roda no próprio terminal:
+
+```bash
+npm run db:push          # aplica as migrações pendentes (a 0034 traz as funções do bootstrap)
+npm run sb:sindico       # pede nome, login e senha (sem eco, duas vezes) e o ID do projeto para confirmar
+```
+
+O script lê do `.env` só `VITE_SUPABASE_URL`, `VITE_SUPABASE_PROJECT_ID` e `SUPABASE_ACCESS_TOKEN`. Com o token, pede à
+Management API a chave secreta do projeto e a mantém só em memória (nada vai para disco nem para o log). A senha segue a
+mesma política do sistema (mínimo de 12 caracteres, até 72 bytes, sem senha comum nem o login) e não há troca obrigatória
+no primeiro acesso, porque foi escolhida por quem vai usá-la. O banco recusa se já existir **qualquer** usuário, e duas
+execuções simultâneas se enfileiram: a segunda recusa e apaga a conta que tinha criado no Auth. Os demais usuários são
+criados pelo síndico, no sistema.
+
+**O seed (`supabase/seed.sql`) nunca roda no projeto hospedado**: a senha de demonstração dele é pública. O bootstrap
+não depende do seed.
+
 Detalhes do login, da autorização no banco, da trilha, da importação e dos anexos: [docs/arquitetura.md](docs/arquitetura.md).
 
 ## Testes
@@ -115,6 +135,7 @@ Detalhes do login, da autorização no banco, da trilha, da importação e dos a
 npm run typecheck        # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
 npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
+npm run test:supabase:sindico  # primeiro síndico: refaz o banco local SEM seed (rode `supabase db reset` depois, para as outras suítes)
 npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts  # e2e (stack local)
 ```
 

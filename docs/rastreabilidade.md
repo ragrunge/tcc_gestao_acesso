@@ -31,7 +31,7 @@ O backend é o Supabase: regras e permissões ficam em funções SQL do schema `
 | RF-29, RF-38 | Passagem de turno e painel da portaria | `api.turno_resumo` (0023) | `features/portaria/PainelPage.tsx` |
 | RF-30, RF-31 | Relatórios (acessos e liberações por exceção) | `api.relatorio_resumo` (0031); CSV em `src/domain/relatorio.ts` | `features/relatorios/RelatoriosPage.tsx` |
 | RF-32, RF-37 | Exportação verificável e verificação de integridade da trilha | `api.auditoria_exportar`, `auditoria_cadeia`, `auditoria_alteracoes` (0030); formato em `src/domain/exportacao.ts` e `hashChain.ts`; o selo diário e a âncora ainda não foram migrados | `features/historico/HistoricoPage.tsx`, `features/historico/TrilhaAlteracoes.tsx`; `features/historico/SeloAncora.tsx` (selo pendente) |
-| RF-33 | Gestão de usuários do sistema | Edge Function `usuarios-admin` (criar, desativar, reativar, redefinir senha) e `srv.usuario_*` (0018); a tela ainda não foi migrada | `features/usuarios/UsuariosPage.tsx` (escondida por `suporta`) |
+| RF-33 | Gestão de usuários do sistema | Edge Function `usuarios-admin` (criar, desativar, reativar, redefinir senha) e `srv.usuario_*` (0018); primeiro síndico com o sistema vazio: script `npm run sb:sindico` (`scripts/sindico/`) e `srv.bootstrap_sindico_*` (0034), testados em `supabase/tests/database/10_bootstrap_sindico.test.sql` e `supabase/tests/sindico/`; a tela ainda não foi migrada | `features/usuarios/UsuariosPage.tsx` (escondida por `suporta`) |
 | RF-35 | Registro retroativo (contingência) | `api.evento_entrada` e `evento_saida` com `retroativo` e número do formulário de contingência (0023) | `features/portaria/EntradaPage.tsx` (`?retroativo=1`) |
 | RF-36 | Prestador com empresa/serviço e áreas comuns | `api.evento_entrada` (empresa e serviço) e `autorizacao_criar` (0023, 0024) | `features/portaria/EntradaPage.tsx` |
 
@@ -42,7 +42,7 @@ Requisitos não funcionais com código próprio:
 | RNF | Onde |
 |---|---|
 | RNF-01 (auditabilidade) | `supabase/migrations/` 0001 e 0016 (triggers de imutabilidade e permissões), cadeia de hash nos triggers `evento_acesso_*` e `canon_*` (0000, 0001), `src/domain/hashChain.ts`; testes em `supabase/tests/database/02_imutabilidade.test.sql` |
-| RNF-02 (autenticação) | Edge Functions `auth-entrar` e `auth-trocar-senha`; `supabase/migrations/` 0003, 0018 (sessão, `app.ator`, limite de tentativas) e 0019 (guarda de credencial em `auth.users`) |
+| RNF-02 (autenticação) | Edge Functions `auth-entrar` e `auth-trocar-senha`; `supabase/migrations/` 0003, 0018 (sessão, `app.ator`, limite de tentativas) e 0019 (guarda de credencial em `auth.users`); primeiro síndico (0034 e `scripts/sindico/`, com a mesma política de senha de `supabase/functions/_shared/senha.ts`) |
 | RNF-03 (anexos cifrados) | `supabase/functions/anexos/index.ts`, `supabase/functions/_shared/anexo.ts` (envelope AES-256-GCM), `supabase/migrations/20261031003300_0033_anexos.sql` (bucket privado, `srv.anexo_*`, append-only); decisões em `docs/anexos.md` |
 | RNF-04 (RBAC) | `src/domain/rbac.ts` (fonte), `supabase/migrations/` 0017 (matriz gerada por `scripts/rbac-sql.mjs`) e `app.exigir` nas RPCs; `RequireRole` em `src/auth/AuthContext.tsx` |
 | RNF-07 (teclado) | `src/app/Layout.tsx` (F2 entrada, F8 saída, F3 encomenda, F4 ocorrência), `src/features/portaria/EntradaPage.tsx`, `src/features/portaria/SaidaPage.tsx`, `src/components/TowerUnitPicker.tsx` |
