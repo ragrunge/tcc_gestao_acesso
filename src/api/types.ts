@@ -1,5 +1,5 @@
 // Contrato da API. Os métodos espelham os endpoints da especificação técnica (seção 6).
-// A UI só conhece esta interface; a implementação é o cliente HTTP (src/api/http), criado em src/api/index.tsx.
+// A UI só conhece esta interface; a implementação é o adaptador Supabase (src/api/supabase), criado em src/api/index.tsx.
 import type {
   AreaComum, AutorizacaoPrevia, AutorizacaoRetirada, CategoriaPessoa, Encomenda, Escala, EventoView, MeioAutorizacao, Ocorrencia,
   Papel, Pessoa, RegistroAlteracao, Restricao, StatusOcorrencia, StatusVinculo, TipoEvento, TipoOcorrencia, TipoVinculo, Unidade,

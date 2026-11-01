@@ -1,12 +1,12 @@
 // Adaptador da operação (F3) sobre as RPCs api.* das migrações 0026–0032: encomendas, ocorrências (anexos: anexos.ts, F4),
 // funcionários, relatórios, auditoria do histórico e importação. O banco devolve o formato do domínio (instantes em
-// epoch ms); aqui ficam as conversões que o createHttpApi fazia e o que o desenho põe no navegador:
+// epoch ms); aqui ficam as conversões que o cliente HTTP antigo fazia e o que o desenho põe no navegador:
 //   * o CSV do relatório é montado com csvRelatorio (@portaria/domain/relatorio), a fonte única do formato;
 //   * a verificação da cadeia roda aqui, com verificarCadeia (@portaria/domain/hashChain), sobre os lotes que o banco
 //     entrega no formato canônico: o verificador (TS) é independente do gerador (o trigger SQL);
 //   * a exportação verificável (JSONL, manifesto v3) é montada com montarExportacaoJsonl (@portaria/domain/exportacao);
 //   * as linhas da planilha (com CPF em claro) ficam só na memória desta aba entre analisar e confirmar, como no
-//     createHttpApi: o banco guarda só a impressão HMAC delas.
+//     cliente HTTP antigo: o banco guarda só a impressão HMAC delas.
 // Texto livre que pode identificar alguém (nome, placa, linhas da planilha) vai sempre no CORPO do POST da RPC.
 import type { AutorizacaoRetirada, Encomenda, Ocorrencia, RegistroAlteracao } from '@portaria/domain/types';
 import { csvRelatorio } from '@portaria/domain/relatorio';
@@ -37,7 +37,7 @@ function funcionarioDe(f: FuncionarioView): FuncionarioView {
   return { pessoaId: f.pessoaId, funcao: f.funcao, escala: f.escala, ativo: f.ativo, pessoa: pessoaDe(f.pessoa), emEscalaAgora: f.emEscalaAgora === true };
 }
 
-/** Filtro de relatório: instantes -> dias de calendário BRT (o createHttpApi mandava o mesmo na query). */
+/** Filtro de relatório: instantes -> dias de calendário BRT (o cliente HTTP antigo mandava o mesmo na query). */
 export function filtroRelatorio(f?: number | FiltroRelatorio): Record<string, string> {
   if (typeof f === 'number') return { de: toInputDate(Date.now() - (f - 1) * DIA_MS) };
   return semIndefinidos({

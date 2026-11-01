@@ -1,11 +1,9 @@
 // @vitest-environment jsdom
 // Tempo de permanência na portaria (spec §14 2026-10-23): coluna Permanência de "Presentes agora" (estado em texto e
-// ícone, não só cor), seletor do tipo de visita na entrada (rádios nativos, um grupo) e a rota de prorrogação no cliente.
+// ícone, não só cor), seletor do tipo de visita na entrada (rádios nativos, um grupo).
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { brt } from '@portaria/domain/time';
-import { createHttpApi } from '../api/http/createHttpApi';
 import { CelPermanencia } from '../features/portaria/presentes';
 import { SeletorTipoVisita } from '../features/portaria/EntradaPage';
 
@@ -53,18 +51,5 @@ describe('SeletorTipoVisita', () => {
     expect(screen.getByText('Prazo 30 min')).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: /Motorista de app/ }));
     expect(onChange).toHaveBeenCalledWith('transporte_app');
-  });
-});
-
-describe('cliente HTTP: prorrogação', () => {
-  it('POST /eventos-acesso/:id/permanencia/prorrogacoes sem corpo; resposta desembrulhada', async () => {
-    const adapter = vi.fn(async (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => ({
-      status: 201, statusText: '', headers: {}, config, request: {},
-      data: { data: { eventoId: 'ev1', tipoVisita: 'entrega', prazoAte: entrada + 90 * MIN, prorrogacoes: 1 } },
-    }));
-    const api = createHttpApi('/api/v1', { adapter });
-    const r = await api.eventos.prorrogarPermanencia('ev1');
-    expect(r).toEqual({ eventoId: 'ev1', tipoVisita: 'entrega', prazoAte: entrada + 90 * MIN, prorrogacoes: 1 });
-    expect(adapter.mock.calls[0]![0]).toMatchObject({ method: 'post', url: '/eventos-acesso/ev1/permanencia/prorrogacoes' });
   });
 });

@@ -1,7 +1,7 @@
 // Adaptador da portaria (F2) sobre as RPCs api.* (migrações 0022–0024), com as escritas que a F3 completou (vínculos,
 // veículos, correção de pessoa e unidades: migrações 0025 e 0029). O banco já devolve o formato do domínio
 // (EventoView, VinculoView, AutorizacaoView...) com instantes e datas de calendário em epoch ms; aqui ficam só as
-// conversões que o contrato do createHttpApi fazia: placa com hífen no veículo da unidade, datas de calendário
+// conversões que o contrato do cliente HTTP antigo fazia: placa com hífen no veículo da unidade, datas de calendário
 // ('AAAA-MM-DD') na ida, o "negado" vindo como sucesso virando o 422 de sempre e a paginação percorrida.
 // Texto livre que pode identificar alguém (termo de busca, nome, placa) vai sempre no CORPO do POST da RPC.
 import type {
@@ -21,7 +21,7 @@ export type Rpc = <T>(nome: string, args?: Record<string, unknown>) => Promise<T
 export const respostaInvalida = () => new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.');
 export const naoMigrado = (op: string) => () => Promise.reject(new ApiError(501, 'NAO_MIGRADO', `Função ainda não disponível nesta versão (${op}).`));
 
-/** Limite de páginas por listagem completa (como o createHttpApi): só impede laço infinito. */
+/** Limite de páginas por listagem completa (como o cliente HTTP antigo): só impede laço infinito. */
 const MAX_PAGINAS = 20;
 
 /** 'ABC1D23' -> 'ABC-1D23' (como a tela exibe o veículo da unidade). */
@@ -29,7 +29,7 @@ export const formatarPlaca = (p: string) => (/^[A-Z0-9]{7}$/.test(p) ? `${p.slic
 /** Início do dia BRT (ms) -> 'AAAA-MM-DD'. */
 export const dia = (ms: number | null | undefined) => (ms === null || ms === undefined ? null : toInputDate(ms));
 
-/** Pessoa do banco: `telefoneMascarado` nulo some (como o pessoaDe do createHttpApi); o telefone completo nunca vem. */
+/** Pessoa do banco: `telefoneMascarado` nulo some (como o pessoaDe do cliente HTTP antigo); o telefone completo nunca vem. */
 export function pessoaDe<T extends object>(p: T): T & Pessoa {
   if (!p || typeof (p as { id?: unknown }).id !== 'string') throw respostaInvalida();
   const { telefoneMascarado, ...resto } = p as T & { telefoneMascarado?: string | null };
