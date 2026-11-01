@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Check, Download, Paperclip, X } from 'lucide-react';
 import { useApi, type Autorizador, type OcorrenciaView } from '../../api';
@@ -25,13 +25,14 @@ import { chipDoEvento, quandoCurto, textoAutorizacao } from '../common/evento';
 import { baixarBlob } from '../historico/download';
 import { CarregandoLinha, ErroCarregar } from '../../components/Carregando';
 import { BarraFiltros, CampoFiltro, CONTROLE, ContagemResultado, FiltroUnidade, lerOpcao, naUrl, useFiltrosUrl, useFiltroUnidade } from '../../components/Filtros';
+import { Paginacao, Totais } from '../../components/Paginacao';
+import { usePaginacao } from '../../app/paginacao';
 
 // Cabe sem rolagem lateral com o menu aberto em 1280 px (área útil ~972 px; ver larguraMinima em Table.tsx)
 const COLUNAS = '100px 130px 170px 80px minmax(0,1fr) 110px 130px';
 /** Parâmetros dos filtros na URL: aba, unidade (código) e tipo. Não confundir com os de pré-preenchimento do formulário (novo=1). */
-const PARAMS_FILTRO = ['aba', 'un', 'tp'];
+const PARAMS_FILTRO = ['aba', 'un', 'tp', 'pagina'];
 const TIPOS_OCORRENCIA = Object.keys(ROTULO_TIPO_OCORRENCIA) as TipoOcorrencia[];
-const POR_PAGINA = 50;
 type Filtro = 'todas' | 'abertas' | 'encerradas';
 const STATUS_DO_FILTRO: Record<Filtro, StatusOcorrencia[] | undefined> = { todas: undefined, abertas: ['aberta', 'em_andamento'], encerradas: ['encerrada'] };
 const ACEITOS = 'image/jpeg,image/png,application/pdf';
@@ -61,14 +62,13 @@ export function OcorrenciasPage() {
   const { codigo } = useCatalogo();
   const invalidar = useInvalidar();
 
-  const lista = useInfiniteQuery({
-    queryKey: CHAVES.ocorrenciasLista(filtro, tipoFiltro, unid.unidadeId),
-    queryFn: ({ pageParam }) => api.ocorrencias.listarPagina({ status: STATUS_DO_FILTRO[filtro], tipo: tipoFiltro || undefined, unidadeId: unid.unidadeId, cursor: pageParam, limite: POR_PAGINA }),
-    enabled: !unid.pendente,
-    initialPageParam: null as string | null,
-    getNextPageParam: (p) => (p.temMais && p.cursor ? p.cursor : undefined),
-    staleTime: 0,
+  const pag = usePaginacao<OcorrenciaView>({
+    chave: CHAVES.ocorrenciasLista(filtro, tipoFiltro, unid.unidadeId),
+    buscar: (pos) => api.ocorrencias.listarPagina({ status: STATUS_DO_FILTRO[filtro], tipo: tipoFiltro || undefined, unidadeId: unid.unidadeId, ...pos }),
+    habilitado: !unid.pendente,
   });
+  const lista = pag.consulta;
+  const resumo = useQuery({ queryKey: CHAVES.ocorrenciasResumo, queryFn: () => api.ocorrencias.resumo(), staleTime: 0 }).data;
 
   // F4 (ou o fluxo de restrição na entrada) abre o formulário já preenchido
   useEffect(() => {
@@ -79,12 +79,18 @@ export function OcorrenciasPage() {
     }
   }, [params, podeOperar, setParams]);
 
-  const dados = lista.data?.pages.flatMap((p) => p.itens) ?? [];
+  const dados = pag.itens;
   const daLista = dados.find((o) => o.id === abertaId);
   return (
     <div className="flex flex-col gap-5">
       <PageHeader titulo="Ocorrências" descricao="Fatos do turno com envolvidos e eventos de acesso vinculados."
         acoes={podeOperar && <Button variante="primario" atalho="F4" onClick={() => setNova({})}>Nova ocorrência</Button>} />
+      <Totais rotulo="Ocorrências por situação" itens={[
+        { rotulo: 'Abertas', valor: resumo?.aberta, destaque: 'ambar' },
+        { rotulo: 'Em andamento', valor: resumo?.emAndamento },
+        { rotulo: 'Encerradas', valor: resumo?.encerrada },
+        { rotulo: 'Total', valor: resumo?.total },
+      ]} />
       <BarraFiltros ativos={(unid.texto.trim() ? 1 : 0) + (tipoFiltro ? 1 : 0)} principalAtivo={!!unid.texto.trim()}
         onLimpar={() => { unid.limpar(); gravar({ tp: undefined }); }}
         principal={<FiltroUnidade f={unid} />}>
@@ -94,7 +100,7 @@ export function OcorrenciasPage() {
           </select>
         </CampoFiltro>
       </BarraFiltros>
-      {(unid.unidadeId || tipoFiltro) && <ContagemResultado n={dados.length} singular="ocorrência" plural="ocorrências" className="-mb-3 px-1" />}
+      {(unid.unidadeId || tipoFiltro) && <ContagemResultado n={pag.total ?? dados.length} singular="ocorrência" plural="ocorrências" className="-mb-3 px-1" />}
       <div className="rounded-[10px] border border-[#DCE1E5] bg-white">
         <Tabs rotulo="Situação das ocorrências" ativa={filtro} onChange={(a) => gravar({ aba: naUrl(a, 'todas') })}
           abas={[{ id: 'todas', rotulo: 'Todas' }, { id: 'abertas', rotulo: 'Abertas e em andamento' }, { id: 'encerradas', rotulo: 'Encerradas' }]} />
@@ -114,9 +120,9 @@ export function OcorrenciasPage() {
           ))}
         </Lista>
         {!lista.isLoading && !lista.error && dados.length === 0 && <Vazio>Nenhuma ocorrência nesta lista.</Vazio>}
-        {lista.hasNextPage && (
+        {pag.totalPaginas > 1 && (
           <div className="border-t border-[#E6EAED] p-3">
-            <Button carregando={lista.isFetchingNextPage} onClick={() => void lista.fetchNextPage()}>Carregar mais ocorrências</Button>
+            <Paginacao pagina={pag.pagina} totalPaginas={pag.totalPaginas} onIr={pag.irPara} rotulo="ocorrências" ocupado={pag.trocando} />
           </div>
         )}
       </div>

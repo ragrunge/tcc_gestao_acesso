@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Ban, Check, ShieldCheck, TriangleAlert } from 'lucide-react';
-import { useApi, type FiltroEventos } from '../../api';
+import { useApi, type FiltroEventos, type PaginaEventos } from '../../api';
+import { usePaginacao } from '../../app/paginacao';
+import { Paginacao, Totais } from '../../components/Paginacao';
 import type { ResultadoIntegridade } from '@domain/hashChain';
 import { useCan } from '../../auth/AuthContext';
 import { Alert } from '../../components/Alert';
@@ -23,8 +25,6 @@ import { TrilhaAlteracoes } from './TrilhaAlteracoes';
 import { ErroCarregar } from '../../components/Carregando';
 import { BarraFiltros, CampoFiltro, CONTROLE, ContagemResultado, FiltroBusca, FiltroCheck, FiltroPeriodo, FiltroUnidade, lerOpcao, naUrl, useFiltrosUrl, useFiltroUnidade, usePeriodoUrl } from '../../components/Filtros';
 
-/** Eventos por página (a lista cresce com "Carregar mais"; a trilha inteira não vem de uma vez). */
-const POR_PAGINA = 50;
 const TIPOS = ['', 'entrada', 'saida', 'negado', 'recusado', 'correcao'] as const;
 const ROTULO_TIPO: Record<string, string> = { entrada: 'Entrada', saida: 'Saída', negado: 'Negado', recusado: 'Recusado', correcao: 'Correção' };
 const MEIOS = ['', ...Object.keys(ROTULO_MEIO)] as ('' | MeioAutorizacao)[];
@@ -112,13 +112,15 @@ export function HistoricoPage() {
   }), [de, ate, un, pessoa, placa, operadorId, tipo, meio, exc, retro]);
 
   const invalidar = useInvalidar();
-  const lista = useInfiniteQuery({
-    queryKey: CHAVES.eventosLista(JSON.stringify(filtro)),
-    queryFn: ({ pageParam }) => api.eventos.listarPagina({ ...filtro, cursor: pageParam, limite: POR_PAGINA }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (p) => (p.temMais && p.cursor ? p.cursor : undefined),
-    staleTime: 0,
+  // Páginas numeradas, presas ao ateSeq da página 1 (evento novo não empurra a página 2); a exportação e a verificação
+  // não usam a página: percorrem a trilha inteira.
+  const pag = usePaginacao<EventoView, PaginaEventos>({
+    chave: CHAVES.eventosLista(JSON.stringify(filtro)),
+    buscar: (pos) => api.eventos.listarPagina({ ...filtro, ...pos }),
+    trilha: true,
   });
+  const lista = pag.consulta;
+  const porTipo = pag.trocando ? undefined : pag.dados?.porTipo;
   async function verificar() {
     setVerificando(true);
     try {
@@ -138,7 +140,7 @@ export function HistoricoPage() {
     } catch (e) { avisar({ tom: 'vermelho', texto: mensagemErro(e) }); }
   }
 
-  const dados = useMemo(() => (lista.data?.pages ?? []).flatMap((p) => p.itens), [lista.data]);
+  const dados = pag.itens;
   const invalidoSeq = integ && !integ.valido ? integ.primeiroSeqInvalido : undefined;
   const ativos = [periodo.ativo, !!unid.texto.trim(), !!pessoa, !!placa, !!operadorId, !!tipo, !!meio, exc, retro].filter(Boolean).length;
   const limpar = () => { periodo.limpar(); unid.limpar(); setPessoa(''); setPlaca(''); gravar({ op: undefined, tipo: undefined, meio: undefined, exc: undefined, retro: undefined }); };
@@ -154,7 +156,7 @@ export function HistoricoPage() {
         </>} />
 
       {podeVerificar && (
-        <Tabs rotulo="Trilhas" ativa={aba} onChange={(a) => gravar({ aba: naUrl(a, 'acessos') })}
+        <Tabs rotulo="Trilhas" ativa={aba} onChange={(a) => gravar({ aba: naUrl(a, 'acessos'), pagina: undefined })}
           abas={[
             { id: 'acessos' as const, rotulo: 'Trilha de acessos' },
             { id: 'alteracoes' as const, rotulo: 'Trilha de alterações' },
@@ -174,7 +176,7 @@ export function HistoricoPage() {
       {mostraSelo && <SeloAncora />}
 
       <BarraFiltros ativos={ativos} onLimpar={limpar} principalAtivo={!!pessoa || !!placa}
-        resultado={<ContagemResultado n={dados.length} singular="registro" plural="registros" sufixo={lista.hasNextPage ? '(há mais: carregue abaixo)' : ''} />}
+        resultado={<ContagemResultado n={pag.total ?? dados.length} singular="registro" plural="registros" />}
         principal={<FiltroBusca rotulo="Pessoa" value={pessoa} onChange={setPessoa} placeholder="Nome" />}>
         <FiltroBusca rotulo="Placa" value={placa} onChange={setPlaca} placeholder="ABC1D23" largura="md:w-44" />
         <FiltroPeriodo de={de} ate={ate} onChange={periodo.alterar} atalhos />
@@ -202,6 +204,13 @@ export function HistoricoPage() {
         <FiltroCheck rotulo="Somente retroativos" checked={retro} onChange={(v) => gravar({ retro: v ? '1' : undefined })} />
       </BarraFiltros>
 
+      <Totais rotulo="Registros nos filtros, por tipo" itens={[
+        { rotulo: 'Entradas', valor: porTipo?.entrada },
+        { rotulo: 'Saídas', valor: porTipo?.saida },
+        { rotulo: 'Negados', valor: porTipo?.negado, destaque: 'vermelho' },
+        { rotulo: 'Recusados', valor: porTipo?.recusado, destaque: 'ambar' },
+        { rotulo: 'Correções', valor: porTipo?.correcao },
+      ]} />
       {lista.error && <ErroCarregar mensagem={mensagemErro(lista.error)} onTentar={() => lista.refetch()} />}
       <div className="overflow-hidden rounded-[10px] border border-[#DCE1E5] bg-white">
         <Lista legenda="Eventos de acesso" colunas={COLUNAS} empilhar className="!rounded-none !border-0" carregando={lista.isLoading} linhasCarregando={8}>
@@ -226,7 +235,7 @@ export function HistoricoPage() {
         </Lista>
         {!lista.isPending && !lista.error && dados.length === 0 && <Vazio>Nenhum evento com estes filtros.</Vazio>}
       </div>
-      {lista.hasNextPage && <div><Button carregando={lista.isFetchingNextPage} onClick={() => void lista.fetchNextPage()}>Carregar mais</Button></div>}
+      <Paginacao pagina={pag.pagina} totalPaginas={pag.totalPaginas} onIr={pag.irPara} rotulo="eventos" ocupado={pag.trocando} />
 
       </>}
 

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Ban, Check } from 'lucide-react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useApi, type PessoaBusca, type PessoaLista, type RestricaoResumo } from '../../api';
+import { usePaginacao } from '../../app/paginacao';
+import { Paginacao, Totais } from '../../components/Paginacao';
 import { useCan } from '../../auth/AuthContext';
 import { Alert } from '../../components/Alert';
 import { Badge, SeloVinculo } from '../../components/Badge';
@@ -17,7 +19,6 @@ import { FichaPessoaModal } from './FichaPessoaModal';
 import { NovaPessoaModal } from './NovaPessoaForm';
 import { BarraFiltros, CampoFiltro, CONTROLE, ContagemResultado, FiltroBusca, FiltroCheck, lerOpcao, naUrl, useFiltrosUrl } from '../../components/Filtros';
 
-const POR_PAGINA = 50;
 /** Busca da tela: até 50 resultados (texto livre vai no corpo do POST, nunca na URL: pode ser CPF). */
 const LIMITE_BUSCA = 50;
 // Nome, vínculo ou tipo, CPF · telefone (mascarados), unidade e situação. O CPF e o telefone separam homônimos.
@@ -47,15 +48,13 @@ export function CadastroPage() {
   const termo = useDebounce(q.trim(), 200);
   const buscando = termo.length >= 2;
 
-  // Sem texto: a lista inteira, paginada no servidor (categoria filtra lá).
-  const lista = useInfiniteQuery({
-    queryKey: CHAVES.pessoasLista(cat, desativados),
-    queryFn: ({ pageParam }) => api.pessoas.listarPagina({ categoria: cat === 'todas' ? undefined : cat, cursor: pageParam, limite: POR_PAGINA, incluirDesativadas: desativados }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (p) => (p.temMais && p.cursor ? p.cursor : undefined),
-    enabled: !buscando,
-    staleTime: 0,
+  // Sem texto: a lista inteira, paginada no servidor (categoria filtra lá; a página vai para a URL).
+  const lista = usePaginacao<PessoaLista>({
+    chave: CHAVES.pessoasLista(cat, desativados),
+    buscar: (pos) => api.pessoas.listarPagina({ categoria: cat === 'todas' ? undefined : cat, incluirDesativadas: desativados, ...pos }),
+    habilitado: !buscando,
   });
+  const resumo = useQuery({ queryKey: CHAVES.pessoasResumo, queryFn: () => api.pessoas.resumo(), staleTime: 0 }).data;
   // Com texto: a mesma busca da portaria (nome, CPF, unidade, placa); a categoria filtra o resultado.
   const busca = useQuery({
     queryKey: CHAVES.pessoasBusca(termo, desativados),
@@ -67,9 +66,9 @@ export function CadastroPage() {
 
   const linhas: (PessoaBusca | PessoaLista)[] = buscando
     ? (busca.data ?? []).filter((p) => cat === 'todas' || p.categoria === cat)
-    : (lista.data?.pages.flatMap((p) => p.itens) ?? []);
-  const carregando = buscando ? busca.isLoading : lista.isLoading;
-  const erro = buscando ? busca.error : lista.error;
+    : lista.itens;
+  const carregando = buscando ? busca.isLoading : lista.consulta.isLoading;
+  const erro = buscando ? busca.error : lista.consulta.error;
 
   function linhaDe(p: PessoaBusca | PessoaLista) {
     const v = 'vinculoPrincipal' in p ? p.vinculoPrincipal : null;
@@ -90,15 +89,22 @@ export function CadastroPage() {
     };
   }
 
-  const sufixoContagem = buscando
-    ? ((busca.data?.length ?? 0) >= LIMITE_BUSCA ? '(refine a busca)' : '')
-    : lista.hasNextPage ? (linhas.length === 1 ? 'carregada' : 'carregadas') : '';
+  const sufixoContagem = buscando ? ((busca.data?.length ?? 0) >= LIMITE_BUSCA ? '(refine a busca)' : '') : '';
+  const nContagem = buscando ? linhas.length : lista.total ?? linhas.length;
   const ativos = [!!q.trim(), cat !== 'todas', desativados].filter(Boolean).length;
 
   return (
     <div className="flex flex-col gap-5">
       <PageHeader titulo="Cadastro de pessoas" descricao="Moradores com vínculo e pessoas cadastradas na portaria. Clique para abrir a ficha da pessoa."
         acoes={podeCriar && <Button variante="primario" onClick={() => setNovo(true)}>Nova pessoa</Button>} />
+      <Totais rotulo="Totais do cadastro" itens={[
+        { rotulo: 'Cadastros ativos', valor: resumo?.ativas },
+        { rotulo: 'Moradores', valor: resumo?.porCategoria.morador },
+        { rotulo: 'Visitantes', valor: resumo?.porCategoria.visitante },
+        { rotulo: 'Prestadores', valor: resumo?.porCategoria.prestador },
+        { rotulo: 'Funcionários', valor: resumo?.porCategoria.funcionario },
+        { rotulo: 'Desativados', valor: resumo?.desativadas },
+      ]} />
       <BarraFiltros ativos={ativos} principalAtivo={!!q.trim()} onLimpar={() => { setQ(''); gravar({ tipo: undefined, desativados: undefined }); }}
         principal={<FiltroBusca rotulo="Buscar por nome, CPF, unidade ou placa" value={q} onChange={setQ} />}>
         <CampoFiltro rotulo="Tipo" largura="md:w-48">
@@ -108,7 +114,7 @@ export function CadastroPage() {
         </CampoFiltro>
         <FiltroCheck rotulo="Mostrar desativados" checked={desativados} onChange={(v) => gravar({ desativados: v ? '1' : undefined })} />
       </BarraFiltros>
-      <ContagemResultado n={linhas.length} singular="pessoa" plural="pessoas" sufixo={sufixoContagem} className="-mb-2 px-1" />
+      <ContagemResultado n={nContagem} singular="pessoa" plural="pessoas" sufixo={sufixoContagem} className="-mb-2 px-1" />
       {erro && <Alert tom="vermelho" role="alert">{mensagemErro(erro)}</Alert>}
       <Lista legenda="Pessoas cadastradas" colunas={COLUNAS} empilhar carregando={carregando}>
         <ListaCab rotulos={['Nome', 'Vínculo ou tipo', 'CPF · telefone', 'Unidade', 'Situação']} />
@@ -132,9 +138,7 @@ export function CadastroPage() {
         })}
         {!carregando && !erro && linhas.length === 0 && <Vazio>Nenhuma pessoa encontrada.</Vazio>}
       </Lista>
-      {!buscando && lista.hasNextPage && (
-        <Button className="self-start" carregando={lista.isFetchingNextPage} onClick={() => void lista.fetchNextPage()}>Carregar mais</Button>
-      )}
+      {!buscando && <Paginacao pagina={lista.pagina} totalPaginas={lista.totalPaginas} onIr={lista.irPara} rotulo="pessoas" ocupado={lista.trocando} />}
       {ficha && <FichaPessoaModal id={ficha} onClose={() => setFicha(null)} />}
       {novo && <NovaPessoaModal onClose={() => setNovo(false)} onFeito={(p) => { setNovo(false); avisar({ texto: `${p.nome} cadastrado(a).` }); void invalidar(APOS_PESSOA); }}
         onExistente={(pid) => { setNovo(false); setFicha(pid); void invalidar(APOS_PESSOA); }} />}

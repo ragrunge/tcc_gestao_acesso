@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Check, Info } from 'lucide-react';
 import { useApi, type FiltroVinculos, type VinculoView } from '../../api';
 import { Alert } from '../../components/Alert';
@@ -19,9 +19,11 @@ import { APOS_VINCULO, CHAVES, useContagemPendentes, useInvalidar } from '../../
 import { useCan } from '../../auth/AuthContext';
 import { FichaPessoaModal } from '../cadastro/FichaPessoaModal';
 import { ErroCarregar, Osso } from '../../components/Carregando';
+import { lerOpcao, naUrl, useFiltrosUrl } from '../../components/Filtros';
+import { Paginacao, Totais } from '../../components/Paginacao';
+import { usePaginacao } from '../../app/paginacao';
 
 type Aba = 'pendentes' | 'decididos' | 'legados';
-const POR_PAGINA = 50;
 /** Uma fila por aba, paginada no servidor. Legados por prazo: os vencidos vêm primeiro (RN-09). */
 const FILAS: Record<Aba, Pick<FiltroVinculos, 'status' | 'ordem'>> = {
   pendentes: { status: ['pendente'], ordem: 'recentes' },
@@ -35,18 +37,18 @@ export function VinculosPage() {
   const { rotulo } = useCatalogo();
   const invalidar = useInvalidar();
   const podeDecidir = useCan('vinculo.decidir');
-  const [aba, setAba] = useState<Aba>('pendentes');
+  const { params, gravar } = useFiltrosUrl();
+  const aba = lerOpcao<Aba>(params.get('aba'), ['pendentes', 'legados', 'decididos'], 'pendentes');
   const [ficha, setFicha] = useState<string | null>(null);
   const [fimInquilino, setFimInquilino] = useState('');
-  const fila = useInfiniteQuery({
-    queryKey: CHAVES.vinculosFila(aba),
-    queryFn: ({ pageParam }) => api.vinculos.listarPagina({ ...FILAS[aba], cursor: pageParam, limite: POR_PAGINA }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (p) => (p.temMais && p.cursor ? p.cursor : undefined),
-    staleTime: 0,
+  const fila = usePaginacao<VinculoView>({
+    chave: CHAVES.vinculosFila(aba),
+    buscar: (pos) => api.vinculos.listarPagina({ ...FILAS[aba], ...pos }),
   });
   const nPend = useContagemPendentes(true).data;
-  const nLeg = useQuery({ queryKey: CHAVES.vinculosContagem('legado'), queryFn: () => api.vinculos.contar('legado'), staleTime: 0 }).data;
+  // Contagens do servidor (nunca da página carregada): legados, vencidos e vínculos válidos por tipo.
+  const resumo = useQuery({ queryKey: CHAVES.vinculosResumo, queryFn: () => api.vinculos.resumo(), staleTime: 0 }).data;
+  const nLeg = resumo?.porStatus.legado;
   const [sel, setSel] = useState<string | null>(null);
   const [rejeitando, setRejeitando] = useState(false);
   const [encerrando, setEncerrando] = useState(false);
@@ -56,8 +58,8 @@ export function VinculosPage() {
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
 
-  const lista = fila.data?.pages.flatMap((p) => p.itens) ?? [];
-  const nVencidos = aba === 'legados' ? lista.filter((v) => v.legadoVencido).length : 0;
+  const lista = fila.itens;
+  const nVencidos = resumo?.legadosVencidos;
   const atual: VinculoView | undefined = lista.find((v) => v.id === sel) ?? lista[0];
   const recarregar = () => invalidar(APOS_VINCULO);
   // Abaixo de xl o detalhe fica embaixo da fila inteira: ao escolher um item, leva a pessoa até ele (e o foco, para o teclado)
@@ -104,22 +106,30 @@ export function VinculosPage() {
         <Info className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
         Vínculo pendente não dá acesso de morador. Documento apresentado na portaria não substitui esta aprovação.
       </div>
-      {fila.error && <ErroCarregar mensagem={mensagemErro(fila.error)} onTentar={() => fila.refetch()} />}
+      <Totais rotulo="Totais de vínculos" itens={[
+        { rotulo: 'Legados a regularizar', valor: nLeg, destaque: 'ambar' },
+        { rotulo: 'Legados vencidos', valor: nVencidos, destaque: 'vermelho' },
+        { rotulo: 'Moradores com vínculo válido', valor: resumo?.pessoasComVinculoValido },
+        { rotulo: 'Proprietários', valor: resumo?.validosPorTipo.proprietario },
+        { rotulo: 'Inquilinos', valor: resumo?.validosPorTipo.inquilino },
+        { rotulo: 'Dependentes', valor: resumo?.validosPorTipo.dependente },
+      ]} />
+      {fila.consulta.error && <ErroCarregar mensagem={mensagemErro(fila.consulta.error)} onTentar={() => fila.consulta.refetch()} />}
 
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
         <div className="flex flex-col gap-2">
-          <Tabs compacta rotulo="Fila de vínculos" ativa={aba} onChange={(a) => { setAba(a); setSel(null); }}
+          <Tabs compacta rotulo="Fila de vínculos" ativa={aba} onChange={(a) => { gravar({ aba: naUrl(a, 'pendentes') }); setSel(null); }}
             abas={[{ id: 'pendentes', rotulo: `Pendentes${nPend === undefined ? '' : ` (${nPend})`}` }, { id: 'legados', rotulo: `Legados${nLeg === undefined ? '' : ` (${nLeg})`}` }, { id: 'decididos', rotulo: 'Decididos' }]} />
           {aba === 'legados' && (
-            <p className="text-[13px] text-[#56616B]">Importados da planilha (RN-09). Valem até o prazo de regularização; {nVencidos} com prazo vencido, em destaque.</p>
+            <p className="text-[13px] text-[#56616B]">Importados da planilha (RN-09). Valem até o prazo de regularização; {nVencidos ?? '…'} com prazo vencido, em destaque (os vencidos vêm primeiro).</p>
           )}
-          <ul className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto" aria-label="Fila" aria-busy={fila.isLoading || undefined}>
-            {fila.isLoading && [0, 1, 2, 3].map((i) => (
+          <ul className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto" aria-label="Fila" aria-busy={fila.consulta.isLoading || fila.trocando || undefined}>
+            {fila.consulta.isLoading && [0, 1, 2, 3].map((i) => (
               <li key={i} aria-hidden className="apos-espera flex flex-col gap-2.5 rounded-[10px] border-2 border-[#DCE1E5] bg-white px-4 py-[14px]">
                 <Osso className="h-3.5 w-[60%]" /><Osso className="h-3 w-[40%]" />
               </li>
             ))}
-            {!fila.isLoading && !fila.error && lista.length === 0 && <li className="rounded-[10px] border border-dashed border-[#C5CDD3] bg-white p-4 text-[#56616B]">Nenhum vínculo nesta lista.</li>}
+            {!fila.consulta.isLoading && !fila.consulta.error && lista.length === 0 && <li className="rounded-[10px] border border-dashed border-[#C5CDD3] bg-white p-4 text-[#56616B]">Nenhum vínculo nesta lista.</li>}
             {lista.map((v) => (
               <li key={v.id}>
                 <button type="button" aria-current={atual?.id === v.id} onClick={() => escolher(v.id)}
@@ -132,10 +142,8 @@ export function VinculosPage() {
                 </button>
               </li>
             ))}
-            {fila.hasNextPage && (
-              <li><Button className="w-full" carregando={fila.isFetchingNextPage} onClick={() => void fila.fetchNextPage()}>Carregar mais</Button></li>
-            )}
           </ul>
+          <Paginacao pagina={fila.pagina} totalPaginas={fila.totalPaginas} onIr={(n) => { fila.irPara(n); setSel(null); }} rotulo="vínculos" ocupado={fila.trocando} />
         </div>
 
         {atual && (

@@ -10,15 +10,18 @@ export const CHAVES = {
   unidades: ['unidades'] as const,
   unidadesDoBloco: (bloco: string) => ['unidades', 'lista', bloco] as const,
   unidade: (ref: string) => ['unidades', 'detalhe', ref] as const,
+  unidadesResumo: ['unidades', 'resumo'] as const,
   /** Prefixo de tudo que é de vínculo: filas, contagens (badge) e autorizadores da unidade. */
   vinculos: ['vinculos'] as const,
   vinculosPendentes: ['vinculos', 'contagem', 'pendente'] as const,
   vinculosContagem: (status: string) => ['vinculos', 'contagem', status] as const,
   vinculosFila: (aba: string) => ['vinculos', 'fila', aba] as const,
+  vinculosResumo: ['vinculos', 'resumo'] as const,
   autorizadores: (unidadeId: string) => ['vinculos', 'autorizadores', unidadeId] as const,
   /** Prefixo de tudo que é de pessoa: lista do Cadastro, busca da tela e ficha. */
   pessoas: ['pessoas'] as const,
   pessoasLista: (categoria: string, desativadas = false) => ['pessoas', 'lista', categoria, desativadas] as const,
+  pessoasResumo: ['pessoas', 'resumo'] as const,
   /** O termo pode ser CPF: a chave fica só na memória (gcTime curto, nada de persistir o cache). */
   pessoasBusca: (q: string, desativadas = false) => ['pessoas', 'busca', q, desativadas] as const,
   /** Seletor de pessoa dos formulários (PessoaCombobox): mesma regra de memória da busca acima. */
@@ -47,6 +50,7 @@ export const CHAVES = {
   ocorrencias: ['ocorrencias'] as const,
   ocorrenciasLista: (filtro: string, tipo = '', unidadeId = '') => ['ocorrencias', 'lista', filtro, tipo, unidadeId] as const,
   ocorrencia: (id: string) => ['ocorrencias', 'detalhe', id] as const,
+  ocorrenciasResumo: ['ocorrencias', 'resumo'] as const,
   autorizacoes: ['autorizacoes'] as const,
   autorizacoesHoje: ['autorizacoes', 'hoje'] as const,
   autorizacoesPrevistas: (horas: number) => ['autorizacoes', 'previstas', horas] as const,

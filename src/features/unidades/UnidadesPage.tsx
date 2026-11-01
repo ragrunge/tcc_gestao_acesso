@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useApi } from '../../api';
+import { CHAVES } from '../../app/consultas';
+import { Totais } from '../../components/Paginacao';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
@@ -30,6 +34,8 @@ export function UnidadesPage() {
   const [escolhido, setBloco] = useState<string | null>(sel?.bloco ?? null);
   const bloco = escolhido ?? blocos[0] ?? '';
   const lista = useUnidadesDoBloco(bloco);
+  const api = useApi();
+  const resumo = useQuery({ queryKey: CHAVES.unidadesResumo, queryFn: () => api.unidades.resumo(), staleTime: 0 }).data;
   const resumos = useMemo(() => lista.data?.pages.flatMap((p) => p.itens) ?? [], [lista.data]);
 
   // Mudou a unidade (busca global, link): acompanha o bloco dela
@@ -40,6 +46,15 @@ export function UnidadesPage() {
   const inativos = new Set(doBloco.filter((u) => !u.ativo).map((u) => u.numero));
   const completas = new Set(resumos.filter((u) => u.cadastroCompleto && u.unidade.bloco === bloco).map((u) => u.unidade.numero));
   return (
+    <div className="flex flex-col gap-4">
+    <Totais rotulo="Totais das unidades" itens={[
+      { rotulo: 'Unidades ativas', valor: resumo?.ativas },
+      { rotulo: 'Ocupadas', valor: resumo?.ocupadas },
+      { rotulo: 'Alugadas', valor: resumo?.alugadas },
+      { rotulo: 'Vazias', valor: resumo?.vazias },
+      { rotulo: 'Cadastro completo', valor: resumo?.cadastroCompleto },
+      { rotulo: 'Veículos', valor: resumo?.veiculosAtivos },
+    ]} />
     <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
       <div className="flex flex-col xl:sticky xl:top-0 gap-3 rounded-[10px] border border-[#DCE1E5] bg-white p-4">
         <div className="flex items-center justify-between gap-2">
@@ -65,6 +80,7 @@ export function UnidadesPage() {
       {nova && <EditarUnidadeModal id={null} onClose={() => setNova(false)} onFeito={(cod) => {
         setNova(false); avisar({ texto: `Unidade ${cod} cadastrada.` }); nav(`/unidades/${cod}`);
       }} />}
+    </div>
     </div>
   );
 }

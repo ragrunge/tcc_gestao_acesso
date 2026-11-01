@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
 import { useApi } from '../../api';
 import { Button } from '../../components/Button';
+import { usePaginacao } from '../../app/paginacao';
+import { Paginacao } from '../../components/Paginacao';
 import { Gaveta } from '../../components/Modal';
 import { Cel, Lista, ListaCab, ListaLinha, Vazio } from '../../components/Table';
 import { ROTULO_PAPEL, type RegistroAlteracao } from '@domain/types';
@@ -12,7 +13,6 @@ import { ErroCarregar } from '../../components/Carregando';
 import { BarraFiltros, CampoFiltro, CONTROLE, ContagemResultado, naUrl, useFiltrosUrl } from '../../components/Filtros';
 
 const COLUNAS = '150px minmax(0,1fr) 120px 190px minmax(0,1fr)';
-const POR_PAGINA = 50;
 
 /** Trilha de alterações do sistema (quem mudou o quê e quando), só leitura. Dados pessoais já vêm mascarados. */
 export function TrilhaAlteracoes() {
@@ -22,15 +22,14 @@ export function TrilhaAlteracoes() {
   const acaoUrl = params.get('acao') ?? '';
   const acao = /^[\w.:-]{1,64}$/.test(acaoUrl) ? acaoUrl : '';
   const [aberto, setAberto] = useState<RegistroAlteracao | null>(null);
-  // Paginada no servidor (a trilha cresce sem parar); o filtro por ação também é aplicado lá
-  const lista = useInfiniteQuery({
-    queryKey: CHAVES.alteracoes(acao),
-    queryFn: ({ pageParam }) => api.auditoria.alteracoesPagina({ acao: acao || undefined, cursor: pageParam, limite: POR_PAGINA }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (p) => (p.temMais && p.cursor ? p.cursor : undefined),
-    staleTime: 0,
+  // Paginada no servidor (a trilha cresce sem parar), presa ao ateSeq da página 1; o filtro por ação também é aplicado lá
+  const pag = usePaginacao<RegistroAlteracao>({
+    chave: CHAVES.alteracoes(acao),
+    buscar: (pos) => api.auditoria.alteracoesPagina({ acao: acao || undefined, ...pos }),
+    trilha: true,
   });
-  const filtrados = useMemo(() => (lista.data?.pages ?? []).flatMap((p) => p.itens), [lista.data]);
+  const lista = pag.consulta;
+  const filtrados = pag.itens;
   // Ações conhecidas: todas as já vistas nesta tela (o filtro não as esconde do select)
   const vistas = useRef(new Set<string>());
   for (const r of filtrados) vistas.current.add(r.acao);
@@ -46,7 +45,7 @@ export function TrilhaAlteracoes() {
           </select>
         </CampoFiltro>
       </BarraFiltros>
-      <ContagemResultado n={filtrados.length} singular="alteração" plural="alterações" sufixo={`${lista.hasNextPage ? (filtrados.length === 1 ? 'carregada' : 'carregadas') : 'nos filtros escolhidos'} · mais recentes primeiro`} className="-mb-2 px-1" />
+      <ContagemResultado n={pag.total ?? filtrados.length} singular="alteração" plural="alterações" sufixo="nos filtros escolhidos · mais recentes primeiro" className="-mb-2 px-1" />
       {lista.error && <ErroCarregar mensagem={mensagemErro(lista.error)} onTentar={() => lista.refetch()} />}
       <Lista legenda="Trilha de alterações" colunas={COLUNAS} empilhar carregando={lista.isLoading}>
         <ListaCab padY={10} rotulos={['Data e hora', 'Usuário', 'Papel', 'Ação', 'Registro']} />
@@ -61,7 +60,7 @@ export function TrilhaAlteracoes() {
         ))}
       </Lista>
       {!lista.isPending && !lista.error && filtrados.length === 0 && <Vazio>Nenhuma alteração registrada com este filtro.</Vazio>}
-      {lista.hasNextPage && <div><Button carregando={lista.isFetchingNextPage} onClick={() => void lista.fetchNextPage()}>Carregar mais</Button></div>}
+      <Paginacao pagina={pag.pagina} totalPaginas={pag.totalPaginas} onIr={pag.irPara} rotulo="alterações" ocupado={pag.trocando} />
       {aberto && (
         <Gaveta titulo={`Alteração ${aberto.seq}`} onClose={() => setAberto(null)}>
           <div className="flex items-start justify-between gap-3">

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Ban, Check, TriangleAlert } from 'lucide-react';
 import { useApi, type Autorizador, type EncomendaView, type PessoaBusca } from '../../api';
@@ -24,9 +24,10 @@ import { mensagemErro, useAgora, useAsync } from '../../app/useAsync';
 import { APOS_ENCOMENDA, CHAVES, useInvalidar } from '../../app/consultas';
 import { ErroCarregar } from '../../components/Carregando';
 import { BarraFiltros, ContagemResultado, FiltroUnidade, lerOpcao, naUrl, useFiltrosUrl, useFiltroUnidade } from '../../components/Filtros';
+import { Paginacao } from '../../components/Paginacao';
+import { usePaginacao } from '../../app/paginacao';
 
 /** Encomendas por página: a fila cresce com "Carregar mais" (RF-26: um condomínio de porte médio acumula entregues). */
-const POR_PAGINA = 50;
 
 const TRANSPORTADORAS = ['Correios', 'Mercado Livre', 'Amazon', 'Shopee', 'Loggi', 'Jadlog', 'Outra'];
 // Mesma ordem nas duas abas (unidade, destinatário, transportadora com o rastreio embaixo, data). As colunas cabem sem
@@ -63,14 +64,12 @@ export function EncomendasPage() {
   const [autorizando, setAutorizando] = useState<EncomendaView | null>(null);
   const invalidar = useInvalidar();
   // React Query: receber, entregar e autorizar invalidam o prefixo 'encomendas' (filas e contagens) e o turno (painel)
-  const lista = useInfiniteQuery({
-    queryKey: CHAVES.encomendasLista(aba, unid.unidadeId),
-    queryFn: ({ pageParam }) => api.encomendas.listarPagina({ status: aba, unidadeId: unid.unidadeId, cursor: pageParam, limite: POR_PAGINA }),
-    enabled: !unid.pendente,
-    initialPageParam: null as string | null,
-    getNextPageParam: (p) => (p.temMais && p.cursor ? p.cursor : undefined),
-    staleTime: 0,
+  const pag = usePaginacao<EncomendaView>({
+    chave: CHAVES.encomendasLista(aba, unid.unidadeId),
+    buscar: (pos) => api.encomendas.listarPagina({ status: aba, unidadeId: unid.unidadeId, ...pos }),
+    habilitado: !unid.pendente,
   });
+  const lista = pag.consulta;
   const resumo = useQuery({ queryKey: CHAVES.encomendasResumo, queryFn: () => api.encomendas.resumo(), staleTime: 0 });
   const depoisDeEscrever = () => void invalidar(APOS_ENCOMENDA);
 
@@ -82,7 +81,7 @@ export function EncomendasPage() {
     }
   }, [params, podeOperar, setParams]);
 
-  const dados = lista.data?.pages.flatMap((p) => p.itens) ?? [];
+  const dados = pag.itens;
   const nAguardando = resumo.data?.aguardando ?? 0;
   const nAtrasadas = resumo.data?.atrasadas ?? 0;
   return (
@@ -93,7 +92,7 @@ export function EncomendasPage() {
 
       <BarraFiltros ativos={unid.texto.trim() ? 1 : 0} principalAtivo={!!unid.texto.trim()} onLimpar={unid.limpar}
         principal={<FiltroUnidade f={unid} />} />
-      {unid.unidadeId && <ContagemResultado n={dados.length} singular="encomenda" plural="encomendas" sufixo={`na unidade${lista.hasNextPage ? ' (há mais: carregue abaixo)' : ''}`} className="-mb-3 px-1" />}
+      {unid.unidadeId && <ContagemResultado n={pag.total ?? dados.length} singular="encomenda" plural="encomendas" sufixo="na unidade" className="-mb-3 px-1" />}
       <div className="rounded-[10px] border border-[#DCE1E5] bg-white">
         <Tabs rotulo="Situação das encomendas" ativa={aba} onChange={(a) => gravar({ aba: naUrl(a, 'aguardando') })}
           abas={[{ id: 'aguardando', rotulo: `Aguardando retirada (${nAguardando})` }, { id: 'entregue', rotulo: `Entregues (${resumo.data?.entregues ?? 0})` }]} />
@@ -145,9 +144,9 @@ export function EncomendasPage() {
           </Lista>
         )}
         {!lista.isLoading && !lista.error && dados.length === 0 && <Vazio>Nenhuma encomenda nesta lista.</Vazio>}
-        {lista.hasNextPage && (
+        {pag.totalPaginas > 1 && (
           <div className="border-t border-[#E6EAED] p-3">
-            <Button carregando={lista.isFetchingNextPage} onClick={() => void lista.fetchNextPage()}>Carregar mais encomendas</Button>
+            <Paginacao pagina={pag.pagina} totalPaginas={pag.totalPaginas} onIr={pag.irPara} rotulo="encomendas" ocupado={pag.trocando} />
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 // F3: operação pelo navegador contra o Supabase LOCAL (Auth + Edge + RPCs da operação): encomenda recebida e entregue,
 // ocorrência aberta e encerrada (os anexos estão no 33-supabase-anexos.spec.ts), vínculo conferido e aprovado, relatório
-// com CSV, integridade da trilha verificada no navegador e as telas da F5 ainda escondidas.
+// com CSV, integridade da trilha verificada no navegador, as telas da F5 ainda escondidas e as listas paginadas (0037).
 // Pré-requisitos: supabase start && supabase db reset && supabase functions serve. Rodar:
 //   npx playwright test e2e/32-supabase-operacao.spec.ts
 // Dados do seed (supabase/seed/demo.sql, fictícios): moradora Fernanda Costa (B-21) e os usuários de demonstração.
@@ -168,4 +168,27 @@ test('menu: telas da F3 aparecem; Privacidade (F5) e Usuários continuam escondi
   await expect(page.getByRole('link', { name: /Privacidade/ })).toHaveCount(0);
   await page.goto('/privacidade');
   await expect(page.getByRole('status').filter({ hasText: 'ainda não está disponível nesta versão' })).toBeVisible();
+});
+
+test('listas paginadas no servidor: totais do servidor no topo, página fora do intervalo corrigida, total igual ao da RPC', async ({ page }) => {
+  await entrar(page, 'paula.nogueira', /\/vinculos$/);
+  const resumo = await rpc(page, 'pessoas_resumo', {});
+  expect(resumo.status).toBe(200);
+  const lista = await rpc(page, 'pessoas_listar', { p: { limite: 50, deslocamento: 0 } });
+  expect(lista.corpo.total).toBe(resumo.corpo.ativas);
+  expect((await rpc(page, 'pessoas_listar', { p: { limite: 101 } })).status).toBe(400);
+
+  await page.goto('/cadastro?pagina=999');
+  await expect(page.getByLabel('Totais do cadastro')).toContainText(`Cadastros ativos${(resumo.corpo.ativas as number).toLocaleString('pt-BR')}`);
+  await expect(page).not.toHaveURL(/pagina=999/);
+  const paginas = Math.ceil(resumo.corpo.ativas / 50);
+  if (paginas > 1) {
+    const nav = page.getByRole('navigation', { name: 'Paginação de pessoas' });
+    await expect(nav.getByRole('button', { name: `Página ${paginas}, atual` })).toHaveAttribute('aria-current', 'page');
+    await nav.getByRole('button', { name: 'Ir para a página 1' }).click();
+    await expect(page).not.toHaveURL(/pagina=/);
+  }
+
+  await page.goto('/vinculos?aba=legados');
+  await expect(page.getByLabel('Totais de vínculos')).toContainText('Legados a regularizar');
 });
