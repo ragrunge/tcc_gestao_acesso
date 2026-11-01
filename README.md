@@ -59,9 +59,11 @@ chave `service_role` nunca vai para o front nem para este repositório.
 > **Estado atual:** o backend está sendo migrado de uma API NestJS (removida deste repositório, disponível no histórico
 > do git até o commit `eae0555`) para o Supabase. Já migrados: login, troca obrigatória de senha, logout e a gestão de
 > contas (fase F1); a portaria (fase F2): busca e cadastro de pessoas, catálogo e unidades (leitura), vínculos (leitura),
-> entrada, saída, recusa, correção, permanência, autorizações prévias e restrições. As telas das fases seguintes
-> (encomendas, ocorrências, funcionários, importação, relatórios, LGPD, usuários) somem do menu e mostram "ainda não está
-> disponível nesta versão".
+> entrada, saída, recusa, correção, permanência, autorizações prévias e restrições; a operação (fase F3): decisão de
+> vínculos, encomendas, ocorrências (sem anexos), funcionários e escala, edição de veículos, pessoas e unidades,
+> relatórios com CSV, verificação e exportação da trilha e importação da planilha. Ainda não migrados: anexos de
+> ocorrência (F4), LGPD, retenção e selo diário (F5) e a tela de usuários; essas telas e campos somem do menu e mostram
+> "ainda não está disponível nesta versão".
 
 ## Como rodar localmente
 
@@ -81,7 +83,7 @@ Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`
 ```bash
 supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
 supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed.sql
-supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia e portaria
+supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria e operação
 supabase functions serve # Edge Functions de auth (auth-entrar, auth-trocar-senha, usuarios-admin)
 ```
 
@@ -107,6 +109,11 @@ pelo trigger do banco. O CPF é guardado como máscara e HMAC, com a chave no Su
 devolve a pessoa, nunca o hash. As regras do servidor (autorização da entrada, restrições, escala, permanência) têm uma
 versão em SQL e um teste de paridade com as de `packages/domain`.
 
+Operação (F3, migrações 0025–0032): mesmo padrão. Funcionário nunca devolve o telefone inteiro; a conferência de
+vínculo recusa número de pessoa em texto livre (função e CHECK da tabela); a integridade da trilha é verificada no
+navegador, em lotes devolvidos por `api.auditoria_cadeia`, e a exportação registra na trilha os filtros sem o nome nem a
+placa digitados. A importação guarda só a impressão HMAC de cada linha (chave no Vault), nunca a planilha.
+
 Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-demonstração).
 
 ## Testes
@@ -114,8 +121,8 @@ Roteiros do que testar em cada tela: [docs/front.md](docs/front.md#roteiros-de-d
 ```bash
 npm run typecheck        # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
-npm run test:supabase    # Edge Functions de auth, paridade TS-SQL das regras e concorrência (stack local + functions serve)
-npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts  # e2e de auth e da portaria (stack local)
+npm run test:supabase    # Edge Functions de auth, paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
+npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts  # e2e (stack local)
 ```
 
 As outras specs de `e2e/` ainda são da API NestJS e serão portadas nas próximas fases (1ª vez: `npx playwright install chromium`).
