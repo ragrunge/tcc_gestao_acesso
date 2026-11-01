@@ -68,7 +68,7 @@ está na tag `nestjs-final`.
 ## Artigo e demonstração
 
 - Artigo: *a definir*.
-- Demonstração publicada: *a definir* (ver "Versão publicada").
+- Demonstração publicada: https://tcc-gestao-acesso.vercel.app (dados fictícios; ver "Versão publicada").
 
 ## Como rodar localmente
 
