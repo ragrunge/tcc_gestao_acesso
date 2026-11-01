@@ -7,7 +7,7 @@
 -- Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(31);
+SELECT plan(35);
 
 -- Allowlist explícita: (papel, função) que PODE ter EXECUTE. anon: nenhuma ainda (api.selos_publicos é da F5).
 CREATE TEMP TABLE allowlist_execute (papel name, funcao regprocedure) ON COMMIT DROP;
@@ -60,7 +60,10 @@ INSERT INTO allowlist_service_role VALUES
   ('srv.troca_preparar(uuid, text)'), ('srv.troca_autorizar(uuid)'), ('srv.troca_falhou(uuid, text)'), ('srv.troca_concluir(uuid, text, uuid, uuid)'),
   ('srv.usuario_criar_preparar(uuid, text, text, papel)'), ('srv.usuario_criar(uuid, text, text, papel, uuid, text, text)'),
   ('srv.usuario_desativar(uuid, uuid, text)'), ('srv.usuario_reativar(uuid, uuid, text)'),
-  ('srv.usuario_redefinir_senha(uuid, uuid, text)');
+  ('srv.usuario_redefinir_senha(uuid, uuid, text)'),
+  -- F4, anexos (Edge anexos): ocorrencia.operar no envio, documento.ver na leitura, conferidos dentro de cada uma
+  ('srv.anexo_preparar(uuid, uuid)'), ('srv.anexo_registrar(uuid, uuid, uuid, text, text, integer, text, text, bigint, text)'),
+  ('srv.anexo_para_leitura(uuid, uuid, uuid, text)');
 
 CREATE TEMP VIEW papeis_api AS SELECT unnest(ARRAY['anon', 'authenticated', 'service_role']::name[]) AS papel;
 CREATE TEMP VIEW schemas_sistema AS SELECT unnest(ARRAY['public', 'api', 'srv', 'app']::name[]) AS nsp;
@@ -165,6 +168,21 @@ SELECT is_empty($$
    WHERE f.pronamespace = 'public'::regnamespace AND f.proconfig IS NULL
      AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = f.oid AND d.deptype = 'e')
 $$, 'funções do public (triggers e helpers) têm search_path fixo');
+
+-- F4: o bucket dos anexos é privado e o Storage só deixa o service_role (Edge) passar.
+SELECT ok((SELECT NOT public AND file_size_limit = 4194304 + 16 AND allowed_mime_types = ARRAY['application/octet-stream']
+             FROM storage.buckets WHERE id = 'anexos'),
+  'bucket anexos: privado, objeto até 4 MiB + tag do GCM, só octet-stream (conteúdo sempre cifrado)');
+SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid = 'storage.objects'::regclass)
+      AND (SELECT relrowsecurity FROM pg_class WHERE oid = 'storage.buckets'::regclass),
+  'RLS ligada em storage.objects e storage.buckets');
+SELECT is_empty($$
+  SELECT pol.polrelid::regclass, pol.polname FROM pg_policy pol
+   WHERE pol.polrelid IN ('storage.objects'::regclass, 'storage.buckets'::regclass) AND pol.polpermissive
+$$, 'nenhuma política PERMISSIVA em storage.objects/buckets (sem política, anon e authenticated não leem nem gravam)');
+SELECT ok(EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'storage.objects'::regclass AND polname = 'portaria_anexos_so_pela_edge'
+                    AND NOT polpermissive AND polcmd = '*' AND polroles @> ARRAY['anon'::regrole, 'authenticated'::regrole]::oid[]),
+  'política restritiva tira o bucket anexos de anon/authenticated mesmo se surgir uma política ampla');
 
 -- ===== RLS como contenção =========================================================================================
 SELECT is_empty($$
