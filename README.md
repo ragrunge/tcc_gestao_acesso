@@ -53,12 +53,14 @@ O protótipo atende **um condomínio**, com um banco de dados só. Funções:
   navegador e exportação verificável.
 - **Acesso:** login por usuário e senha pelo Supabase Auth, quatro papéis (síndico, administração, porteiro e
   auditor), com permissões decididas no banco.
+- **Usuários do sistema:** lista com busca, filtro por papel e situação e totais do servidor; criação com senha
+  temporária mostrada uma vez (troca obrigatória no primeiro acesso), nova senha temporária, desativação e reativação.
+  Administração não gerencia síndico e ninguém desativa a si mesmo.
 
 **Previstas, ainda não migradas** (essas telas somem do menu e mostram "ainda não está disponível nesta versão")
 
 - **Privacidade (LGPD):** pedidos do titular (exportação e anonimização) e retenção por prazo.
 - **Selo diário da trilha** com âncora externa.
-- **Tela de gestão de usuários** (a criação de contas já existe no backend, pela Edge `usuarios-admin`).
 
 **Segurança:** autenticação pelo Supabase Auth, autorização por papel no banco (funções SQL com RLS como contenção),
 trilha só de inclusão protegida por trigger e CPF guardado só como máscara e HMAC. A chave `service_role` nunca vai para
@@ -88,7 +90,7 @@ Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`
 ```bash
 supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
 supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed/demo.sql
-supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação, anexos e paginação
+supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação, anexos, paginação e usuários
 # KEK local dos anexos (32 bytes aleatórios, só desta máquina; o arquivo é ignorado pelo git). Uma vez:
 (umask 077; printf 'PORTARIA_KEK_V1=%s\n' "$(openssl rand -base64 32)" > supabase/functions/.env.local)
 supabase functions serve --env-file supabase/functions/.env.local  # Edge Functions (auth-entrar, auth-trocar-senha, usuarios-admin, anexos)
@@ -197,7 +199,7 @@ painel do turno, histórico e a verificação de integridade da trilha.
 **2. Projeto hospedado.** Depois do ensaio:
 
 ```bash
-npm run db:push:dry                # deve listar só as pendentes (depois da carga: a 0037, paginação)
+npm run db:push:dry                # deve listar só as pendentes (hoje: a 0038, listagem de usuários)
 npm run db:push
 npm run popular:dry
 POPULAR_CONFIRMAR=<id-do-projeto>.supabase.co npm run popular   # usa VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY do .env
@@ -214,7 +216,7 @@ npm run typecheck        # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
 npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
 npm run test:supabase:sindico  # banco local SEM a demonstração, como o hospedado: primeiro síndico e estrutura (rode `supabase db reset` depois, para as outras suítes)
-npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts  # e2e (stack local)
+npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts e2e/34-supabase-usuarios.spec.ts  # e2e (stack local)
 ```
 
 Na primeira vez, rode `npx playwright install chromium`.

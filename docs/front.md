@@ -19,8 +19,8 @@ O `.env` aponta para o projeto escolhido; nunca coloque nele a `service_role`.
 
 - `npm test`: unitários do front (Vitest, jsdom) e de `src/domain`.
 - `npm run test:supabase`: Edge Functions, paridade TS↔SQL e concorrência, contra o stack local aberto.
-- `supabase test db`: pgTAP (permissões, append-only, RBAC, regras da portaria).
-- `npx playwright test`: e2e dos specs `e2e/30` a `33`, contra o stack local (na 1ª vez: `npx playwright install chromium`).
+- `supabase test db`: pgTAP (permissões, append-only, RBAC, regras da portaria, paginação e usuários).
+- `npx playwright test`: e2e dos specs `e2e/30` a `34`, contra o stack local (na 1ª vez: `npx playwright install chromium`).
 
 ## Estrutura de `src/`
 
