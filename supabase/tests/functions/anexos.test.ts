@@ -139,6 +139,10 @@ describe('envio', () => {
     await rpc(administracao, 'ocorrencia_alterar_status', { p_id: doAdmin, p_status: 'encerrada' });
     expect((await enviar(administracao, doAdmin, pdf())).corpo.code).toBe('OCORRENCIA_ENCERRADA');
     expect((await enviar(administracao, '00000000-0000-4000-8000-000000000000', pdf())).corpo.code).toBe('OCORRENCIA_NAO_ENCONTRADA');
+    // A decisão vem antes de ler o corpo (srv.anexo_preparar): quem não pode recebe 403 mesmo mandando arquivo grande demais.
+    expect((await enviar(administracao, doAdmin, jpegDe(MiB4 + 1), { 'Content-Type': 'image/jpeg' })).corpo.code).toBe('OCORRENCIA_ENCERRADA');
+    const outraDoAdmin = await novaOcorrencia(administracao);
+    expect((await enviar(porteiro, outraDoAdmin, jpegDe(MiB4 + 1), { 'Content-Type': 'image/jpeg' })).corpo.code).toBe('SO_PROPRIA_OCORRENCIA');
     expect((await objetosNoBucket()).length).toBe(antes);
   });
 
@@ -220,6 +224,14 @@ describe('leitura', () => {
     sql(`BEGIN; ALTER TABLE public.documento DISABLE TRIGGER documento_imutavel;
       UPDATE public.documento SET chave_versao = 7 WHERE id = '${d.id}'; ALTER TABLE public.documento ENABLE TRIGGER documento_imutavel; COMMIT;`);
     expect((await baixar(administracao, oc, d.id)).corpo.code).toBe('CHAVE_INDISPONIVEL');
+    // Troca completa (objeto, DEK, nonce e SHA de B no registro E no objeto de E): só a AAD (id) separa os dois.
+    const e = documentoUltimo(await enviar(administracao, oc, pdf('E')));
+    await admin.storage.from('anexos').upload(`${e.id}.bin`, await objB!.arrayBuffer(), { upsert: true, contentType: 'application/octet-stream' });
+    sql(`BEGIN; ALTER TABLE public.documento DISABLE TRIGGER documento_imutavel;
+      UPDATE public.documento SET (dek_cifrada, nonce, sha256_conteudo, tamanho_bytes) =
+        (SELECT dek_cifrada, nonce, sha256_conteudo, tamanho_bytes FROM public.documento WHERE id = '${b.id}') WHERE id = '${e.id}';
+      ALTER TABLE public.documento ENABLE TRIGGER documento_imutavel; COMMIT;`);
+    expect((await baixar(administracao, oc, e.id)).corpo.code).toBe('DOCUMENTO_CORROMPIDO');
     await admin.storage.from('anexos').remove([`${b.id}.bin`]);
     expect((await baixar(administracao, oc, b.id)).corpo.code).toBe('DOCUMENTO_INDISPONIVEL');
     expect(Boolean(sql(`SELECT 1 FROM public.documento WHERE id = '${b.id}'`))).toBe(true);
