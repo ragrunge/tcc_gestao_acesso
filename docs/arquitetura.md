@@ -39,3 +39,11 @@ demonstração (usuários com a senha pública `Demo-Portaria-2026`, pessoas e c
 `supabase db reset` local e recusa banco que já tenha usuário ou pessoa. O teste `supabase/tests/sem-seed` confere,
 num banco só com as migrações, a estrutura completa, a ausência de qualquer dado da demonstração e que reaplicar a
 0035 e a 0036 num banco já usado não muda estrutura, eventos nem cadeia.
+
+**Carga fictícia** (`scripts/popular/`): o porte do estudo de caso (543 moradores, 175 veículos, histórico curto) entra
+no hospedado como o síndico logado, só pelas RPCs `api.*` das telas, para que cada cadastro passe pelas regras e vá
+para a trilha. Moradores adultos entram pela importação de planilha (vínculo legado) e são regularizados com a
+conferência do comprovante; menores, pelo cadastro sem CPF. Os eventos são do momento da carga (nada retroativo). O
+carregador é idempotente: cada fase confere o que já existe (listagens, recusas 409 e chaves naturais, como o rastreio
+da encomenda e a descrição da ocorrência) antes de gravar; o fluxo é testado contra um banco falso em memória, e as
+regras reais, no ensaio contra o Supabase local.
