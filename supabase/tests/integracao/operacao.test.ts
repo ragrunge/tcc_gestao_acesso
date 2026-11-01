@@ -130,9 +130,11 @@ describe('auditoria: verificação no navegador e exportação sobre o banco rea
   });
 
   it('exportação JSONL da unidade: cada evento confere com o verificador; a trilha registra a exportação', async () => {
+    // Garante ao menos um evento da unidade (num banco recém-resetado ela não tem nenhum).
+    const ev = await porteiro.eventos.criar({ pessoaId: moradora, unidadeDestinoId: unidade });
     const p = await auditor.auditoria.exportar({ unidadeId: unidade });
     const { eventos, manifesto } = lerExportacaoJsonl(p.conteudo);
-    expect(eventos.length).toBeGreaterThan(0);
+    expect(eventos.some((e) => e.id === ev.id)).toBe(true);
     // Exportação filtrada: cada evento isolado confere (o encadeamento só vale na trilha completa).
     for (const e of eventos) expect((await verificarCadeia([e], { seq: e.seq - 1, hash: e.hash_anterior })).valido).toBe(true);
     expect(manifesto).toMatchObject({ versao: 3, quantidade: eventos.length });
