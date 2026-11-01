@@ -1,5 +1,5 @@
 -- GERADO por src/test/cadeia-vetores.test.ts (ATUALIZAR_VETORES=1). Não editar à mão.
--- Vetores de ouro da cadeia (desenho §3.4, item 5): o canônico e o hash calculados pelo @portaria/domain/hashChain.ts
+-- Vetores de ouro da cadeia (desenho §3.4, item 5): o canônico e o hash calculados pelo @domain/hashChain.ts
 -- têm de ser os mesmos do banco (evento_acesso_canonico + sha256 do trigger). Porte de hash-mock-banco.test.ts.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;

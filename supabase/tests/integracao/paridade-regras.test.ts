@@ -1,16 +1,16 @@
 // Paridade TS <-> SQL das regras do servidor (desenho §7 e §9, R1; plano A, premissa assumida). As regras que a UI usa
-// continuam em @portaria/domain; o banco tem o porte em plpgsql (migração 0020). Aqui os MESMOS casos rodam nos dois
+// continuam em @domain; o banco tem o porte em plpgsql (migração 0020). Aqui os MESMOS casos rodam nos dois
 // lados e o resultado tem de ser idêntico. Os casos são o produto das entradas de cada regra (todos os ramos), mais os
-// exemplos de packages/domain/src/domain.test.ts e permanencia.test.ts.
+// exemplos de src/domain/domain.test.ts e permanencia.test.ts.
 // Pré-requisito: Supabase local de pé e com `supabase db reset` (o teste só LÊ: chama funções puras e o HMAC).
 import { execFileSync } from 'node:child_process';
 import { cpfValido, escalaVigente, estadoAutorizacaoPrevia, justificativaValida, meiosAceitos, prazoInicial, proximaJanelaAutorizacao,
-  proximaProrrogacao, restricoesVigentes, validarAutorizacaoEntrada, validarDesativacaoPessoa, vinculoValido } from '@portaria/domain/rules';
-import { documentoBuscaCpf, mascararCpf, normalizarPlaca } from '@portaria/domain/cpf';
-import { leiturasDoCodigo, normalizarNumero } from '@portaria/domain/units';
-import { codigoEvento } from '@portaria/domain/hashChain';
-import { brt, DIA, HORA, inicioDoDia } from '@portaria/domain/time';
-import type { AutorizacaoPrevia, CategoriaPessoa, Funcionario, MeioAutorizacao, Restricao, TipoVisita, VinculoUnidade } from '@portaria/domain/types';
+  proximaProrrogacao, restricoesVigentes, validarAutorizacaoEntrada, validarDesativacaoPessoa, vinculoValido } from '@domain/rules';
+import { documentoBuscaCpf, mascararCpf, normalizarPlaca } from '@domain/cpf';
+import { leiturasDoCodigo, normalizarNumero } from '@domain/units';
+import { codigoEvento } from '@domain/hashChain';
+import { brt, DIA, HORA, inicioDoDia } from '@domain/time';
+import type { AutorizacaoPrevia, CategoriaPessoa, Funcionario, MeioAutorizacao, Restricao, TipoVisita, VinculoUnidade } from '@domain/types';
 
 const PROJETO = 'tcc-gestao-acesso';
 

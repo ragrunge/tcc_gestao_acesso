@@ -2,8 +2,8 @@
 // livre no corpo), o CSV do relatório montado com csvRelatorio do domain, a verificação da cadeia NO NAVEGADOR (lotes do
 // banco + verificarCadeia: válida, conteúdo adulterado, selo divergente, cabeça à frente), a exportação JSONL e as linhas
 // da importação guardadas só na memória entre analisar e confirmar.
-import { calcularHashExportado, hashGenese, type EventoExportado } from '@portaria/domain/hashChain';
-import { lerExportacaoJsonl } from '@portaria/domain/exportacao';
+import { calcularHashExportado, hashGenese, type EventoExportado } from '@domain/hashChain';
+import { lerExportacaoJsonl } from '@domain/exportacao';
 import { createSupabaseApi } from '../api/supabase/createSupabaseApi';
 import { ApiError } from '../api/types';
 

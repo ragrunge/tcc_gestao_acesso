@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { EventoView } from '@portaria/domain/types';
+import type { EventoView } from '@domain/types';
 import { ApiProvider } from '../api';
 import type { Api, PessoaBusca } from '../api/types';
 import { ToastProvider } from '../components/Toast';

@@ -8,7 +8,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { useToast } from '../../components/Toast';
-import { fmtData, fmtDataHora } from '@portaria/domain/time';
+import { fmtData, fmtDataHora } from '@domain/time';
 import { mensagemErro } from '../../app/useAsync';
 import { CHAVES, useInvalidar } from '../../app/consultas';
 import { CarregandoLinha, ErroCarregar } from '../../components/Carregando';

@@ -1,7 +1,7 @@
 // Utilitários de exibição da escala (as regras vêm do domain).
-import type { Escala } from '@portaria/domain/types';
-import { descreverJanela as janela, validarEscala } from '@portaria/domain/rules';
-import { hhmmParaMin } from '@portaria/domain/time';
+import type { Escala } from '@domain/types';
+import { descreverJanela as janela, validarEscala } from '@domain/rules';
+import { hhmmParaMin } from '@domain/time';
 
 export { validarEscala };
 /** "seg a sex, 22h–6h" */

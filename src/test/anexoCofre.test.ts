@@ -4,13 +4,13 @@
 //    SHA divergente) falham, sem devolver conteúdo parcial.
 // 3. Compatibilidade com o formato do legado (cofre.ts, node:crypto): o que um cifra, o outro abre.
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import * as dominio from '@portaria/domain/rules';
+import * as dominio from '@domain/rules';
 import * as edge from '../../supabase/functions/_shared/anexo';
 
 const kekBruta = () => new Uint8Array(randomBytes(32));
 const pdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, ...randomBytes(500)]);
 
-describe('paridade das regras com @portaria/domain/rules', () => {
+describe('paridade das regras com @domain/rules', () => {
   it('limites e tipos aceitos são os mesmos', () => {
     expect(edge.ANEXO_MAX_BYTES).toBe(dominio.ANEXO_MAX_BYTES);
     expect(edge.ANEXO_MAX_POR_OCORRENCIA).toBe(dominio.ANEXO_MAX_POR_OCORRENCIA);

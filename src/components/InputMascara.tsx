@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type InputHTMLAttributes } from 'react';
-import { mascaraCpf, mascaraPlaca, mascaraTelefone } from '@portaria/domain/cpf';
+import { mascaraCpf, mascaraPlaca, mascaraTelefone } from '@domain/cpf';
 
 const TIPOS = {
   cpf: { mascara: mascaraCpf, inputMode: 'numeric', autoComplete: 'off', placeholder: '000.000.000-00', extra: {} },

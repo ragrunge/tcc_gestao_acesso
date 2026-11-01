@@ -4,11 +4,11 @@ import type {
   AreaComum, AutorizacaoPrevia, AutorizacaoRetirada, CategoriaPessoa, Encomenda, Escala, EventoView, MeioAutorizacao, Ocorrencia,
   Papel, Pessoa, RegistroAlteracao, Restricao, StatusOcorrencia, StatusVinculo, TipoEvento, TipoOcorrencia, TipoVinculo, Unidade,
   UsuarioSistema, ValoresCorrecao, VinculoUnidade, Veiculo, TipoComprovante, Funcionario, MudancaStatusOcorrencia,
-} from '@portaria/domain/types';
-import type { PermanenciaView, TipoVisita, VeiculoAcesso } from '@portaria/domain/types';
-import type { EstadoAutorizacao, MeioComMorador } from '@portaria/domain/rules';
-import type { ResultadoIntegridade } from '@portaria/domain/hashChain';
-import type { Agrupamento } from '@portaria/domain/units';
+} from '@domain/types';
+import type { PermanenciaView, TipoVisita, VeiculoAcesso } from '@domain/types';
+import type { EstadoAutorizacao, MeioComMorador } from '@domain/rules';
+import type { ResultadoIntegridade } from '@domain/hashChain';
+import type { Agrupamento } from '@domain/units';
 
 /** Erro de API no formato da spec: status HTTP + código estável + mensagem para o operador. */
 export class ApiError extends Error {
@@ -394,7 +394,7 @@ export interface Api {
   /** Assina avisos de sessão (401 fora do login, 403 TROCA_DE_SENHA_OBRIGATORIA). Devolve o cancelamento. */
   aoEventoSessao?(cb: (e: EventoSessao) => void): () => void;
   /**
-   * Migração por fases (desenho §6): a rota (Rota de @portaria/domain/rbac) tem backend nesta versão? Ausente = tudo
+   * Migração por fases (desenho §6): a rota (Rota de @domain/rbac) tem backend nesta versão? Ausente = tudo
    * suportado (mocks, cliente HTTP antigo). O menu esconde o que não é suportado e a guarda de rota mostra o aviso.
    */
   suporta?(rota: string): boolean;

@@ -4,7 +4,7 @@ import { useApi, type LinhaPlanilha, type RelatorioImportacao, type ResultadoImp
 import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
-import { fmtData } from '@portaria/domain/time';
+import { fmtData } from '@domain/time';
 import { mensagemErro } from '../../app/useAsync';
 import { useCatalogo } from '../../app/catalogo';
 import { csvExemplo, lerCsv, lerXlsx } from './csv';

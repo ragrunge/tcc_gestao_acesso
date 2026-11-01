@@ -1,8 +1,8 @@
 // Senha temporária (spec §5.1: vale 72 h): textos da tela de Usuários (mensagem copiada e aviso da lista). A validade
 // em si (login recusado depois de 72 h, redefinir renova, troca zera) é testada na API: senha-temporaria.test.ts.
 import { describe, expect, it } from 'vitest';
-import { brt, HORA } from '@portaria/domain/time';
-import type { UsuarioSistema } from '@portaria/domain/types';
+import { brt, HORA } from '@domain/time';
+import type { UsuarioSistema } from '@domain/types';
 import { avisoSenhaTemporaria, mensagemAcesso } from '../features/usuarios/senhaTemporaria';
 
 // Prazo fixo para os textos: 12/10/2026 14:32 (São Paulo).

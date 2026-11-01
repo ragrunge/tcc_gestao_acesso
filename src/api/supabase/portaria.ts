@@ -6,10 +6,10 @@
 // Texto livre que pode identificar alguém (termo de busca, nome, placa) vai sempre no CORPO do POST da RPC.
 import type {
   AutorizacaoPrevia, EventoView, Funcionario, Pessoa, Restricao, Unidade, Veiculo, VinculoUnidade,
-} from '@portaria/domain/types';
-import type { PermanenciaView, VeiculoAcesso } from '@portaria/domain/types';
-import { AGRUPAMENTOS } from '@portaria/domain/units';
-import { toInputDate } from '@portaria/domain/time';
+} from '@domain/types';
+import type { PermanenciaView, VeiculoAcesso } from '@domain/types';
+import { AGRUPAMENTOS } from '@domain/units';
+import { toInputDate } from '@domain/time';
 import { ApiError } from '../types';
 import type {
   Api, Autorizador, AutorizacaoView, Catalogo, FichaPessoa, FiltroEventos, FiltroEventosPagina, Pagina, PessoaBusca, PessoaLista,

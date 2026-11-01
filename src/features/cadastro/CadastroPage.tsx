@@ -9,7 +9,7 @@ import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { Cel, Lista, ListaCab, ListaLinha, Vazio } from '../../components/Table';
 import { useToast } from '../../components/Toast';
-import { ROTULO_CATEGORIA, ROTULO_VINCULO, type CategoriaPessoa } from '@portaria/domain/types';
+import { ROTULO_CATEGORIA, ROTULO_VINCULO, type CategoriaPessoa } from '@domain/types';
 import { mensagemErro } from '../../app/useAsync';
 import { useCatalogo } from '../../app/catalogo';
 import { APOS_PESSOA, CHAVES, useDebounce, useInvalidar } from '../../app/consultas';

@@ -10,7 +10,7 @@ import { ApiProvider } from '../api';
 import type { Api, PessoaBusca } from '../api/types';
 import { ToastProvider } from '../components/Toast';
 import { BlocoVeiculo, EntradaPage, VEICULO_VAZIO, type VeiculoForm } from '../features/portaria/EntradaPage';
-import type { VeiculoAcesso } from '@portaria/domain/types';
+import type { VeiculoAcesso } from '@domain/types';
 
 const { PID, UID, UNID } = vi.hoisted(() => {
   const UID = '22222222-2222-4222-8222-222222222222';

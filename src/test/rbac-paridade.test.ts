@@ -3,7 +3,7 @@
 // MATRIZ sem regenerar (e sem migração nova com o bloco de scripts/rbac-sql.mjs migracao)? Este teste fica vermelho.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { MATRIZ } from '@portaria/domain/rbac';
+import { MATRIZ } from '@domain/rbac';
 // @ts-expect-error módulo .mjs sem tipos (script de geração)
 import { pares, sqlTeste } from '../../scripts/rbac-sql.mjs';
 

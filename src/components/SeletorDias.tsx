@@ -1,4 +1,4 @@
-import { DIAS_SEMANA_ABREV } from '@portaria/domain/time';
+import { DIAS_SEMANA_ABREV } from '@domain/time';
 
 /**
  * Dias da semana em pílulas (Claude Design): marcado = petróleo cheio com texto branco, desmarcado = branco com borda.

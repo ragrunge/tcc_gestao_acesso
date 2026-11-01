@@ -31,7 +31,7 @@ participou da pesquisa.
 | `diagramas/` | Diagramas de casos de uso (portaria, administração e auditoria), em PlantUML, SVG e PNG, e a visão geral da arquitetura |
 | `pesquisa/` | Instrumento de avaliação de aceitação (TAM) pós-uso, com termo de consentimento, roteiro da demonstração e plano de análise, e o registro do pré-teste do instrumento |
 | `src/`, `public/`, `index.html` | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração) |
-| `packages/domain` | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco |
+| `src/domain` | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco |
 | `supabase/` | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/` |
 | `e2e/` | Specs Playwright, a portar para o Supabase local (foram escritas contra a API antiga) |
 | `scripts/` | Geração dos ícones e da marca |
@@ -106,13 +106,13 @@ Como o login funciona: o front chama a Edge `auth-entrar` com o **usuário** (n�
 cada usuário tem um e-mail sintético aleatório que só o banco conhece, e a Edge aplica o limite de tentativas por
 login+IP e a trilha de falhas antes de consultar o Auth. Papel, desativação, troca obrigatória e prazos da sessão são
 lidos do banco a cada chamada (`app.ator()`), nunca do token. A matriz de permissões do banco é gerada de
-`packages/domain/src/rbac.ts` (`node scripts/rbac-sql.mjs`).
+`src/domain/rbac.ts` (`node scripts/rbac-sql.mjs`).
 
 Portaria (F2): cada operação é uma função `api.*` no Postgres (migrações 0020–0024) que começa por `app.exigir(ação)` e
 roda com as permissões mínimas do papel `app_rw`; nenhuma tabela é exposta. O hash da trilha continua sendo calculado
 pelo trigger do banco. O CPF é guardado como máscara e HMAC, com a chave no Supabase Vault (nunca sai do banco); a busca
 devolve a pessoa, nunca o hash. As regras do servidor (autorização da entrada, restrições, escala, permanência) têm uma
-versão em SQL e um teste de paridade com as de `packages/domain`.
+versão em SQL e um teste de paridade com as de `src/domain`.
 
 Operação (F3, migrações 0025–0032): mesmo padrão. Funcionário nunca devolve o telefone inteiro; a conferência de
 vínculo recusa número de pessoa em texto livre (função e CHECK da tabela); a integridade da trilha é verificada no

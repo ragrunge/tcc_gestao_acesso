@@ -2,15 +2,15 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ApiError, useApi, type NovaPessoaInput } from '../../api';
 import { useCan } from '../../auth/AuthContext';
-import { type Pessoa } from '@portaria/domain/types';
+import { type Pessoa } from '@domain/types';
 import { Alert } from '../../components/Alert';
 import { InputMascara } from '../../components/InputMascara';
 import { Button } from '../../components/Button';
 import { Field } from '../../components/Field';
 import { Modal } from '../../components/Modal';
-import { type CategoriaPessoa } from '@portaria/domain/types';
+import { type CategoriaPessoa } from '@domain/types';
 import { mensagemErro } from '../../app/useAsync';
-import { mascaraCpf } from '@portaria/domain/cpf';
+import { mascaraCpf } from '@domain/cpf';
 
 export const ID_FORM_PESSOA = 'f-pessoa';
 

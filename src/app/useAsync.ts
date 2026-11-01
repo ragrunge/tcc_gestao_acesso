@@ -47,7 +47,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
 }
 
 /** Hora atual (relógio do navegador), atualizada a cada `intervaloMs`. */
-import { agora } from '@portaria/domain/time';
+import { agora } from '@domain/time';
 export function useAgora(intervaloMs = 1000): number {
   const [t, setT] = useState(agora());
   useEffect(() => {

@@ -6,7 +6,7 @@ import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { useToast } from '../../components/Toast';
-import { fmtDataHora } from '@portaria/domain/time';
+import { fmtDataHora } from '@domain/time';
 import { mensagemErro } from '../../app/useAsync';
 import { APOS_LGPD, CHAVES, useInvalidar } from '../../app/consultas';
 import { CarregandoLinha, ErroCarregar } from '../../components/Carregando';

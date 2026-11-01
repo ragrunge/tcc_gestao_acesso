@@ -1,7 +1,7 @@
 // Textos da senha temporária (spec §5.1: vale 72 h). Funções puras: a tela de Usuários usa, os testes conferem.
-import { senhaTemporariaVencida } from '@portaria/domain/rules';
-import { fmtDataCurta, fmtHora } from '@portaria/domain/time';
-import type { UsuarioSistema } from '@portaria/domain/types';
+import { senhaTemporariaVencida } from '@domain/rules';
+import { fmtDataCurta, fmtHora } from '@domain/time';
+import type { UsuarioSistema } from '@domain/types';
 
 /** "dd/mm às HH:MM" (horário de São Paulo). */
 export const validadeTexto = (ts: number) => `${fmtDataCurta(ts)} às ${fmtHora(ts)}`;

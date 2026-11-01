@@ -14,11 +14,11 @@ import { Cel, Lista, ListaCab, ListaLinha, Vazio } from '../../components/Table'
 import { Tabs } from '../../components/Tabs';
 import { TowerUnitPicker } from '../../components/TowerUnitPicker';
 import { useToast } from '../../components/Toast';
-import { ROTULO_VINCULO, ROTULO_STATUS_OCORRENCIA, ROTULO_TIPO_OCORRENCIA, type Ocorrencia, type StatusOcorrencia, type TipoOcorrencia } from '@portaria/domain/types';
-import { ANEXO_MAX_BYTES, ANEXO_MAX_POR_OCORRENCIA, ehMimeAnexo } from '@portaria/domain/rules';
-import { agora as agoraSim, fmtDataHora } from '@portaria/domain/time';
+import { ROTULO_VINCULO, ROTULO_STATUS_OCORRENCIA, ROTULO_TIPO_OCORRENCIA, type Ocorrencia, type StatusOcorrencia, type TipoOcorrencia } from '@domain/types';
+import { ANEXO_MAX_BYTES, ANEXO_MAX_POR_OCORRENCIA, ehMimeAnexo } from '@domain/rules';
+import { agora as agoraSim, fmtDataHora } from '@domain/time';
 import { useCatalogo } from '../../app/catalogo';
-import { oAgrupamento } from '@portaria/domain/units';
+import { oAgrupamento } from '@domain/units';
 import { mensagemErro } from '../../app/useAsync';
 import { APOS_OCORRENCIA, CHAVES, useInvalidar } from '../../app/consultas';
 import { chipDoEvento, quandoCurto, textoAutorizacao } from '../common/evento';

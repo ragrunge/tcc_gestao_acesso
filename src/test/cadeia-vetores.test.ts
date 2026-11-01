@@ -1,4 +1,4 @@
-// Vetores de ouro da cadeia de hash (desenho §3.4, item 5): os mesmos eventos serializados pelo @portaria/domain
+// Vetores de ouro da cadeia de hash (desenho §3.4, item 5): os mesmos eventos serializados pelo @domain
 // (hashChain.ts, o verificador independente) e pelo banco (evento_acesso_canonico + sha256, migrações 0001/0013).
 // Este teste GERA supabase/tests/database/06_cadeia_vetores.test.sql e confere que o arquivo commitado é o gerado de
 // agora. Mudou a serialização no TS sem mudar o banco (ou o contrário)? Um dos dois lados fica vermelho:
@@ -7,8 +7,8 @@
 // Regenerar depois de uma mudança DELIBERADA: ATUALIZAR_VETORES=1 npx vitest run src/test/cadeia-vetores.test.ts
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { calcularHash, jsonCanonico, paraExportado } from '@portaria/domain/hashChain';
-import type { EventoAcesso } from '@portaria/domain/types';
+import { calcularHash, jsonCanonico, paraExportado } from '@domain/hashChain';
+import type { EventoAcesso } from '@domain/types';
 
 const ARQUIVO = resolve(__dirname, '../../supabase/tests/database/06_cadeia_vetores.test.sql');
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -69,7 +69,7 @@ const lit = (s: string) => `'${s.replace(/'/g, "''")}'`;
 export async function sqlVetores(): Promise<string> {
   const linhas: string[] = [
     '-- GERADO por src/test/cadeia-vetores.test.ts (ATUALIZAR_VETORES=1). Não editar à mão.',
-    '-- Vetores de ouro da cadeia (desenho §3.4, item 5): o canônico e o hash calculados pelo @portaria/domain/hashChain.ts',
+    '-- Vetores de ouro da cadeia (desenho §3.4, item 5): o canônico e o hash calculados pelo @domain/hashChain.ts',
     '-- têm de ser os mesmos do banco (evento_acesso_canonico + sha256 do trigger). Porte de hash-mock-banco.test.ts.',
     'BEGIN;',
     'CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;',

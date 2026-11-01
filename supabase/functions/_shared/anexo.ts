@@ -1,8 +1,8 @@
 // Regras e cifra dos anexos de ocorrência (RF-27, RNF-03), sem nenhuma API do Deno: o mesmo arquivo roda na Edge e no
-// Node (src/test/anexoCofre.test.ts confere a paridade com @portaria/domain/rules e a compatibilidade com o formato do
+// Node (src/test/anexoCofre.test.ts confere a paridade com @domain/rules e a compatibilidade com o formato do
 // legado, apps/api/src/documentos/cofre.ts em 6a45b50^).
 //
-// As regras são CÓPIA das de packages/domain/src/rules.ts (a Edge só enxerga supabase/functions): o teste de paridade
+// As regras são CÓPIA das de src/domain/rules.ts (a Edge só enxerga supabase/functions): o teste de paridade
 // falha se uma das duas mudar sozinha. No banco, os mesmos números estão em app.anexo_regras() (migração 0033).
 //
 // Envelope (igual ao cofre.ts): cada arquivo tem a própria DEK (32 bytes aleatórios); o conteúdo é cifrado com

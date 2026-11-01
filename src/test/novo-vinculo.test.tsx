@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Pessoa } from '@portaria/domain/types';
+import type { Pessoa } from '@domain/types';
 import { ApiProvider } from '../api';
 import type { Api, VinculoView } from '../api/types';
 import { ToastProvider } from '../components/Toast';

@@ -5,7 +5,7 @@
 import { useCallback, useId, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronDown, Search } from 'lucide-react';
-import { DIA, agora, fromInput, toInputDate } from '@portaria/domain/time';
+import { DIA, agora, fromInput, toInputDate } from '@domain/time';
 import { useCatalogo } from '../app/catalogo';
 
 /** Controle (input/select) dos filtros: 44px no celular, 40px no desktop. */

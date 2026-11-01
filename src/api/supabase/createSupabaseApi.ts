@@ -9,7 +9,7 @@
 // o banco (app.ator() em toda RPC): revogada, expirada, inativa ou de usuário desativado responde 401, e o adaptador
 // avisa o AuthContext ('expirada') e apaga a sessão local. Troca obrigatória pendente: 403 -> 'troca_obrigatoria'.
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError, type SupabaseClient } from '@supabase/supabase-js';
-import type { UsuarioSistema } from '@portaria/domain/types';
+import type { UsuarioSistema } from '@domain/types';
 import { ApiError, type Api, type CondominioSessao, type EventoSessao, type UsuarioComSenhaTemporaria, type UsuarioSessao } from '../types';
 import { segundosRetryAfter, tempoLegivel } from '../../lib/espera';
 import type { ArmazenamentoSessao } from './armazenamento';

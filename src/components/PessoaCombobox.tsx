@@ -7,7 +7,7 @@
 import { useLayoutEffect, useEffect, useId, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, UserPlus } from 'lucide-react';
-import { ROTULO_CATEGORIA } from '@portaria/domain/types';
+import { ROTULO_CATEGORIA } from '@domain/types';
 import { useApi, type PessoaBusca } from '../api';
 import { CHAVES, useDebounce } from '../app/consultas';
 import { mensagemErro } from '../app/useAsync';

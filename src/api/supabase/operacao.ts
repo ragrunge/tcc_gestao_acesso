@@ -1,18 +1,18 @@
 // Adaptador da operação (F3) sobre as RPCs api.* das migrações 0026–0032: encomendas, ocorrências (anexos: anexos.ts, F4),
 // funcionários, relatórios, auditoria do histórico e importação. O banco devolve o formato do domínio (instantes em
 // epoch ms); aqui ficam as conversões que o cliente HTTP antigo fazia e o que o desenho põe no navegador:
-//   * o CSV do relatório é montado com csvRelatorio (@portaria/domain/relatorio), a fonte única do formato;
-//   * a verificação da cadeia roda aqui, com verificarCadeia (@portaria/domain/hashChain), sobre os lotes que o banco
+//   * o CSV do relatório é montado com csvRelatorio (@domain/relatorio), a fonte única do formato;
+//   * a verificação da cadeia roda aqui, com verificarCadeia (@domain/hashChain), sobre os lotes que o banco
 //     entrega no formato canônico: o verificador (TS) é independente do gerador (o trigger SQL);
-//   * a exportação verificável (JSONL, manifesto v3) é montada com montarExportacaoJsonl (@portaria/domain/exportacao);
+//   * a exportação verificável (JSONL, manifesto v3) é montada com montarExportacaoJsonl (@domain/exportacao);
 //   * as linhas da planilha (com CPF em claro) ficam só na memória desta aba entre analisar e confirmar, como no
 //     cliente HTTP antigo: o banco guarda só a impressão HMAC delas.
 // Texto livre que pode identificar alguém (nome, placa, linhas da planilha) vai sempre no CORPO do POST da RPC.
-import type { AutorizacaoRetirada, Encomenda, Ocorrencia, RegistroAlteracao } from '@portaria/domain/types';
-import { csvRelatorio } from '@portaria/domain/relatorio';
-import { montarExportacaoJsonl } from '@portaria/domain/exportacao';
-import { hashGenese, verificarCadeia, type Ancora, type EventoExportado, type ResultadoIntegridade } from '@portaria/domain/hashChain';
-import { toInputDate } from '@portaria/domain/time';
+import type { AutorizacaoRetirada, Encomenda, Ocorrencia, RegistroAlteracao } from '@domain/types';
+import { csvRelatorio } from '@domain/relatorio';
+import { montarExportacaoJsonl } from '@domain/exportacao';
+import { hashGenese, verificarCadeia, type Ancora, type EventoExportado, type ResultadoIntegridade } from '@domain/hashChain';
+import { toInputDate } from '@domain/time';
 import { ApiError } from '../types';
 import type {
   Api, EncomendaView, FiltroEncomendas, FiltroOcorrencias, FiltroRelatorio, FuncionarioView, LinhaPlanilha, OcorrenciaView, Pagina,

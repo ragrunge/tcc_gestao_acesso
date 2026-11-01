@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { andarDoNumero, compararBlocos, doAgrupamento, nesteAgrupamento } from '@portaria/domain/units';
+import { andarDoNumero, compararBlocos, doAgrupamento, nesteAgrupamento } from '@domain/units';
 import { useCatalogo } from '../app/catalogo';
 import { UnitTag } from './UnitTag';
 

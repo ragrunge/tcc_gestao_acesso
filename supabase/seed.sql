@@ -38,7 +38,7 @@ BEGIN
 END $$;
 
 -- ===== Portaria (F2): estrutura e pessoas fictícias ====================================================================
--- Estrutura do estudo de caso (ESTRUTURA_PADRAO de @portaria/domain/units): 9 blocos (A a I), térreo e 4 andares, 4 apartamentos
+-- Estrutura do estudo de caso (ESTRUTURA_PADRAO de @domain/units): 9 blocos (A a I), térreo e 4 andares, 4 apartamentos
 -- por andar, sem 01 e 02 no térreo = 162 unidades; as 7 áreas comuns e o ponto de acesso único.
 INSERT INTO public.configuracao (id, agrupamento) VALUES (1, 'Bloco');
 INSERT INTO public.ponto_acesso (nome) VALUES ('Portaria social');

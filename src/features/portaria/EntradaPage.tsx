@@ -17,16 +17,16 @@ import { useToast } from '../../components/Toast';
 import { Avatar } from '../../components/UnitTag';
 import {
   ROTULO_CATEGORIA, ROTULO_MEIO, ROTULO_PAPEL, type CategoriaPessoa, type Funcionario, type MeioAutorizacao,
-} from '@portaria/domain/types';
-import { PRAZO_PADRAO_MIN, meioComMorador, prazoInicial, temPrazoPermanencia, tipoVisitaPadrao } from '@portaria/domain/rules';
-import { ROTULO_TIPO_VISITA, TIPOS_VISITA, type TipoVisita } from '@portaria/domain/types';
+} from '@domain/types';
+import { PRAZO_PADRAO_MIN, meioComMorador, prazoInicial, temPrazoPermanencia, tipoVisitaPadrao } from '@domain/rules';
+import { ROTULO_TIPO_VISITA, TIPOS_VISITA, type TipoVisita } from '@domain/types';
 import {
   descreverHorario, descreverJanela, escalaVigente, estadoAutorizacaoPrevia, justificativaValida, meiosAceitos, MIN_JUSTIFICATIVA,
   podeConfirmarEntrada, type DadosAutorizacao,
-} from '@portaria/domain/rules';
-import { fmtData, fmtHora, fromInput, toInputDate, toInputTime } from '@portaria/domain/time';
-import { mascaraPlaca, normalizarPlaca } from '@portaria/domain/cpf';
-import type { VeiculoAcesso } from '@portaria/domain/types';
+} from '@domain/rules';
+import { fmtData, fmtHora, fromInput, toInputDate, toInputTime } from '@domain/time';
+import { mascaraPlaca, normalizarPlaca } from '@domain/cpf';
+import type { VeiculoAcesso } from '@domain/types';
 import { mensagemErro, useAgora } from '../../app/useAsync';
 import { useCatalogo } from '../../app/catalogo';
 import { APOS_EVENTO, CHAVES, useInvalidar } from '../../app/consultas';

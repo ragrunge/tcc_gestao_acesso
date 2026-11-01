@@ -5,8 +5,8 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '../api';
-import type { AreaComum, Unidade } from '@portaria/domain/types';
-import { acharUnidadePorTexto, codigoUnidade, ESTRUTURA_PADRAO, rotuloUnidade, type Agrupamento } from '@portaria/domain/units';
+import type { AreaComum, Unidade } from '@domain/types';
+import { acharUnidadePorTexto, codigoUnidade, ESTRUTURA_PADRAO, rotuloUnidade, type Agrupamento } from '@domain/units';
 import { CHAVES } from './consultas';
 
 interface CatalogoCtx {

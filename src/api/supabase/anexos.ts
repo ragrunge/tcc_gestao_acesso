@@ -4,7 +4,7 @@
 //     primeiros bytes e gera o nome); o que a tela valida antes (tipo, 4 MiB) é só para avisar cedo.
 //   * baixarAnexo: a Edge devolve o conteúdo decifrado como download (octet-stream); o nome e o tipo vêm dos cabeçalhos
 //     Content-Disposition e X-Anexo-Tipo, aceitos só no formato que o servidor gera.
-import { ehMimeAnexo } from '@portaria/domain/rules';
+import { ehMimeAnexo } from '@domain/rules';
 import type { Api, ArquivoBaixado, OcorrenciaView } from '../types';
 
 /** Chamada à Edge que devolve o corpo e a resposta (cabeçalhos); erro já convertido em ApiError por quem cria. */

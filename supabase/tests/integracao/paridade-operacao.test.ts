@@ -1,14 +1,14 @@
 // Paridade TS <-> SQL das regras portadas na F3 (desenho §7 e §9, R1; plano A). Mesmo método do paridade-regras.test.ts:
-// os MESMOS casos rodam nas funções puras de @portaria/domain e no porte em plpgsql (migrações 0025–0032), e o resultado
+// os MESMOS casos rodam nas funções puras de @domain e no porte em plpgsql (migrações 0025–0032), e o resultado
 // tem de ser idêntico. Pré-requisito: Supabase local de pé com `supabase db reset` (o teste só LÊ: funções puras).
 import { execFileSync } from 'node:child_process';
-import { cadastroCompleto, diasDesde, encomendaAtrasada, validarConferencia, validarDecisaoVinculo, validarEscala } from '@portaria/domain/rules';
-import { leiturasDoBloco, normalizarBloco, normalizarNumero, validarEstruturaUnidade, type Agrupamento } from '@portaria/domain/units';
-import { mascararCpf } from '@portaria/domain/cpf';
-import { codigoEvento } from '@portaria/domain/hashChain';
-import { celula } from '@portaria/domain/relatorio';
-import { brt, DIA, HORA, inicioDoDia } from '@portaria/domain/time';
-import type { ConferenciaComprovante, Escala } from '@portaria/domain/types';
+import { cadastroCompleto, diasDesde, encomendaAtrasada, validarConferencia, validarDecisaoVinculo, validarEscala } from '@domain/rules';
+import { leiturasDoBloco, normalizarBloco, normalizarNumero, validarEstruturaUnidade, type Agrupamento } from '@domain/units';
+import { mascararCpf } from '@domain/cpf';
+import { codigoEvento } from '@domain/hashChain';
+import { celula } from '@domain/relatorio';
+import { brt, DIA, HORA, inicioDoDia } from '@domain/time';
+import type { ConferenciaComprovante, Escala } from '@domain/types';
 
 const PROJETO = 'tcc-gestao-acesso';
 

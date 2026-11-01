@@ -28,7 +28,7 @@ export function Badge({ tom = 'neutro', children, icone: Icone, tamanho = 'md', 
   );
 }
 
-import type { StatusVinculo, StatusOcorrencia } from '@portaria/domain/types';
+import type { StatusVinculo, StatusOcorrencia } from '@domain/types';
 export function SeloVinculo({ status, tamanho }: { status: StatusVinculo; tamanho?: keyof typeof TAMANHO }) {
   // Com ícone: o status aparece em listas longas, e a forma ajuda quem não distingue âmbar de verde
   const m: Record<StatusVinculo, [Tom, string, LucideIcon]> = {

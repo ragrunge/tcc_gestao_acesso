@@ -3,7 +3,7 @@
 // ícone, não só cor), seletor do tipo de visita na entrada (rádios nativos, um grupo).
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { brt } from '@portaria/domain/time';
+import { brt } from '@domain/time';
 import { CelPermanencia } from '../features/portaria/presentes';
 import { SeletorTipoVisita } from '../features/portaria/EntradaPage';
 

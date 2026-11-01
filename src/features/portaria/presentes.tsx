@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Clock, TriangleAlert } from 'lucide-react';
 import { useApi } from '../../api';
 import { CHAVES } from '../../app/consultas';
-import { ROTULO_TIPO_VISITA, type EventoView, type PermanenciaView } from '@portaria/domain/types';
-import { descreverPermanencia, estadoPermanencia, permanenciaExcedida, type EstadoPermanencia } from '@portaria/domain/rules';
+import { ROTULO_TIPO_VISITA, type EventoView, type PermanenciaView } from '@domain/types';
+import { descreverPermanencia, estadoPermanencia, permanenciaExcedida, type EstadoPermanencia } from '@domain/rules';
 
 /** Quem está dentro agora: entradas sem saída, da mais recente para a mais antiga. Mesma chave nas duas telas. */
 export function usePresentes() {

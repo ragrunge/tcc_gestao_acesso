@@ -7,9 +7,9 @@
 // A validação daqui espelha a da API (vinculos.service `criar` + índice vinculo_ativo_uq) só para avisar antes; quem
 // decide é a API, e o erro dela (409/422) aparece pelo `mensagemErro`.
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { ROTULO_VINCULO, type Pessoa, type StatusVinculo, type TipoVinculo, type Unidade, type VinculoUnidade } from '@portaria/domain/types';
-import { agora, fmtData, fromInput, toInputDate } from '@portaria/domain/time';
-import { andarDoNumero, compararBlocos, compararUnidades, codigoUnidade, rotuloUnidade } from '@portaria/domain/units';
+import { ROTULO_VINCULO, type Pessoa, type StatusVinculo, type TipoVinculo, type Unidade, type VinculoUnidade } from '@domain/types';
+import { agora, fmtData, fromInput, toInputDate } from '@domain/time';
+import { andarDoNumero, compararBlocos, compararUnidades, codigoUnidade, rotuloUnidade } from '@domain/units';
 import { useApi, type PessoaBusca, type VinculoView } from '../../api';
 import { useCatalogo } from '../../app/catalogo';
 import { mensagemErro } from '../../app/useAsync';

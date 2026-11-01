@@ -8,7 +8,7 @@ import { useToast } from '../../components/Toast';
 import { mensagemErro } from '../../app/useAsync';
 import { useCatalogo } from '../../app/catalogo';
 import { EditarUnidadeModal, UnidadeDetalhe } from './UnidadeDetalhePage';
-import { compararBlocos } from '@portaria/domain/units';
+import { compararBlocos } from '@domain/units';
 import { useUnidadesDoBloco } from './useUnidades';
 import { ErroCarregar, Esqueleto, Osso } from '../../components/Carregando';
 

@@ -17,7 +17,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { Vazio } from '../../components/Table';
 import { Badge } from '../../components/ui/badge';
 import { Command, CommandItem, CommandList, CommandPrimitive } from '../../components/ui/command';
-import { ROTULO_CATEGORIA, ROTULO_TIPO_VISITA, type EventoView } from '@portaria/domain/types';
+import { ROTULO_CATEGORIA, ROTULO_TIPO_VISITA, type EventoView } from '@domain/types';
 import { mensagemErro, useAgora } from '../../app/useAsync';
 import { CHAVES, useDebounce } from '../../app/consultas';
 import { descreverVeiculo, quandoCurto, textoAutorizacao } from '../common/evento';

@@ -4,7 +4,7 @@
 // do domain (verificarCadeia, TS), a partir da cabeça lida antes.
 // Pré-requisitos: supabase start && supabase db reset && supabase functions serve.
 import { execFileSync } from 'node:child_process';
-import { verificarCadeia, type EventoExportado } from '@portaria/domain/hashChain';
+import { verificarCadeia, type EventoExportado } from '@domain/hashChain';
 
 const PROJETO = 'tcc-gestao-acesso';
 const SENHA_DEMO = 'Demo-Portaria-2026';

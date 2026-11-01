@@ -1,8 +1,8 @@
 import { Ban, TriangleAlert } from 'lucide-react';
 import { Badge, type Tom } from '../../components/Badge';
-import { ROTULO_CATEGORIA, ROTULO_MEIO, ROTULO_MEIO_CURTO, type EventoView, type VeiculoAcesso } from '@portaria/domain/types';
-import { mascaraPlaca } from '@portaria/domain/cpf';
-import { fmtDataCurta, fmtHora, inicioDoDia } from '@portaria/domain/time';
+import { ROTULO_CATEGORIA, ROTULO_MEIO, ROTULO_MEIO_CURTO, type EventoView, type VeiculoAcesso } from '@domain/types';
+import { mascaraPlaca } from '@domain/cpf';
+import { fmtDataCurta, fmtHora, inicioDoDia } from '@domain/time';
 
 /** Veículo do acesso: "ABC-1D23 · Onix · Prata" (placa como exibida; modelo e cor quando houver). */
 export const descreverVeiculo = (v: VeiculoAcesso) => [mascaraPlaca(v.placa), v.modelo, v.cor].filter(Boolean).join(' · ');

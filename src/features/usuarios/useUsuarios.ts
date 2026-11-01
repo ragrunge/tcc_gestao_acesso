@@ -2,7 +2,7 @@
 // entregam a senha a `aoReceberSenha` (estado local da tela) e devolvem ao React Query só o usuário.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi, type NovoUsuarioInput, type UsuarioComSenhaTemporaria } from '../../api';
-import type { Papel } from '@portaria/domain/types';
+import type { Papel } from '@domain/types';
 
 export const CHAVE_USUARIOS = ['usuarios'] as const;
 

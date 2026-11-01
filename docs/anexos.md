@@ -84,7 +84,7 @@ varredura (a varredura em si é da F5).
   quando o Storage recusa o upload; `DOCUMENTO_DUPLICADO` (409) para id repetido. O resto mantém os códigos do legado.
 - O corpo do envio é o arquivo cru (`application/octet-stream`), não `multipart/form-data`: sem campo nem nome de arquivo.
 - `ocorrencia_anexo` ganhou `UNIQUE (documento_id)`: um documento pertence a uma ocorrência só.
-- As regras da Edge são cópia das de `packages/domain/src/rules.ts` (a Edge só enxerga `supabase/functions`), com teste
+- As regras da Edge são cópia das de `src/domain/rules.ts` (a Edge só enxerga `supabase/functions`), com teste
   de paridade em `src/test/anexoCofre.test.ts`. No banco, os mesmos números estão em `app.anexo_regras()` e nos CHECKs.
 
 ## Para o projeto hospedado (F6)

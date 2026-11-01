@@ -2,7 +2,7 @@
 // fluxo, não no bundle inicial da portaria. `precarregarNovoVinculo` antecipa o download (ex.: ao abrir a ficha).
 import { lazy, Suspense } from 'react';
 import { Modal } from '../../components/Modal';
-import type { VinculoUnidade } from '@portaria/domain/types';
+import type { VinculoUnidade } from '@domain/types';
 import type { NovoVinculoProps } from './NovoVinculo';
 import { CarregandoLinha } from '../../components/Carregando';
 

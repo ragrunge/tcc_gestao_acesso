@@ -5,8 +5,8 @@
 // Pré-requisitos: supabase start && supabase db reset && supabase functions serve.
 import { execFileSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
-import { lerExportacaoJsonl } from '@portaria/domain/exportacao';
-import { verificarCadeia } from '@portaria/domain/hashChain';
+import { lerExportacaoJsonl } from '@domain/exportacao';
+import { verificarCadeia } from '@domain/hashChain';
 import { createSupabaseApi } from '../../../src/api/supabase/createSupabaseApi';
 import { ApiError, type Api } from '../../../src/api/types';
 

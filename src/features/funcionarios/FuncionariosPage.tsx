@@ -13,7 +13,7 @@ import { Modal } from '../../components/Modal';
 import { PageHeader } from '../../components/PageHeader';
 import { Cel, Lista, ListaCab, ListaLinha, Vazio } from '../../components/Table';
 import { useToast } from '../../components/Toast';
-import type { Escala } from '@portaria/domain/types';
+import type { Escala } from '@domain/types';
 import { descreverJanela, hhmmAtravessaMeiaNoite, validarEscala } from './escala';
 import { mensagemErro } from '../../app/useAsync';
 import { APOS_FUNCIONARIO, CHAVES, useInvalidar } from '../../app/consultas';

@@ -1,6 +1,6 @@
 // CSV do relatório (RF-31): injeção de fórmula (OWASP CSV Injection) e escape do separador.
 import { describe, expect, it } from 'vitest';
-import { celula, csvRelatorio, type ResumoRelatorio } from '@portaria/domain/relatorio';
+import { celula, csvRelatorio, type ResumoRelatorio } from '@domain/relatorio';
 
 describe('CSV do relatório: injeção de fórmula', () => {
   it.each(['=1+1', '+1', '-1', '@SOMA(A1)', '\t=1+1', '\r=1+1'])('texto que começa com %j recebe apóstrofo', (v) => {
