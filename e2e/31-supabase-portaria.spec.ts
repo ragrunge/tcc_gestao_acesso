@@ -138,11 +138,11 @@ test('restrição na unidade: o modal avisa e a tentativa negada fica gravada na
   expect(depois.corpo.itens.length).toBe(antes.corpo.itens.length + 1);
 });
 
-test('telas ainda não migradas (F3+) somem do menu e mostram o aviso em vez de quebrar', async ({ page }) => {
+test('telas ainda não migradas (F5: Privacidade; Usuários) somem do menu e mostram o aviso em vez de quebrar', async ({ page }) => {
   await entrar(page, 'roberto.faria');
   const menu = page.getByRole('navigation', { name: 'Portaria' });
   await expect(menu.getByRole('link', { name: 'Registrar entrada' })).toBeVisible();
-  await expect(menu.getByRole('link', { name: 'Encomendas' })).toHaveCount(0);
-  await page.goto('/encomendas');
+  await expect(page.getByRole('link', { name: 'Usuários' })).toHaveCount(0);
+  await page.goto('/usuarios');
   await expect(page.getByRole('status').filter({ hasText: 'ainda não está disponível nesta versão' })).toBeVisible();
 });
