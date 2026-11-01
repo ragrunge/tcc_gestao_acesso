@@ -1,5 +1,5 @@
-# Integração contra o Supabase LOCAL do runner (Docker): vitest (Edge Functions, paridade TS-SQL, concorrência, operação)
-# e Playwright dos specs 30+ (os anteriores apontam para a API NestJS removida e não rodam). Sem segredos e sem link com
+# Integração contra o Supabase LOCAL do runner (Docker): vitest (Edge Functions, anexos, paridade TS-SQL, concorrência,
+# operação) e Playwright dos specs 30+ (os anteriores apontam para a API NestJS removida e não rodam). Sem segredos e sem link com
 # projeto hospedado: as chaves são as padrão do CLI local (descartáveis), lidas de `supabase status -o env` pelos testes.
 name: Integração (Supabase local)
 
@@ -33,13 +33,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # Banco + Auth + API (postgrest, kong). As Edge Functions sobem no `functions serve` abaixo.
-      - run: supabase start -x studio,imgproxy,realtime,storage-api,logflare,vector,supavisor,mailpit,postgres-meta
+      # Banco + Auth + API (postgrest, kong) + Storage (anexos, F4). As Edge Functions sobem no `functions serve` abaixo.
+      - run: supabase start -x studio,imgproxy,realtime,logflare,vector,supavisor,mailpit,postgres-meta
       - run: supabase db reset
       - run: npm ci --no-audit --no-fund
       - name: Edge Functions (background)
         run: |
-          nohup supabase functions serve > "$RUNNER_TEMP/functions.log" 2>&1 &
+          # KEK dos anexos só deste job: aleatória, num arquivo do runner (0600), nunca impressa nem versionada.
+          umask 077
+          printf 'PORTARIA_KEK_V1=%s\n' "$(openssl rand -base64 32)" > "$RUNNER_TEMP/functions.env"
+          nohup supabase functions serve --env-file "$RUNNER_TEMP/functions.env" > "$RUNNER_TEMP/functions.log" 2>&1 &
           anon=$(supabase status -o env | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')
           # Pronta quando a função responde 400 (validação do corpo vazio); 401/404/5xx = ainda subindo.
           for i in $(seq 1 60); do
@@ -53,7 +56,7 @@ jobs:
       - run: supabase db reset
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts
+      - run: npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts
       - name: Logs das Edge Functions
         if: failure()
         run: cat "$RUNNER_TEMP/functions.log" || true

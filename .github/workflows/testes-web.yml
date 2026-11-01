@@ -1,4 +1,5 @@
-# Typecheck, build e testes unitários do front e do domain. O e2e (Playwright) volta quando houver Supabase local no CI.
+# Typecheck, build e testes unitários do front e do domain. O e2e (Playwright) roda no workflow integracao.yml, contra o
+# Supabase local do runner.
 name: Testes (domain e web)
 
 on:

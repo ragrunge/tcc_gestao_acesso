@@ -1,6 +1,6 @@
 // F3: operação pelo navegador contra o Supabase LOCAL (Auth + Edge + RPCs da operação): encomenda recebida e entregue,
-// ocorrência aberta e encerrada (sem o campo de anexo, que é da F4), vínculo conferido e aprovado, relatório com CSV,
-// integridade da trilha verificada no navegador e as telas de F4/F5 ainda escondidas.
+// ocorrência aberta e encerrada (os anexos estão no 33-supabase-anexos.spec.ts), vínculo conferido e aprovado, relatório
+// com CSV, integridade da trilha verificada no navegador e as telas da F5 ainda escondidas.
 // Pré-requisitos: supabase start && supabase db reset && supabase functions serve. Rodar:
 //   npx playwright test e2e/32-supabase-operacao.spec.ts
 // Dados do seed (supabase/seed.sql, fictícios): moradora Fernanda Costa (B-21) e os usuários de demonstração.
@@ -89,14 +89,14 @@ test('porteiro recebe a encomenda conferindo a unidade e entrega à moradora; a 
   expect(tabela.status()).toBe(404);
 });
 
-test('porteiro abre ocorrência na área comum (sem campo de anexo, F4), anda o status até encerrar; encerrada não muda', async ({ page }) => {
+test('porteiro abre ocorrência na área comum, anda o status até encerrar; encerrada não muda nem recebe anexo', async ({ page }) => {
   await entrar(page, 'joao.lima', /\/painel$/);
   await page.goto('/ocorrencias');
   await page.getByRole('button', { name: 'Nova ocorrência' }).click();
   const nova = page.getByRole('dialog', { name: 'Nova ocorrência' });
   await nova.getByRole('radio', { name: 'Dano' }).click();
   await nova.getByRole('radio', { name: 'Área comum' }).click();
-  await expect(nova.getByLabel('Anexos')).toHaveCount(0); // envio de anexo é da F4: escondido por suporta('anexos')
+  await expect(nova.getByLabel('Anexos')).toHaveCount(1); // F4: o envio aparece (suporta('anexos'))
   const descricao = `Lâmpada queimada no hall ${Math.random().toString(36).slice(2, 7)}`;
   await nova.getByLabel('Descrição').fill(descricao);
   await nova.getByRole('button', { name: 'Registrar ocorrência' }).click();
@@ -107,7 +107,7 @@ test('porteiro abre ocorrência na área comum (sem campo de anexo, F4), anda o 
   await page.getByRole('table', { name: 'Ocorrências registradas' }).getByRole('row', { name: `Abrir ocorrência ${codigo}` }).click();
   let modal = page.getByRole('dialog');
   await expect(modal).toContainText(descricao);
-  await expect(modal.getByLabel('Adicionar anexo')).toHaveCount(0);
+  await expect(modal.getByLabel('Adicionar anexo')).toHaveCount(1);
   await modal.getByRole('button', { name: 'Marcar em andamento' }).click();
   await expect(toast(page, `${codigo} agora está “Em andamento”`)).toBeVisible();
   modal = page.getByRole('dialog');
@@ -116,6 +116,7 @@ test('porteiro abre ocorrência na área comum (sem campo de anexo, F4), anda o 
   modal = page.getByRole('dialog');
   await expect(modal.getByText('Mudanças de status')).toBeVisible();
   await expect(modal.getByRole('button', { name: /Marcar em andamento|Encerrar ocorrência/ })).toHaveCount(0);
+  await expect(modal.getByLabel('Adicionar anexo')).toHaveCount(0); // encerrada não recebe anexo
 });
 
 test('administração confere o comprovante e aprova o vínculo pedido; a pessoa vira moradora', async ({ page }) => {
