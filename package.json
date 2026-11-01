@@ -16,6 +16,7 @@
     "sb:link": "dotenv -- sh -c 'supabase link --project-ref \"$VITE_SUPABASE_PROJECT_ID\"'",
     "db:push:dry": "dotenv -- sh -c 'supabase db push --dry-run --db-url \"$SUPABASE_DB_URL\"'",
     "db:push": "dotenv -- sh -c 'supabase db push --db-url \"$SUPABASE_DB_URL\"'",
+    "sb:sindico": "dotenv -- node --disable-warning=ExperimentalWarning scripts/sindico/main.ts",
     "fn:deploy:all": "dotenv -- supabase functions deploy",
     "db:start": "supabase start"
   },
