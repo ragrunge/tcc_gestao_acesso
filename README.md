@@ -138,7 +138,7 @@ npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das r
 npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts  # e2e (stack local)
 ```
 
-As outras specs de `e2e/` ainda são da API NestJS e serão portadas nas próximas fases (1ª vez: `npx playwright install chromium`).
+Na primeira vez, rode `npx playwright install chromium`.
 
 Não há CI: os testes rodam só na máquina, com os comandos acima (o pgTAP e a integração precisam do Supabase local aberto).
 

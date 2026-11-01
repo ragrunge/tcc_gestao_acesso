@@ -395,7 +395,7 @@ export interface Api {
   aoEventoSessao?(cb: (e: EventoSessao) => void): () => void;
   /**
    * Migração por fases (desenho §6): a rota (Rota de @domain/rbac) tem backend nesta versão? Ausente = tudo
-   * suportado (mocks, cliente HTTP antigo). O menu esconde o que não é suportado e a guarda de rota mostra o aviso.
+   * suportado (telas de fases ainda não migradas). O menu esconde o que não é suportado e a guarda de rota mostra o aviso.
    */
   suporta?(rota: string): boolean;
   auth: {
