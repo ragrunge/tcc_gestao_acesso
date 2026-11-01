@@ -4,6 +4,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { AREAS_COMUNS_INICIAIS, codigoUnidade, ESTRUTURA_PADRAO, gerarUnidades, PORTARIA_SOCIAL } from '@domain/units';
 
 const CONTAINER = 'supabase_db_tcc-gestao-acesso';
 const raiz = (caminho: string) => fileURLToPath(new URL(`../../../${caminho}`, import.meta.url));
@@ -34,6 +35,14 @@ describe('estrutura do condomínio sem a demonstração', () => {
       .toBe('Academia,Administração,Casa de máquinas,Jardins,Piscina,Quadra,Salão de festas');
     // A portaria resolve o ponto padrão sem erro (é o que a entrada usa).
     expect(valor(`SELECT app.ponto_padrao() = (SELECT id FROM public.ponto_acesso WHERE nome = 'Portaria social')`)).toBe('t');
+  });
+
+  it('bate com a estrutura declarada no domain (ESTRUTURA_PADRAO), que o front usa', () => {
+    const esperadas = gerarUnidades().map(codigoUnidade).sort().join(',');
+    expect(valor(`SELECT string_agg(bloco || '-' || numero, ',' ORDER BY bloco || '-' || numero COLLATE "C") FROM public.unidade`)).toBe(esperadas);
+    expect(valor(`SELECT agrupamento FROM public.configuracao`)).toBe(ESTRUTURA_PADRAO.agrupamento);
+    expect(valor(`SELECT string_agg(nome, '|' ORDER BY nome COLLATE "C") FROM public.area_comum`)).toBe([...AREAS_COMUNS_INICIAIS].sort().join('|'));
+    expect(valor(`SELECT string_agg(nome, '|') FROM public.ponto_acesso`)).toBe(PORTARIA_SOCIAL);
   });
 
   it('nada da demonstração: nenhuma pessoa, nenhum cadastro, nenhum usuário além do bootstrap, nenhuma senha de demo', () => {
