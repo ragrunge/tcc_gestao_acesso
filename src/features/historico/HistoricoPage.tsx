@@ -144,8 +144,8 @@ export function HistoricoPage() {
   const invalidoSeq = integ && !integ.valido ? integ.primeiroSeqInvalido : undefined;
   const ativos = [periodo.ativo, !!unid.texto.trim(), !!pessoa, !!placa, !!operadorId, !!tipo, !!meio, exc, retro].filter(Boolean).length;
   const limpar = () => { periodo.limpar(); unid.limpar(); setPessoa(''); setPlaca(''); gravar({ op: undefined, tipo: undefined, meio: undefined, exc: undefined, retro: undefined }); };
-  // Selo e âncora externa (spec 4.6): para quem verifica a integridade.
-  const mostraSelo = podeVerificar;
+  // Escondido até a F5 migrar os selos: o texto promete âncora externa e o botão responde "não disponível".
+  const mostraSelo = false;
 
   return (
     <div className="flex flex-col gap-4">
