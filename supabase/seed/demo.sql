@@ -1,6 +1,16 @@
--- Seed SÓ LOCAL (supabase db reset). Dados fictícios: nenhum nome, login ou senha daqui é de pessoa real.
--- Nunca rodar no projeto hospedado (não usar `db push --include-seed`): a senha de demonstração é pública (README).
+-- Demonstração SÓ LOCAL (supabase db reset, via [db.seed] do config.toml). Dados fictícios: nenhum nome, login ou
+-- senha daqui é de pessoa real. Nunca rodar no projeto hospedado (não usar `db push --include-seed`): a senha de
+-- demonstração é pública (README). A estrutura (unidades, áreas, portaria, configuração) vem da migração 0035.
 --
+-- Recusa banco que já tem usuário ou pessoa: depois do reset local ele está vazio; o hospedado, depois do primeiro
+-- síndico, não. Não protege um hospedado ainda sem ninguém: a proteção ali é nunca usar --include-seed.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.usuario_sistema) OR EXISTS (SELECT 1 FROM public.pessoa) OR EXISTS (SELECT 1 FROM auth.users) THEN
+    RAISE EXCEPTION 'seed de demonstração recusado: o banco já tem usuários ou pessoas (só roda logo depois do supabase db reset local)';
+  END IF;
+END $$;
+
 -- Usuários do sistema: um por papel, com os logins do legado. A conta do Auth é criada aqui direto em auth.users
 -- (o GoTrue aceita bcrypt do pgcrypto), com o e-mail sintético ALEATÓRIO sorteado a cada reset: nem o seed conhece
 -- o e-mail de antemão, e o login só funciona pela Edge auth-entrar (desenho §2.1).
@@ -37,18 +47,7 @@ BEGIN
   END LOOP;
 END $$;
 
--- ===== Portaria (F2): estrutura e pessoas fictícias ====================================================================
--- Estrutura do estudo de caso (ESTRUTURA_PADRAO de @domain/units): 9 blocos (A a I), térreo e 4 andares, 4 apartamentos
--- por andar, sem 01 e 02 no térreo = 162 unidades; as 7 áreas comuns e o ponto de acesso único.
-INSERT INTO public.configuracao (id, agrupamento) VALUES (1, 'Bloco');
-INSERT INTO public.ponto_acesso (nome) VALUES ('Portaria social');
-INSERT INTO public.area_comum (nome)
-SELECT unnest(ARRAY['Salão de festas', 'Piscina', 'Quadra', 'Academia', 'Administração', 'Casa de máquinas', 'Jardins']);
-INSERT INTO public.unidade (bloco, numero)
-SELECT b, lpad((andar * 10 + final)::text, 2, '0')
-  FROM unnest(ARRAY['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']) b, generate_series(0, 4) andar, generate_series(1, 4) final
- WHERE NOT (andar = 0 AND final IN (1, 2));
-
+-- ===== Portaria (F2): pessoas fictícias, nas unidades da migração 0035 ================================================
 -- Pessoas FICTÍCIAS. CPFs gerados com dígito verificador válido a partir de bases sequenciais (nenhum é de pessoa real
 -- conhecida); telefones com prefixo 11 9 0000 (faixa não atribuída). Gravados como o cadastro grava: máscara nova
 -- (5 primeiros dígitos) + HMAC com a chave do Vault (public.cpf_hmac); o CPF não fica em lugar nenhum.
