@@ -9,7 +9,7 @@ login+IP e a trilha de falhas antes de consultar o Auth. Papel, desativação, t
 lidos do banco a cada chamada (`app.ator()`), nunca do token. A matriz de permissões do banco é gerada de
 `src/domain/rbac.ts` (`node scripts/rbac-sql.mjs`).
 
-**Portaria** (migrações 0020–0024): cada operação é uma função `api.*` no Postgres (migrações 0020–0024) que começa por `app.exigir(ação)` e
+**Portaria** (migrações 0020–0024): cada operação é uma função `api.*` no Postgres que começa por `app.exigir(ação)` e
 roda com as permissões mínimas do papel `app_rw`; nenhuma tabela é exposta. O hash da trilha continua sendo calculado
 pelo trigger do banco. O CPF é guardado como máscara e HMAC, com a chave no Supabase Vault (nunca sai do banco); a busca
 devolve a pessoa, nunca o hash. As regras do servidor (autorização da entrada, restrições, escala, permanência) têm uma
