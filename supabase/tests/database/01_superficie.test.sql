@@ -55,7 +55,9 @@ INSERT INTO allowlist_execute VALUES
   ('authenticated', 'api.importacao_analisar(jsonb)'), ('authenticated', 'api.importacao_confirmar(uuid, jsonb)'),
   -- 0037, totalizadores (pessoa.ver / vinculo.ver / unidade.ver / ocorrencia.ver, o mesmo da listagem de cada um)
   ('authenticated', 'api.pessoas_resumo()'), ('authenticated', 'api.vinculos_resumo()'), ('authenticated', 'api.unidades_resumo()'),
-  ('authenticated', 'api.ocorrencias_resumo()');
+  ('authenticated', 'api.ocorrencias_resumo()'),
+  -- 0038, tela de Usuários: só leitura (usuario.gerenciar, a mesma ação da gestão pela Edge usuarios-admin)
+  ('authenticated', 'api.usuarios_listar(jsonb)'), ('authenticated', 'api.usuarios_resumo()');
 CREATE TEMP TABLE allowlist_service_role (funcao regprocedure) ON COMMIT DROP;
 INSERT INTO allowlist_service_role VALUES
   ('srv.login_preparar(text, text)'), ('srv.login_falhou(text, text)'),
