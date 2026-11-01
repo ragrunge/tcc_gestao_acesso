@@ -61,6 +61,8 @@ INSERT INTO allowlist_service_role VALUES
   ('srv.usuario_criar_preparar(uuid, text, text, papel)'), ('srv.usuario_criar(uuid, text, text, papel, uuid, text, text)'),
   ('srv.usuario_desativar(uuid, uuid, text)'), ('srv.usuario_reativar(uuid, uuid, text)'),
   ('srv.usuario_redefinir_senha(uuid, uuid, text)'),
+  -- 0034: primeiro síndico (script sb:sindico com a chave de serviço; recusa com qualquer usuário existente)
+  ('srv.bootstrap_sindico_preparar(text, text)'), ('srv.bootstrap_sindico_criar(text, text, uuid, text)'),
   -- F4, anexos (Edge anexos): ocorrencia.operar no envio, documento.ver na leitura, conferidos dentro de cada uma
   ('srv.anexo_preparar(uuid, uuid)'), ('srv.anexo_registrar(uuid, uuid, uuid, text, text, integer, text, text, bigint, text)'),
   ('srv.anexo_para_leitura(uuid, uuid, uuid, text)');
