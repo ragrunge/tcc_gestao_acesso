@@ -2,20 +2,20 @@
 // usuarios-admin. F2: a portaria (portaria.ts: pessoas, busca, catálogo, unidades, vínculos, eventos, autorizações,
 // restrições e turno). F3: as escritas de cadastro (portaria.ts) e a operação (operacao.ts: encomendas, ocorrências,
 // funcionários, relatórios, auditoria do histórico e importação). F4: anexos de ocorrência pela Edge anexos (anexos.ts).
-// Os demais métodos (usuários: listar e alterar papel; selo e LGPD, F5) respondem ApiError 501 NAO_MIGRADO e as rotas
-// sem backend somem do menu por `suporta` (desenho §6).
+// F5: a listagem e os totais de usuários (api.usuarios_listar e usuarios_resumo, 0038). Os demais métodos (selo e
+// LGPD) respondem ApiError 501 NAO_MIGRADO e as rotas sem backend somem do menu por `suporta` (desenho §6).
 //
 // Sessão: o token do Supabase Auth (supabase-js) fica no navegador (armazenamento.ts). Quem decide se a sessão vale é
 // o banco (app.ator() em toda RPC): revogada, expirada, inativa ou de usuário desativado responde 401, e o adaptador
 // avisa o AuthContext ('expirada') e apaga a sessão local. Troca obrigatória pendente: 403 -> 'troca_obrigatoria'.
 import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError, type SupabaseClient } from '@supabase/supabase-js';
 import type { UsuarioSistema } from '@domain/types';
-import { ApiError, type Api, type CondominioSessao, type EventoSessao, type UsuarioComSenhaTemporaria, type UsuarioSessao } from '../types';
+import { ApiError, type Api, type CondominioSessao, type EventoSessao, type ResumoUsuarios, type UsuarioComSenhaTemporaria, type UsuarioSessao } from '../types';
 import { segundosRetryAfter, tempoLegivel } from '../../lib/espera';
 import type { ArmazenamentoSessao } from './armazenamento';
 import { criarAnexos } from './anexos';
 import { criarOperacao, ocorrenciaDe } from './operacao';
-import { criarPortaria, ROTAS_MIGRADAS } from './portaria';
+import { contagem, criarPortaria, paginaDe, posicao, ROTAS_MIGRADAS, semIndefinidos } from './portaria';
 
 const respostaInvalida = () => new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.');
 
@@ -260,8 +260,20 @@ export function createSupabaseApi(sb: SupabaseClient, opcoes: OpcoesSupabaseApi)
       },
     },
     usuarios: {
-      listar: () => Promise.reject(new ApiError(501, 'NAO_MIGRADO', 'Função ainda não disponível nesta versão (usuarios.listar).')),
-      alterarPapel: () => Promise.reject(new ApiError(501, 'NAO_MIGRADO', 'Função ainda não disponível nesta versão (usuarios.alterarPapel).')),
+      async listarPagina(f = {}) {
+        return paginaDe<UsuarioSistema>(await rpc('usuarios_listar', { p: semIndefinidos({
+          ...posicao(f), q: f.q?.trim() || undefined, papel: f.papel, situacao: f.situacao,
+        }) }), gerido);
+      },
+      async resumo(): Promise<ResumoUsuarios> {
+        const r = await rpc<{ ativos?: unknown; desativados?: unknown; porPapel?: Record<string, unknown> }>('usuarios_resumo');
+        if (!r?.porPapel || typeof r.porPapel !== 'object') throw respostaInvalida();
+        const pp = r.porPapel;
+        return {
+          ativos: contagem(r.ativos), desativados: contagem(r.desativados),
+          porPapel: { sindico: contagem(pp.sindico), administracao: contagem(pp.administracao), porteiro: contagem(pp.porteiro), auditor: contagem(pp.auditor) },
+        };
+      },
       async criar(i) { return comSenhaTemporaria(await edge('usuarios-admin', { acao: 'criar', nome: i.nome, login: i.login, papel: i.papel })); },
       async desativar(id) { return gerido((await edge<{ usuario: unknown }>('usuarios-admin', { acao: 'desativar', id })).usuario); },
       async reativar(id) { return gerido((await edge<{ usuario: unknown }>('usuarios-admin', { acao: 'reativar', id })).usuario); },

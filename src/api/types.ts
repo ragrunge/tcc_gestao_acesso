@@ -369,6 +369,10 @@ export interface PessoaLista extends PessoaBusca {
  * prevalece sobre `pendente` (de condomínio aguardando o síndico). `unidadeCodigo` null: todo o condomínio.
  */
 export interface RestricaoResumo { estado: 'ativa' | 'pendente'; unidadeCodigo: string | null; total: number }
+export type SituacaoUsuario = 'ativos' | 'desativados';
+export interface FiltroUsuarios extends PosicaoPagina { q?: string; papel?: Papel; situacao?: SituacaoUsuario }
+/** `porPapel` conta só os ativos. */
+export interface ResumoUsuarios { ativos: number; desativados: number; porPapel: Record<Papel, number> }
 export interface FiltroPessoas extends PosicaoPagina { categoria?: CategoriaPessoa; incluirDesativadas?: boolean }
 /** `ativas` e `porCategoria` contam só os cadastros não desativados (o padrão da lista). */
 export interface ResumoPessoas { ativas: number; desativadas: number; porCategoria: Record<CategoriaPessoa, number> }
@@ -575,14 +579,14 @@ export interface Api {
     conferirAncora(i: { seq: number; hash: string }): Promise<ConferenciaAncora>;
   };
   usuarios: {
-    listar(): Promise<UsuarioSistema[]>;
+    /** Uma página em ordem alfabética (usuario.gerenciar). A busca `q` vai no corpo; anonimizados não aparecem. */
+    listarPagina(f?: FiltroUsuarios): Promise<Pagina<UsuarioSistema>>;
+    resumo(): Promise<ResumoUsuarios>;
     criar(i: NovoUsuarioInput): Promise<UsuarioComSenhaTemporaria>;
     desativar(id: string): Promise<UsuarioSistema>;
     reativar(id: string): Promise<UsuarioSistema>;
     /** Gera senha temporária, derruba as sessões do alvo e exige troca no próximo login. */
     redefinirAcesso(id: string): Promise<UsuarioComSenhaTemporaria>;
-    /** Ninguém altera o próprio papel; envolver síndico exige usuario.gerenciar_sindico. */
-    alterarPapel(id: string, papel: Papel): Promise<UsuarioSistema>;
   };
   lgpd: {
     /** spec 9.3: JSON com cadastro mascarado, vínculos, veículos, eventos e encomendas. SI/AD. */

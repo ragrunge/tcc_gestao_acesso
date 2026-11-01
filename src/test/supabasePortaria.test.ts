@@ -145,11 +145,11 @@ describe('unidades, autorizações e restrições', () => {
 });
 
 describe('migração por fases', () => {
-  it('suporta: portaria (F2), operação (F3) e anexos (F4) sim; usuários e LGPD não', () => {
+  it('suporta: portaria (F2), operação (F3), anexos (F4) e usuários (F5) sim; LGPD não', () => {
     const m = mock();
     for (const r of ['painel', 'entrada', 'saida', 'pessoas', 'unidades', 'cadastro', 'historico', 'vinculos',
-      'encomendas', 'ocorrencias', 'funcionarios', 'importar', 'relatorios', 'anexos']) expect(m.api.suporta!(r)).toBe(true);
-    for (const r of ['privacidade', 'usuarios']) expect(m.api.suporta!(r)).toBe(false);
+      'encomendas', 'ocorrencias', 'funcionarios', 'importar', 'relatorios', 'anexos', 'usuarios']) expect(m.api.suporta!(r)).toBe(true);
+    for (const r of ['privacidade']) expect(m.api.suporta!(r)).toBe(false);
   });
 
   it('selo (F5) e LGPD (F5) respondem NAO_MIGRADO sem chamar o banco', async () => {

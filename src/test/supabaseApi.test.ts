@@ -201,7 +201,54 @@ describe('auth.trocarSenha e usuarios', () => {
     const m = mock();
     const e = await erro(m.api.lgpd.anonimizar('p-1'));
     expect([e.status, e.code]).toEqual([501, 'NAO_MIGRADO']);
-    expect((await erro(m.api.usuarios.listar())).code).toBe('NAO_MIGRADO');
+    expect((await erro(m.api.auditoria.selos())).code).toBe('NAO_MIGRADO');
+  });
+});
+
+describe('usuarios: listagem e totais (0038)', () => {
+  it('a rota de Usuários passa a ser suportada; Privacidade continua de fora', () => {
+    const m = mock();
+    expect(m.api.suporta!('usuarios')).toBe(true);
+    expect(m.api.suporta!('privacidade')).toBe(false);
+  });
+
+  it('listarPagina manda deslocamento, filtros e a busca aparada no CORPO e lê o total', async () => {
+    const m = mock();
+    m.rpc.mockResolvedValueOnce({ data: { itens: [{ ...USUARIO, senhaTemporariaExpiraEm: null }], temMais: false, cursor: null, total: 7 }, error: null, status: 200 });
+    const r = await m.api.usuarios.listarPagina({ q: '  ana ', papel: 'porteiro', situacao: 'ativos', limite: 50, deslocamento: 50 });
+    expect(m.rpc).toHaveBeenCalledWith('usuarios_listar', { p: { limite: 50, deslocamento: 50, q: 'ana', papel: 'porteiro', situacao: 'ativos' } });
+    expect(r.total).toBe(7);
+    expect(r.itens[0]).toMatchObject({ login: 'roberto.faria', senhaTemporariaExpiraEm: null });
+  });
+
+  it('sem filtros, nada além da posição vai no corpo (busca em branco não vira filtro)', async () => {
+    const m = mock();
+    m.rpc.mockResolvedValueOnce({ data: { itens: [], temMais: false, cursor: null, total: 0 }, error: null, status: 200 });
+    await m.api.usuarios.listarPagina({ q: '   ' });
+    expect(m.rpc).toHaveBeenCalledWith('usuarios_listar', { p: { limite: 50 } });
+  });
+
+  it('item sem login ou id é resposta inválida; resumo com contagem inválida também', async () => {
+    const m = mock();
+    m.rpc.mockResolvedValueOnce({ data: { itens: [{ id: 'x' }], temMais: false, cursor: null, total: 1 }, error: null, status: 200 });
+    expect((await erro(m.api.usuarios.listarPagina())).code).toBe('RESPOSTA_INVALIDA');
+    m.rpc.mockResolvedValueOnce({ data: { ativos: 3, desativados: -1, porPapel: { sindico: 1, administracao: 1, porteiro: 1, auditor: 0 } }, error: null, status: 200 });
+    expect((await erro(m.api.usuarios.resumo())).code).toBe('RESPOSTA_INVALIDA');
+  });
+
+  it('resumo: ativos, desativados e ativos por papel', async () => {
+    const m = mock();
+    m.rpc.mockResolvedValueOnce({ data: { ativos: 4, desativados: 2, porPapel: { sindico: 1, administracao: 1, porteiro: 1, auditor: 1 } }, error: null, status: 200 });
+    expect(await m.api.usuarios.resumo()).toEqual({ ativos: 4, desativados: 2, porPapel: { sindico: 1, administracao: 1, porteiro: 1, auditor: 1 } });
+    expect(m.rpc).toHaveBeenCalledWith('usuarios_resumo', {});
+  });
+
+  it('403 da listagem (porteiro chamando direto) vira ApiError SEM_PERMISSAO, sem derrubar a sessão', async () => {
+    const m = mock();
+    m.rpc.mockResolvedValueOnce({ data: null, error: { code: 'SEM_PERMISSAO', message: 'Seu perfil não tem permissão para esta ação.' }, status: 403 });
+    const e = await erro(m.api.usuarios.listarPagina());
+    expect([e.status, e.code]).toEqual([403, 'SEM_PERMISSAO']);
+    expect(m.eventos).toEqual([]);
   });
 });
 
