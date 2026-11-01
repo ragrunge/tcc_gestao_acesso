@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "test:supabase": "vitest run --config vitest.supabase.config.ts",
+    "test:supabase:sindico": "supabase db reset --no-seed && vitest run --config vitest.sindico.config.ts",
     "sb:login": "dotenv -- sh -c 'supabase login --token $SUPABASE_ACCESS_TOKEN'",
     "sb:link": "dotenv -- sh -c 'supabase link --project-ref \"$VITE_SUPABASE_PROJECT_ID\"'",
     "db:push:dry": "dotenv -- sh -c 'supabase db push --dry-run --db-url \"$SUPABASE_DB_URL\"'",
