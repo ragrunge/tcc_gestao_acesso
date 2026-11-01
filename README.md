@@ -88,7 +88,7 @@ Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`
 ```bash
 supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
 supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed/demo.sql
-supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação e anexos
+supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação, anexos e paginação
 # KEK local dos anexos (32 bytes aleatórios, só desta máquina; o arquivo é ignorado pelo git). Uma vez:
 (umask 077; printf 'PORTARIA_KEK_V1=%s\n' "$(openssl rand -base64 32)" > supabase/functions/.env.local)
 supabase functions serve --env-file supabase/functions/.env.local  # Edge Functions (auth-entrar, auth-trocar-senha, usuarios-admin, anexos)
@@ -197,7 +197,7 @@ painel do turno, histórico e a verificação de integridade da trilha.
 **2. Projeto hospedado.** Depois do ensaio:
 
 ```bash
-npm run db:push:dry                # deve listar só a 0036
+npm run db:push:dry                # deve listar só as pendentes (depois da carga: a 0037, paginação)
 npm run db:push
 npm run popular:dry
 POPULAR_CONFIRMAR=<id-do-projeto>.supabase.co npm run popular   # usa VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY do .env

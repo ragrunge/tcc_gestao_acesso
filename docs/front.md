@@ -28,10 +28,12 @@ O `.env` aponta para o projeto escolhido; nunca coloque nele a `service_role`.
   e Edge Functions; `createSupabaseApi.ts` monta tudo) e `index.tsx` (cria e provê a API).
 - `auth/`: contexto de sessão e `RequireRole`. A sessão fica no `sessionStorage` do navegador (ver
   `api/supabase/armazenamento.ts`), não em cookie httpOnly.
-- `app/`: rotas, layout, atalhos F2/F3/F4/F8, `queryClient` (política de retry) e `catalogo.tsx`.
+- `app/`: rotas, layout, atalhos F2/F3/F4/F8, `queryClient` (política de retry), `catalogo.tsx` e `paginacao.ts` (`usePaginacao`:
+  página na URL, volta à 1 quando o filtro muda, página fora do intervalo corrigida, `ateSeq` nas trilhas).
 - `features/`: uma pasta por área (auth, cadastro, encomendas, funcionarios, historico, importacao, lgpd, ocorrencias,
   portaria, relatorios, unidades, usuarios, vinculos).
-- `components/`, `lib/`, `pwa/`, `test/`.
+- `components/`, `lib/`, `pwa/`, `test/`. `components/ui/` tem os componentes do shadcn/ui copiados à mão (sem `init`), entre
+  eles `pagination.tsx`; `components/Paginacao.tsx` monta a barra de páginas e a linha de totais das telas.
 
 Telas cujo backend ainda não foi migrado somem do menu: `suporta()` em `api/` decide o que aparece.
 

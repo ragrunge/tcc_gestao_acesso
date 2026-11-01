@@ -40,6 +40,18 @@ demonstração (usuários com a senha pública `Demo-Portaria-2026`, pessoas e c
 num banco só com as migrações, a estrutura completa, a ausência de qualquer dado da demonstração e que reaplicar a
 0035 e a 0036 num banco já usado não muda estrutura, eventos nem cadeia.
 
+**Paginação e totais** (migração 0037): as listagens que crescem (pessoas, vínculos, encomendas, ocorrências, trilha de
+acessos e trilha de alterações) aceitam `deslocamento` além do `cursor` (os dois juntos são recusados), com teto de 100
+por página e de 100 000 no deslocamento, e devolvem `total`, contado no mesmo conjunto filtrado da página, depois do
+mesmo `app.exigir`. A ordem tem desempate por id. Nas trilhas, a página 1 devolve `ateSeq` e as seguintes o repassam,
+para um registro novo não empurrar a página; na trilha de acessos o caminho por cursor é o da 0023 sem total, porque a
+exportação o percorre página a página. A exportação ignora os parâmetros de página e a verificação da cadeia continua em
+`api.auditoria_cadeia`, que não mudou: as duas percorrem o conjunto inteiro. Os totais das telas vêm de resumos no banco
+(`api.pessoas_resumo`, `vinculos_resumo`, `unidades_resumo`, `ocorrencias_resumo` e o `encomendas_resumo` da 0026), com a
+mesma permissão da listagem, nunca da soma de páginas no navegador. As assinaturas não mudaram: o front publicado e o
+carregador da carga fictícia seguem pelo cursor. Unidades, presentes, funcionários e catálogo não são paginados: a grade
+mostra um bloco por vez e os outros conjuntos são pequenos.
+
 **Carga fictícia** (`scripts/popular/`): o porte do estudo de caso (543 moradores, 175 veículos, histórico curto) entra
 no hospedado como o síndico logado, só pelas RPCs `api.*` das telas, para que cada cadastro passe pelas regras e vá
 para a trilha. Moradores adultos entram pela importação de planilha (vínculo legado) e são regularizados com a
