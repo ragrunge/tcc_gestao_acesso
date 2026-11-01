@@ -19,11 +19,11 @@ describe('RF-11: planilha .xlsx', () => {
 
   it('lê o arquivo .xlsx de exemplo e produz as mesmas linhas que o CSV', async () => {
     const { readSheet } = await import('read-excel-file/node');
-    const xlsx = mapearMatriz(matrizDeCelulas(await readSheet(fileURLToPath(new URL('../../e2e/fixtures/moradores.xlsx', import.meta.url)))));
+    const xlsx = mapearMatriz(matrizDeCelulas(await readSheet(fileURLToPath(new URL('./fixtures/moradores.xlsx', import.meta.url)))));
     expect(xlsx.faltando).toEqual([]);
     expect(xlsx.linhas.length).toBe(3);
     expect(xlsx.linhas[0]).toMatchObject({ bloco: 'A', unidade: '12', nome: 'Ágata Mendonça Lopes', documento: '529.982.247-25' });
-    const csv = lerCsv(readFileSync(new URL('../../e2e/fixtures/moradores.csv', import.meta.url), 'utf8'));
+    const csv = lerCsv(readFileSync(new URL('./fixtures/moradores.csv', import.meta.url), 'utf8'));
     // Mesmas linhas => a API analisa as duas planilhas igual (a análise em si é testada na API: importacao.test.ts).
     expect(xlsx.linhas).toEqual(csv.linhas);
   });
