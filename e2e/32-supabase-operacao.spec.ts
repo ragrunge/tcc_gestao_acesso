@@ -160,7 +160,7 @@ test('auditora: relatório com CSV, verificação da trilha no navegador e expor
   expect(csv.suggestedFilename()).toMatch(/^relatorio-gestao-acesso-\d{4}-\d{2}-\d{2}\.csv$/);
 });
 
-test('menu: telas da F3 aparecem; Privacidade (F5) e Usuários continuam escondidas e mostram o aviso', async ({ page }) => {
+test('menu: telas da F3 aparecem; Privacidade (F5) continua escondida e mostra o aviso', async ({ page }) => {
   await entrar(page, 'roberto.faria', /\/painel$/);
   await expect(page.getByRole('link', { name: 'Encomendas' }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Ocorrências' }).first()).toBeVisible();
