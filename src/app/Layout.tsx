@@ -210,7 +210,8 @@ export function Layout() {
             <Menu className="h-5 w-5" aria-hidden />
           </button>
           <div className="min-w-0 flex-1 truncate font-semibold lg:flex-none lg:whitespace-nowrap">{usuario!.condominio?.nome ?? 'Gestão de Acesso'}</div>
-          <div className="order-last w-full lg:order-none lg:flex lg:w-auto lg:flex-1"><BuscaGlobal onPessoa={setFichaId} /></div>
+          {/* api.busca_global exige pessoa.ver: o administrador do sistema não vê o campo (só daria 403). */}
+          {pode(papel, 'pessoa.ver') && <div className="order-last w-full lg:order-none lg:flex lg:w-auto lg:flex-1"><BuscaGlobal onPessoa={setFichaId} /></div>}
           <div className="flex items-center gap-5 lg:ml-auto">
             <Relogio />
             <div className="hidden h-8 w-px bg-[#DCE1E5] md:block" />

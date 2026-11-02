@@ -46,6 +46,7 @@ test('admin_sistema: entra em Usuários, só vê Usuários, gerencia porteiro e 
   for (const item of ['Painel', 'Registrar entrada', 'Unidades', 'Cadastro de pessoas', 'Histórico de acessos', 'Relatórios', 'Privacidade (LGPD)']) {
     await expect(page.getByRole('link', { name: item })).toHaveCount(0);
   }
+  await expect(page.getByLabel('Buscar por nome, documento, unidade ou placa')).toHaveCount(0);
   // Rota de dado pessoal digitada à mão: volta para Usuários.
   await page.goto('/pessoas');
   await expect(page).toHaveURL(/\/usuarios$/);
