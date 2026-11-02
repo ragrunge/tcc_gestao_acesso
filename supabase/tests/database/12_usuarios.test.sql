@@ -1,9 +1,9 @@
 -- Tela de Usuários (0038) e as regras da gestão que ela espelha (0018). Mesmo harness do 11.
--- O que se prova: RBAC (usuario.gerenciar) antes da validação, validação dos parâmetros, item sem auth_user_id nem
+-- O que se prova: RBAC (usuario.ver, 0039: síndico e administração) antes da validação, validação dos parâmetros, item sem auth_user_id nem
 -- e-mail sintético, filtros (papel, situação, busca sem acento e com curinga escapado), `total` igual ao percurso das
 -- páginas (deslocamento e cursor na mesma ordem), resumo batendo com o `total`, anonimizado fora da lista, e a
 -- invariante "o sistema nunca fica sem síndico ativo" pelas srv.usuario_desativar: ninguém desativa a si mesmo, só o
--- síndico desativa síndico e o desativado perde a sessão na hora (não desativa o outro de volta).
+-- síndico desativa (desde a 0039 a administração não desativa ninguém) e o desativado perde a sessão na hora.
 -- Fixtures próprias (logins t12.*). Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
@@ -158,7 +158,7 @@ SELECT is((pg_temp.resumo('ad') -> 'porPapel' ->> 'porteiro')::bigint,
 -- ===== Nunca sem síndico ativo (srv.usuario_desativar, 0018) =======================================================
 SELECT is(pg_temp.desativar('si', 'u_si'), 'AUTO_DESATIVACAO', 'síndico não desativa a si mesmo');
 SELECT is(pg_temp.desativar('ad', 'u_si'), 'SEM_PERMISSAO', 'administração não desativa síndico');
-SELECT is(pg_temp.desativar('ad', 'u_ad'), 'AUTO_DESATIVACAO', 'administração não desativa a si mesma');
+SELECT is(pg_temp.desativar('ad', 'u_po'), 'SEM_PERMISSAO', 'administração não desativa nem o porteiro (0039: só o síndico gerencia)');
 SELECT is(pg_temp.desativar('si', 'u_si2'), 'ok', 'síndico desativa outro síndico');
 SELECT is(pg_temp.desativar('si2', 'u_si'), 'SESSAO_INVALIDA', 'o síndico desativado perdeu a sessão: não desativa o outro de volta');
 SELECT ok((SELECT ativo FROM public.usuario_sistema WHERE id = pg_temp.id('u_si')), 'quem desativou continua ativo (síndico ativo garantido)');

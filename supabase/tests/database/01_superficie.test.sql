@@ -56,7 +56,7 @@ INSERT INTO allowlist_execute VALUES
   -- 0037, totalizadores (pessoa.ver / vinculo.ver / unidade.ver / ocorrencia.ver, o mesmo da listagem de cada um)
   ('authenticated', 'api.pessoas_resumo()'), ('authenticated', 'api.vinculos_resumo()'), ('authenticated', 'api.unidades_resumo()'),
   ('authenticated', 'api.ocorrencias_resumo()'),
-  -- 0038, tela de Usuários: só leitura (usuario.gerenciar, a mesma ação da gestão pela Edge usuarios-admin)
+  -- 0038, tela de Usuários: só leitura (usuario.ver desde a 0039: síndico e administração)
   ('authenticated', 'api.usuarios_listar(jsonb)'), ('authenticated', 'api.usuarios_resumo()');
 CREATE TEMP TABLE allowlist_service_role (funcao regprocedure) ON COMMIT DROP;
 INSERT INTO allowlist_service_role VALUES
@@ -66,6 +66,8 @@ INSERT INTO allowlist_service_role VALUES
   ('srv.usuario_criar_preparar(uuid, text, text, papel)'), ('srv.usuario_criar(uuid, text, text, papel, uuid, text, text)'),
   ('srv.usuario_desativar(uuid, uuid, text)'), ('srv.usuario_reativar(uuid, uuid, text)'),
   ('srv.usuario_redefinir_senha(uuid, uuid, text)'),
+  -- 0039: editar nome, login e papel (usuario.gerenciar, só síndico)
+  ('srv.usuario_editar(uuid, uuid, text, text, papel, text)'),
   -- 0034: primeiro síndico (script sb:sindico com a chave de serviço; recusa com qualquer usuário existente)
   ('srv.bootstrap_sindico_preparar(text, text)'), ('srv.bootstrap_sindico_criar(text, text, uuid, text)'),
   -- F4, anexos (Edge anexos): ocorrencia.operar no envio, documento.ver na leitura, conferidos dentro de cada uma

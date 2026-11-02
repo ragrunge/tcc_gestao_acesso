@@ -4,7 +4,7 @@
 -- Cada recusa é conferida pelo CÓDIGO do erro (JSON do RAISE PGRST), não só por "deu erro".
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(50);
+SELECT plan(51);
 
 -- ===== Fixtures ===================================================================================================
 -- uNN = usuario_sistema.id, aNN = auth_user_id (sub), sNN = sessao.id, gNN = auth_session_id (session_id da JWT).
@@ -19,7 +19,7 @@ INSERT INTO public.usuario_sistema (id, nome, login, papel, ativo, deve_trocar_s
   (pg_temp.id('u_si'), 'Sílvia Síndica', 't.sindica', 'sindico', true, false, NULL, pg_temp.id('a_si'), pg_temp.email()),
   (pg_temp.id('u_ad'), 'Adão Administração', 't.admin', 'administracao', true, false, NULL, pg_temp.id('a_ad'), pg_temp.email()),
   (pg_temp.id('u_po'), 'Pedro Porteiro', 't.porteiro', 'porteiro', true, false, NULL, pg_temp.id('a_po'), pg_temp.email()),
-  (pg_temp.id('u_troca'), 'Tânia Troca', 't.troca', 'administracao', true, true, now() + interval '1 hour', pg_temp.id('a_troca'), pg_temp.email()),
+  (pg_temp.id('u_troca'), 'Tânia Troca', 't.troca', 'sindico', true, true, now() + interval '1 hour', pg_temp.id('a_troca'), pg_temp.email()),
   (pg_temp.id('u_venc'), 'Valter Vencido', 't.vencido', 'administracao', true, true, now() - interval '1 minute', pg_temp.id('a_venc'), pg_temp.email()),
   (pg_temp.id('u_semprazo'), 'Sérgio Sem Prazo', 't.semprazo', 'administracao', true, true, NULL, pg_temp.id('a_semprazo'), pg_temp.email()),
   (pg_temp.id('u_longo'), 'Lia Longa', 't.longa', 'sindico', true, false, NULL, pg_temp.id('a_longo'), pg_temp.email());
@@ -122,8 +122,8 @@ SELECT is(pg_temp.api('vencida'), 'SESSAO_INVALIDA', 'troca pendente com a senha
 SELECT is(pg_temp.api('semprazo'), 'SESSAO_INVALIDA', 'troca pendente SEM prazo gravado conta como vencida (falha fechada)');
 SELECT is(pg_temp.api('troca'), 'ok', 'troca pendente válida: api.sessao_atual permite (a tela de troca precisa do usuário)');
 SELECT is(pg_temp.criar_preparar('troca'), 'TROCA_DE_SENHA_OBRIGATORIA',
-  'troca pendente: ação que exige papel (usuario.gerenciar, que a administração tem) recusa com 403 de troca');
-SELECT is(pg_temp.criar_preparar('ad'), 'ok', 'a mesma ação, sem troca pendente: aceita');
+  'troca pendente: ação que exige papel (usuario.gerenciar, que o síndico tem) recusa com 403 de troca');
+SELECT is(pg_temp.criar_preparar('si'), 'ok', 'a mesma ação, sem troca pendente: aceita');
 
 -- Toque: ultimo_uso_em avança na chamada (sessão com último uso há 3h59).
 SELECT ok((SELECT ultimo_uso_em > now() - interval '1 minute' FROM public.sessao WHERE id = pg_temp.sid('quase_inativa')),
@@ -131,15 +131,17 @@ SELECT ok((SELECT ultimo_uso_em > now() - interval '1 minute' FROM public.sessao
 
 -- ===== Papel ATUAL, lido a cada chamada ==================================================================================
 SELECT is(pg_temp.criar_preparar('si', 'sindico'), 'ok', 'síndico cria síndico');
-SELECT is(pg_temp.criar_preparar('ad', 'sindico'), 'SEM_PERMISSAO', 'administração não cria síndico (usuario.gerenciar_sindico)');
+SELECT is(pg_temp.criar_preparar('ad', 'sindico'), 'SEM_PERMISSAO', 'administração não cria síndico (nem outro papel, 0039)');
 SELECT is(pg_temp.criar_preparar('po'), 'SEM_PERMISSAO', 'porteiro não gerencia usuário');
+UPDATE public.usuario_sistema SET papel = 'sindico' WHERE id = pg_temp.id('u_ad');
+SELECT is(pg_temp.criar_preparar('ad'), 'ok', 'promovido a síndico: a MESMA sessão ganha a permissão na chamada seguinte');
 UPDATE public.usuario_sistema SET papel = 'porteiro' WHERE id = pg_temp.id('u_ad');
 SELECT is(pg_temp.criar_preparar('ad'), 'SEM_PERMISSAO', 'rebaixado a porteiro: a MESMA sessão perde a permissão na chamada seguinte');
 SELECT is(pg_temp.api('ad', $$SELECT set_config('t.papel', api.sessao_atual() #>> '{usuario,papel}', true)$$), 'ok',
   'api.sessao_atual responde para o rebaixado');
 SELECT is(current_setting('t.papel'), 'porteiro', 'api.sessao_atual devolve o papel novo, não o do login');
 UPDATE public.usuario_sistema SET papel = 'administracao' WHERE id = pg_temp.id('u_ad');
-SELECT is(pg_temp.criar_preparar('ad'), 'ok', 'promovido de volta: vale na chamada seguinte');
+SELECT is(pg_temp.api('ad'), 'ok', 'de volta à administração: a sessão segue válida (só o papel muda)');
 
 SELECT is(pg_temp.api('longa'), 'ok', 'sessão longa (manter conectado) do síndico criada há 20 h: vale');
 UPDATE public.usuario_sistema SET papel = 'porteiro' WHERE id = pg_temp.id('u_longo');
@@ -155,7 +157,7 @@ SELECT is(pg_temp.api('si'), 'ok', 'logout de uma sessão não derruba a outra d
 SELECT is(pg_temp.srv(format('SELECT srv.usuario_desativar(%L, %L, NULL)', pg_temp.sid('si'), pg_temp.id('u_si'))),
   'AUTO_DESATIVACAO', 'ninguém desativa a si mesmo');
 SELECT is(pg_temp.srv(format('SELECT srv.usuario_desativar(%L, %L, NULL)', pg_temp.sid('ad'), pg_temp.id('u_longo'))),
-  'ok', 'administração desativa quem hoje é porteiro');
+  'SEM_PERMISSAO', 'administração não desativa nem quem hoje é porteiro (0039: só o síndico gerencia)');
 SELECT is(pg_temp.srv(format('SELECT srv.usuario_desativar(%L, %L, NULL)', pg_temp.sid('ad'), pg_temp.id('u_si'))),
   'SEM_PERMISSAO', 'administração não desativa o síndico');
 SELECT is(pg_temp.srv(format('SELECT srv.usuario_desativar(%L, %L, NULL)', pg_temp.sid('si'), pg_temp.id('u_po'))),
