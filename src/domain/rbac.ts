@@ -20,6 +20,8 @@ export type Acao =
   | 'lgpd.exportar' | 'lgpd.anonimizar' | 'lgpd.retencao';
 
 const SI: Papel = 'sindico', AD: Papel = 'administracao', PO: Papel = 'porteiro', AU: Papel = 'auditor';
+// Administrador do sistema (0041): o técnico que cuida das contas, sem ver dado pessoal de morador. Só usuario.*.
+const AS: Papel = 'admin_sistema';
 
 export const MATRIZ: Record<Acao, Papel[]> = {
   'unidade.ver': [SI, AD, PO, AU],
@@ -48,11 +50,12 @@ export const MATRIZ: Record<Acao, Papel[]> = {
   'auditoria.exportar': [SI, AD, AU],
   // Selo da cadeia sob demanda (spec §4.6): síndico e auditor (conselho). O selo diário é do agendador, sem usuário.
   'auditoria.selar': [SI, AU],
-  // Usuários do sistema (0039): a administração vê a lista e os totais; criar, editar, desativar, reativar e redefinir
-  // senha são só do síndico.
-  'usuario.ver': [SI, AD],
-  'usuario.gerenciar': [SI],
-  'usuario.gerenciar_sindico': [SI], // alvo síndico ou promover a síndico; hoje coincide com usuario.gerenciar
+  // Usuários do sistema (0039, 0041): a administração vê a lista e os totais; criar, editar, desativar, reativar e
+  // redefinir senha são do síndico e do administrador do sistema.
+  'usuario.ver': [SI, AD, AS],
+  'usuario.gerenciar': [SI, AS],
+  // Alvo síndico ou admin_sistema, ou atribuir um desses papéis: só o síndico (o técnico não se promove nem se protege).
+  'usuario.gerenciar_sindico': [SI],
   'veiculo.cadastrar': [SI, AD],
   'funcionario.gerenciar': [SI, AD], // RF-09
   // Listagem e ficha de funcionário (spec §14, decisão nº 29): síndico, administração e auditor; o porteiro NÃO.
@@ -94,10 +97,10 @@ export const ROTAS: Record<Rota, Papel[]> = {
   importar: [SI, AD],
   historico: [SI, AD, PO, AU],
   relatorios: [SI, AD, AU],
-  usuarios: [SI, AD], // usuario.ver; as ações da tela exigem usuario.gerenciar (SI)
+  usuarios: [SI, AD, AS], // usuario.ver; as ações da tela exigem usuario.gerenciar (SI, AS)
   funcionarios: [SI, AD, AU], // AU só lê (funcionario.ver); criar e editar exigem funcionario.gerenciar
   privacidade: [SI, AD], // lgpd.exportar (SI, AD); a aba Retenção exige lgpd.retencao (SI)
 };
 
 export const rotaInicial = (papel: Papel): Rota =>
-  papel === 'auditor' ? 'historico' : papel === 'administracao' ? 'vinculos' : 'painel';
+  papel === 'auditor' ? 'historico' : papel === 'administracao' ? 'vinculos' : papel === 'admin_sistema' ? 'usuarios' : 'painel';

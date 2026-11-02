@@ -24,7 +24,7 @@ describe('matriz RBAC: TS == SQL', () => {
     expect(ultima).toBeDefined();
     const migracao = readFileSync(resolve(pasta, ultima!), 'utf8');
     if (ultima !== '20261031001700_0017_rbac_matriz.sql') expect(migracao).toMatch(/^DELETE FROM public\.rbac_matriz;$/m);
-    const inseridos = [...migracao.matchAll(/^\s+\('([a-z_.]+)', '([a-z]+)'\)[,;]$/gm)].map((m) => `${m[1]}:${m[2]}`).sort();
+    const inseridos = [...migracao.matchAll(/^\s+\('([a-z_.]+)', '([a-z_]+)'\)[,;]$/gm)].map((m) => `${m[1]}:${m[2]}`).sort();
     const esperados = (pares() as [string, string][]).map(([a, p]) => `${a}:${p}`).sort();
     expect(inseridos).toEqual(esperados);
     expect(esperados.length).toBe(Object.values(MATRIZ).reduce((n, papeis) => n + papeis.length, 0));

@@ -7,7 +7,7 @@
 import { pathToFileURL } from 'node:url';
 import { MATRIZ } from '../src/domain/rbac.ts';
 
-export const PAPEIS = ['sindico', 'administracao', 'porteiro', 'auditor'];
+export const PAPEIS = ['sindico', 'administracao', 'porteiro', 'auditor', 'admin_sistema'];
 
 const q = (s) => `'${String(s).replaceAll("'", "''")}'`;
 
@@ -38,7 +38,7 @@ export function sqlMigracao() {
 export function sqlTeste() {
   const lista = acoes();
   const total = 2 + lista.length * PAPEIS.length + 1;
-  const ids = { sindico: '1', administracao: '2', porteiro: '3', auditor: '4' };
+  const ids = { sindico: '1', administracao: '2', porteiro: '3', auditor: '4', admin_sistema: '5' };
   const linhas = [];
   linhas.push(
     '-- GERADO por `node scripts/rbac-sql.mjs teste` a partir de src/domain/rbac.ts. NÃO editar à mão:',
@@ -59,7 +59,7 @@ export function sqlTeste() {
     '',
     '-- Resultado de app.exigir(acao) com a JWT do papel: \'ok\' ou o código do erro (JSON da mensagem PGRST).',
     'CREATE FUNCTION pg_temp.exigir_como(p_papel text, p_acao text) RETURNS text LANGUAGE plpgsql AS $$',
-    'DECLARE n text := CASE p_papel WHEN \'sindico\' THEN \'1\' WHEN \'administracao\' THEN \'2\' WHEN \'porteiro\' THEN \'3\' ELSE \'4\' END;',
+    'DECLARE n text := CASE p_papel WHEN \'sindico\' THEN \'1\' WHEN \'administracao\' THEN \'2\' WHEN \'porteiro\' THEN \'3\' WHEN \'auditor\' THEN \'4\' ELSE \'5\' END;',
     'BEGIN',
     "  PERFORM set_config('request.jwt.claims', json_build_object('role', 'authenticated',",
     "    'sub', '00000000-0000-4000-8000-00000000020' || n, 'session_id', '00000000-0000-4000-8000-00000000050' || n)::text, true);",

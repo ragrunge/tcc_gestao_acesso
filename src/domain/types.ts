@@ -3,9 +3,10 @@
 // Todos os instantes são epoch em milissegundos (UTC); a exibição usa o fuso de São Paulo.
 // As entidades guardam só ids de usuário e de pessoa; os nomes são resolvidos nas views (o banco faz join).
 
-export type Papel = 'sindico' | 'administracao' | 'porteiro' | 'auditor';
+export type Papel = 'sindico' | 'administracao' | 'porteiro' | 'auditor' | 'admin_sistema';
 export const ROTULO_PAPEL: Record<Papel, string> = {
   sindico: 'Síndico', administracao: 'Administração', porteiro: 'Porteiro', auditor: 'Auditor',
+  admin_sistema: 'Administrador do sistema',
 };
 
 export type CategoriaPessoa = 'morador' | 'visitante' | 'prestador' | 'funcionario';
