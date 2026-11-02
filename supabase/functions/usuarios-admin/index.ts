@@ -1,6 +1,6 @@
 // Gestão de contas (desenho §2.5 e §2.6): criar, editar, desativar, reativar e redefinir senha.
-// A permissão é decidida no BANCO (srv.* chama app.exigir_sessao com o papel atual: usuario.gerenciar, só do síndico
-// desde a 0039, e usuario.gerenciar_sindico); esta Edge só traduz para o Auth. Ordem escolhida para falhar fechado:
+// A permissão é decidida no BANCO (srv.* chama app.exigir_sessao com o papel atual: usuario.gerenciar, do síndico e do
+// administrador do sistema desde a 0041, e usuario.gerenciar_sindico para síndico e admin_sistema); esta Edge só traduz para o Auth. Ordem escolhida para falhar fechado:
 //   criar      banco confere -> Auth cria -> banco grava (falhou: apaga no Auth);
 //   editar     só banco (nome, login, papel): o Auth guarda o e-mail sintético, que não muda com o login;
 //   desativar  banco desativa e revoga as sessões -> Auth bane (login novo e refresh);
@@ -11,7 +11,7 @@ import { ErroHttp, ipDoCliente, json, lerCorpo, servir, texto } from '../_shared
 import { rpc, servico, sessaoDoUsuario } from '../_shared/supabase.ts';
 import { gerarSenhaTemporaria } from '../_shared/senha.ts';
 
-const PAPEIS = ['sindico', 'administracao', 'porteiro', 'auditor'];
+const PAPEIS = ['sindico', 'administracao', 'porteiro', 'auditor', 'admin_sistema'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** "Para sempre" no GoTrue (ban_duration aceita horas). */
 const BANIMENTO = '876000h';

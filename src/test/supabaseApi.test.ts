@@ -247,8 +247,8 @@ describe('usuarios: listagem e totais (0038)', () => {
 
   it('resumo: ativos, desativados e ativos por papel', async () => {
     const m = mock();
-    m.rpc.mockResolvedValueOnce({ data: { ativos: 4, desativados: 2, porPapel: { sindico: 1, administracao: 1, porteiro: 1, auditor: 1 } }, error: null, status: 200 });
-    expect(await m.api.usuarios.resumo()).toEqual({ ativos: 4, desativados: 2, porPapel: { sindico: 1, administracao: 1, porteiro: 1, auditor: 1 } });
+    m.rpc.mockResolvedValueOnce({ data: { ativos: 4, desativados: 2, porPapel: { sindico: 1, administracao: 1, porteiro: 1, auditor: 1, admin_sistema: 1 } }, error: null, status: 200 });
+    expect(await m.api.usuarios.resumo()).toEqual({ ativos: 4, desativados: 2, porPapel: { sindico: 1, administracao: 1, porteiro: 1, auditor: 1, admin_sistema: 1 } });
     expect(m.rpc).toHaveBeenCalledWith('usuarios_resumo', {});
   });
 

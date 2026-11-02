@@ -1,7 +1,8 @@
 // Regras da tela de Usuários: espelho das recusas de srv.usuario_* (0018, 0039) para esconder o que o servidor recusaria.
-// A decisão real é do banco; aqui só não se oferece o botão. Só quem tem usuario.gerenciar (síndico) chega a estas
-// regras. A invariante "sempre há um síndico ativo" sai delas: só o síndico desativa ou rebaixa síndico e ninguém
-// desativa a si mesmo nem muda o próprio papel, então quem age continua síndico ativo (o banco confere de novo: 409).
+// A decisão real é do banco; aqui só não se oferece o botão. Só quem tem usuario.gerenciar (síndico e administrador do
+// sistema) chega a estas regras. Contas de síndico e de admin_sistema, e atribuir esses papéis, exigem
+// usuario.gerenciar_sindico (só o síndico, 0041). A invariante "sempre há um síndico ativo" sai delas: só o síndico
+// desativa ou rebaixa síndico e ninguém desativa a si mesmo nem muda o próprio papel (o banco confere de novo: 409).
 import { ROTULO_PAPEL, type Papel, type UsuarioSistema } from '@domain/types';
 
 export interface Gestor { id: string; gerenciaSindico: boolean }
@@ -20,10 +21,15 @@ export interface AcoesDaLinha {
 
 const NENHUMA = { editar: false, redefinir: false, desativar: false, reativar: false } as const;
 
+/** Papéis cujas contas (e cuja atribuição) exigem usuario.gerenciar_sindico (app.exigir_gestao_sindico, 0041). */
+export const PAPEIS_PROTEGIDOS: readonly Papel[] = ['sindico', 'admin_sistema'];
+const protegido = (eu: Gestor, papel: Papel) => PAPEIS_PROTEGIDOS.includes(papel) && !eu.gerenciaSindico;
+
 export function acoesDaLinha(eu: Gestor, alvo: Pick<UsuarioSistema, 'id' | 'papel' | 'ativo'>): AcoesDaLinha {
-  if (alvo.papel === 'sindico' && !eu.gerenciaSindico) return { ...NENHUMA, motivo: 'so_sindico' };
-  // AUTO_DESATIVACAO e AUTO_REDEFINICAO: a própria senha muda em "Trocar minha senha". O próprio nome e login mudam.
-  if (alvo.id === eu.id) return { ...NENHUMA, editar: true, motivo: 'proprio' };
+  // AUTO_DESATIVACAO e AUTO_REDEFINICAO: a própria senha muda em "Trocar minha senha". O próprio nome e login mudam,
+  // salvo para o admin_sistema (conta protegida: o servidor recusa).
+  if (alvo.id === eu.id) return { ...NENHUMA, editar: !protegido(eu, alvo.papel), motivo: 'proprio' };
+  if (protegido(eu, alvo.papel)) return { ...NENHUMA, motivo: 'so_sindico' };
   return { editar: true, redefinir: alvo.ativo, desativar: alvo.ativo, reativar: !alvo.ativo, motivo: null };
 }
 
@@ -38,9 +44,9 @@ export function mudancas(antes: Pick<UsuarioSistema, 'nome' | 'login' | 'papel'>
   };
 }
 
-/** Papéis que o gestor pode atribuir ao criar ou editar (usuario.gerenciar_sindico para síndico). */
+/** Papéis que o gestor pode atribuir ao criar ou editar (usuario.gerenciar_sindico para síndico e admin_sistema). */
 export const papeisCriaveis = (gerenciaSindico: boolean): Papel[] =>
-  (Object.keys(ROTULO_PAPEL) as Papel[]).filter((p) => p !== 'sindico' || gerenciaSindico);
+  (Object.keys(ROTULO_PAPEL) as Papel[]).filter((p) => gerenciaSindico || !PAPEIS_PROTEGIDOS.includes(p));
 
 /** Mesmas regras de app.validar_novo_usuario (0018), com as mesmas mensagens. */
 export function validarNovoUsuario(f: { nome: string; login: string }): { nome?: string; login?: string } {

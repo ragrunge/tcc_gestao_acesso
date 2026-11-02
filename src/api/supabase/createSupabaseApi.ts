@@ -271,7 +271,10 @@ export function createSupabaseApi(sb: SupabaseClient, opcoes: OpcoesSupabaseApi)
         const pp = r.porPapel;
         return {
           ativos: contagem(r.ativos), desativados: contagem(r.desativados),
-          porPapel: { sindico: contagem(pp.sindico), administracao: contagem(pp.administracao), porteiro: contagem(pp.porteiro), auditor: contagem(pp.auditor) },
+          porPapel: {
+            sindico: contagem(pp.sindico), administracao: contagem(pp.administracao), porteiro: contagem(pp.porteiro), auditor: contagem(pp.auditor),
+            admin_sistema: contagem(pp.admin_sistema),
+          },
         };
       },
       async criar(i) { return comSenhaTemporaria(await edge('usuarios-admin', { acao: 'criar', nome: i.nome, login: i.login, papel: i.papel })); },

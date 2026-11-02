@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { MATRIZ, ROTAS, pode } from '@domain/rbac';
+import { MATRIZ, ROTAS, pode, rotaInicial } from '@domain/rbac';
 import type { Papel, UsuarioSistema } from '@domain/types';
 import { ApiProvider } from '../api';
 import { ApiError, type Api, type Pagina, type ResumoUsuarios } from '../api/types';
@@ -40,7 +40,7 @@ const ADMIN = u({ id: 'u-ad', nome: 'Paula Nogueira', login: 'paula.nogueira', p
 const PORTEIRO = u({ id: 'u-po', nome: 'João Lima', login: 'joao.lima', papel: 'porteiro' });
 const DESLIGADO = u({ id: 'u-de', nome: 'Davi Dias', login: 'davi.dias', papel: 'porteiro', ativo: false });
 const TODOS = [ADMIN, DESLIGADO, EU, PORTEIRO, OUTRO_SINDICO];
-const RESUMO: ResumoUsuarios = { ativos: 4, desativados: 1, porPapel: { sindico: 2, administracao: 1, porteiro: 1, auditor: 0 } };
+const RESUMO: ResumoUsuarios = { ativos: 4, desativados: 1, porPapel: { sindico: 2, administracao: 1, porteiro: 1, auditor: 0, admin_sistema: 0 } };
 
 function apiFalsa(itens = TODOS) {
   const usuarios = {
@@ -80,7 +80,7 @@ const esperarLista = () => screen.findByText('João Lima', { exact: true });
 
 describe('regras da tela (espelho de srv.usuario_*)', () => {
   const sindico = { id: 'eu', gerenciaSindico: true };
-  // Gestor sem usuario.gerenciar_sindico: não existe na matriz atual (0039), mas a regra continua valendo se voltar a existir.
+  // Gestor sem usuario.gerenciar_sindico: o administrador do sistema (0041).
   const semSindico = { id: 'eu', gerenciaSindico: false };
   it('ninguém desativa nem redefine a si mesmo; o próprio nome e login podem ser editados', () => {
     expect(acoesDaLinha(sindico, { id: 'eu', papel: 'sindico', ativo: true })).toEqual({ editar: true, redefinir: false, desativar: false, reativar: false, motivo: 'proprio' });
@@ -89,6 +89,12 @@ describe('regras da tela (espelho de srv.usuario_*)', () => {
     expect(acoesDaLinha(semSindico, { id: 'x', papel: 'sindico', ativo: true })).toEqual({ editar: false, redefinir: false, desativar: false, reativar: false, motivo: 'so_sindico' });
     expect(acoesDaLinha(semSindico, { id: 'x', papel: 'sindico', ativo: false }).reativar).toBe(false);
     expect(acoesDaLinha(sindico, { id: 'x', papel: 'sindico', ativo: true })).toMatchObject({ editar: true, redefinir: true, desativar: true, reativar: false });
+  });
+  it('sem usuario.gerenciar_sindico não se mexe em admin_sistema, nem no próprio cadastro (só "Trocar minha senha")', () => {
+    expect(acoesDaLinha(semSindico, { id: 'x', papel: 'admin_sistema', ativo: true })).toEqual({ editar: false, redefinir: false, desativar: false, reativar: false, motivo: 'so_sindico' });
+    expect(acoesDaLinha(semSindico, { id: 'eu', papel: 'admin_sistema', ativo: true })).toEqual({ editar: false, redefinir: false, desativar: false, reativar: false, motivo: 'proprio' });
+    expect(acoesDaLinha(semSindico, { id: 'x', papel: 'auditor', ativo: true })).toEqual({ editar: true, redefinir: true, desativar: true, reativar: false, motivo: null });
+    expect(acoesDaLinha(sindico, { id: 'x', papel: 'admin_sistema', ativo: true })).toMatchObject({ editar: true, redefinir: true, desativar: true, motivo: null });
   });
   it('ativo: editar, redefinir e desativar; desativado: editar e reativar', () => {
     expect(acoesDaLinha(sindico, { id: 'x', papel: 'porteiro', ativo: true })).toEqual({ editar: true, redefinir: true, desativar: true, reativar: false, motivo: null });
@@ -101,12 +107,12 @@ describe('regras da tela (espelho de srv.usuario_*)', () => {
     expect(mudancas(antes, { nome: 'João Lima', login: ' Joao.P ', papel: 'porteiro' })).toEqual({ login: 'joao.p' });
   });
   it('matriz (0039): administração vê, só o síndico gerencia', () => {
-    expect([...MATRIZ['usuario.ver']].sort()).toEqual(['administracao', 'sindico']);
-    expect(MATRIZ['usuario.gerenciar']).toEqual(['sindico']);
+    expect([...MATRIZ['usuario.ver']].sort()).toEqual(['admin_sistema', 'administracao', 'sindico']);
+    expect([...MATRIZ['usuario.gerenciar']].sort()).toEqual(['admin_sistema', 'sindico']);
     expect(MATRIZ['usuario.gerenciar_sindico']).toEqual(['sindico']);
   });
   it('papéis que cada um cria', () => {
-    expect(papeisCriaveis(true)).toEqual(['sindico', 'administracao', 'porteiro', 'auditor']);
+    expect(papeisCriaveis(true)).toEqual(['sindico', 'administracao', 'porteiro', 'auditor', 'admin_sistema']);
     expect(papeisCriaveis(false)).toEqual(['administracao', 'porteiro', 'auditor']);
   });
   it('validação do formulário com as mensagens de app.validar_novo_usuario', () => {
@@ -115,6 +121,12 @@ describe('regras da tela (espelho de srv.usuario_*)', () => {
     expect(validarNovoUsuario({ nome: 'Marcos', login: '1marcos' }).login).toMatch(/começando por letra/);
     expect(validarNovoUsuario({ nome: 'Marcos', login: 'ma' }).login).toBeDefined();
     expect(validarNovoUsuario({ nome: 'Marcos', login: 'marcos teixeira' }).login).toBeDefined();
+  });
+  it('administrador do sistema (0041): só usuario.ver e usuario.gerenciar, só a rota de Usuários, que é a inicial', () => {
+    expect((Object.keys(MATRIZ) as (keyof typeof MATRIZ)[]).filter((a) => pode('admin_sistema', a)).sort()).toEqual(['usuario.gerenciar', 'usuario.ver']);
+    expect((Object.keys(ROTAS) as (keyof typeof ROTAS)[]).filter((r) => ROTAS[r].includes('admin_sistema'))).toEqual(['usuarios']);
+    expect(rotaInicial('admin_sistema')).toBe('usuarios');
+    expect(papeisCriaveis(false)).not.toContain('admin_sistema');
   });
   it('a rota de Usuários vale para quem tem usuario.ver, e só para esses', () => {
     expect([...ROTAS.usuarios].sort()).toEqual([...MATRIZ['usuario.ver']].sort());
@@ -149,6 +161,28 @@ describe('UsuariosPage', () => {
     for (const nome of ['Sílvio Souza', 'João Lima', 'Davi Dias', 'Paula Nogueira']) expect(within(linha(nome)).queryByRole('button')).toBeNull();
     expect(screen.queryByText('Ações')).toBeNull();
     expect(screen.getAllByRole('link', { name: 'Trocar minha senha' })).toHaveLength(1);
+  });
+
+  it('administrador do sistema: gerencia porteiro e administração; síndico e admin_sistema sem ações; na própria linha só "Trocar minha senha"', async () => {
+    const EU_AS = u({ id: 'u-eu', nome: 'Eu Técnico', login: 'eu.tecnico', papel: 'admin_sistema' });
+    const OUTRO_AS = u({ id: 'u-as2', nome: 'Tiago Técnico', login: 'tiago.tecnico', papel: 'admin_sistema' });
+    montar('admin_sistema', [ADMIN, EU_AS, PORTEIRO, OUTRO_SINDICO, OUTRO_AS]);
+    await esperarLista();
+    const minha = linha('Eu Técnico');
+    expect(within(minha).queryByRole('button')).toBeNull();
+    expect(within(minha).getByRole('link', { name: 'Trocar minha senha' })).toBeTruthy();
+    for (const nome of ['Sílvio Souza', 'Tiago Técnico']) {
+      expect(within(linha(nome)).queryByRole('button')).toBeNull();
+      expect(within(linha(nome)).getByText('Só o síndico gerencia')).toBeTruthy();
+    }
+    expect(within(linha('João Lima')).getByRole('button', { name: 'Desativar João Lima' })).toBeTruthy();
+    expect(within(linha('Paula Nogueira')).getByRole('button', { name: 'Editar Paula Nogueira' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Novo usuário' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Novo usuário' });
+    expect(within(dialogo).queryByRole('radio', { name: 'Síndico' })).toBeNull();
+    expect(within(dialogo).queryByRole('radio', { name: 'Administrador do sistema' })).toBeNull();
+    expect(within(dialogo).getByRole('radio', { name: 'Porteiro' })).toBeTruthy();
   });
 
   it('porteiro e auditor (sem usuario.ver) nem pedem a lista nem o resumo', async () => {
