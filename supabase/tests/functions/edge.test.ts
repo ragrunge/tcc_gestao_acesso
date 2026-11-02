@@ -170,7 +170,7 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
     expect(sql(`SELECT count(*) FROM auth.sessions s JOIN public.usuario_sistema u ON u.auth_user_id = s.user_id WHERE u.login = '${login}'`)).toBe('0');
   });
 
-  it('só quem tem o papel gerencia: porteiro, auditor, anon e administração->síndico são recusados', async () => {
+  it('só o síndico gerencia (0039): porteiro, auditor, anon e administração são recusados', async () => {
     const corpo = { acao: 'criar', nome: 'Não Deve Existir', login: `nao.${sufixo()}`, papel: 'porteiro' };
     const porteiro = await admin(await token('joao.lima'), corpo);
     expect([porteiro.status, porteiro.corpo.code]).toEqual([403, 'SEM_PERMISSAO']);
@@ -178,8 +178,17 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
     expect([auditor.status, auditor.corpo.code]).toEqual([403, 'SEM_PERMISSAO']);
     const semUsuario = await admin(ANON, corpo);
     expect(semUsuario.status).toBe(401);
-    const adminCriaSindico = await admin(await token('paula.nogueira'), { ...corpo, papel: 'sindico' });
+    const tPaula = await token('paula.nogueira');
+    const adminCria = await admin(tPaula, corpo);
+    expect([adminCria.status, adminCria.corpo.code]).toEqual([403, 'SEM_PERMISSAO']);
+    const adminCriaSindico = await admin(tPaula, { ...corpo, papel: 'sindico' });
     expect([adminCriaSindico.status, adminCriaSindico.corpo.code]).toEqual([403, 'SEM_PERMISSAO']);
+    const idLuiza = sql("SELECT id FROM public.usuario_sistema WHERE login = 'luiza.campos'");
+    for (const acao of ['editar', 'desativar', 'reativar', 'redefinir_senha']) {
+      const r = await admin(tPaula, { acao, id: idLuiza, nome: 'Não Deve Mudar' });
+      expect([acao, r.status, r.corpo.code]).toEqual([acao, 403, 'SEM_PERMISSAO']);
+    }
+    expect(sql("SELECT nome <> 'Não Deve Mudar' AND ativo FROM public.usuario_sistema WHERE login = 'luiza.campos'")).toBe('t');
     expect(sql(`SELECT count(*) FROM public.usuario_sistema WHERE login = '${corpo.login}'`)).toBe('0');
     expect(sql(`SELECT count(*) FROM auth.users WHERE email NOT IN (SELECT auth_email FROM public.usuario_sistema WHERE auth_email IS NOT NULL)`)).toBe('0');
   });
@@ -201,10 +210,9 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
   }, 30_000);
 
   it('redefinir senha: sessões do alvo caem, a senha antiga para de valer, a nova temporária exige troca', async () => {
-    const tPaula = await token('paula.nogueira');
     const id = sql("SELECT id FROM public.usuario_sistema WHERE login = 'luiza.campos'");
     const tLuiza = await token('luiza.campos');
-    const r = await admin(tPaula, { acao: 'redefinir_senha', id });
+    const r = await admin(tokenSindico, { acao: 'redefinir_senha', id });
     expect(r.status).toBe(200);
     senhasDoTeste.push(r.corpo.senhaTemporaria);
     expect((await sessaoAtual(tLuiza)).corpo.code).toBe('SESSAO_INVALIDA');
@@ -217,6 +225,38 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
           WHERE id = (SELECT auth_user_id FROM public.usuario_sistema WHERE login = 'luiza.campos')`);
     sql("UPDATE public.usuario_sistema SET deve_trocar_senha = false, senha_temporaria_expira_em = NULL WHERE login = 'luiza.campos'");
   }, 30_000);
+
+  it('editar: o login novo entra (o antigo não), o Auth não muda, e mudar o papel derruba a sessão do alvo', async () => {
+    const login = `edit.${sufixo()}`;
+    const criado = await admin(tokenSindico, { acao: 'criar', nome: 'Pessoa Editável', login, papel: 'porteiro' });
+    senhasDoTeste.push(criado.corpo.senhaTemporaria);
+    const id = criado.corpo.usuario.id;
+    const emailAntes = sql(`SELECT u.email FROM auth.users u JOIN public.usuario_sistema s ON s.auth_user_id = u.id WHERE s.id = '${id}'`);
+
+    const novoLogin = `${login}.novo`;
+    const r = await admin(tokenSindico, { acao: 'editar', id, nome: '  Pessoa Editada ', login: novoLogin.toUpperCase() });
+    expect(r.status, JSON.stringify(r.corpo)).toBe(200);
+    expect(r.corpo.usuario).toMatchObject({ id, nome: 'Pessoa Editada', login: novoLogin, papel: 'porteiro' });
+    expect(JSON.stringify(r.corpo)).not.toContain('portaria.invalid');
+    expect(sql(`SELECT u.email FROM auth.users u JOIN public.usuario_sistema s ON s.auth_user_id = u.id WHERE s.id = '${id}'`)).toBe(emailAntes);
+    expect((await entrar(login, criado.corpo.senhaTemporaria)).corpo.code).toBe('CREDENCIAIS_INVALIDAS');
+    const t = await token(novoLogin, criado.corpo.senhaTemporaria);
+    expect((await sessaoAtual(t)).status).toBe(200);
+
+    expect((await admin(tokenSindico, { acao: 'editar', id, login: 'roberto.faria' })).corpo.code).toBe('LOGIN_EXISTENTE');
+    expect((await admin(tokenSindico, { acao: 'editar', id, nome: '' })).corpo.code).toBe('VALIDACAO');
+    expect((await admin(tokenSindico, { acao: 'editar', id, papel: 'zelador' })).corpo.code).toBe('VALIDACAO');
+    expect((await admin(tokenSindico, { acao: 'editar', id, nome: 42 })).corpo.code).toBe('VALIDACAO');
+
+    const p = await admin(tokenSindico, { acao: 'editar', id, papel: 'auditor' });
+    expect([p.status, p.corpo.usuario?.papel]).toEqual([200, 'auditor']);
+    expect((await sessaoAtual(t)).corpo.code).toBe('SESSAO_INVALIDA');
+  }, 30_000);
+
+  it('ninguém muda o próprio papel', async () => {
+    const id = sql("SELECT id FROM public.usuario_sistema WHERE login = 'roberto.faria'");
+    expect((await admin(tokenSindico, { acao: 'editar', id, papel: 'administracao' })).corpo.code).toBe('AUTO_PAPEL');
+  });
 
   it('ninguém desativa ou redefine a si mesmo', async () => {
     const id = sql("SELECT id FROM public.usuario_sistema WHERE login = 'roberto.faria'");

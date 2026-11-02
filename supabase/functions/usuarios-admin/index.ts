@@ -1,7 +1,8 @@
-// Gestão de contas que exige a API admin do Auth (desenho §2.5 e §2.6): criar, desativar, reativar e redefinir senha.
-// A permissão é decidida no BANCO (srv.* chama app.exigir_sessao com o papel atual: usuario.gerenciar e, para síndico,
-// usuario.gerenciar_sindico); esta Edge só traduz para o Auth. Ordem escolhida para falhar fechado:
+// Gestão de contas (desenho §2.5 e §2.6): criar, editar, desativar, reativar e redefinir senha.
+// A permissão é decidida no BANCO (srv.* chama app.exigir_sessao com o papel atual: usuario.gerenciar, só do síndico
+// desde a 0039, e usuario.gerenciar_sindico); esta Edge só traduz para o Auth. Ordem escolhida para falhar fechado:
 //   criar      banco confere -> Auth cria -> banco grava (falhou: apaga no Auth);
+//   editar     só banco (nome, login, papel): o Auth guarda o e-mail sintético, que não muda com o login;
 //   desativar  banco desativa e revoga as sessões -> Auth bane (login novo e refresh);
 //   reativar   banco reativa -> Auth tira o banimento (falhou: 503, repetir é idempotente);
 //   redefinir  banco marca a troca e revoga as sessões -> Auth troca a senha (falhou: 503; o alvo fica sem sessão).
@@ -16,6 +17,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BANIMENTO = '876000h';
 
 interface Gerido { usuario: unknown; auth_user_id: string | null }
+
+/** Campo opcional da edição: ausente ou null = não muda; presente precisa ser texto dentro do limite. */
+function opcional(corpo: Record<string, unknown>, campo: string, max: number): string | null {
+  const v = corpo[campo];
+  if (v === undefined || v === null) return null;
+  const t = texto(v, max);
+  if (t === null) throw new ErroHttp(422, 'VALIDACAO', 'Valor inválido.', [{ field: campo }]);
+  return t;
+}
 
 const indisponivel = () => new ErroHttp(503, 'AUTH_INDISPONIVEL', 'O serviço de contas não respondeu. Tente novamente em instantes.');
 
@@ -52,6 +62,16 @@ servir(async (req) => {
   const alvo = texto(corpo.id, 36) ?? '';
   if (!UUID.test(alvo)) throw new ErroHttp(422, 'VALIDACAO', 'Usuário inválido.', [{ field: 'id' }]);
   const args = { p_sessao_id: eu.sessao.id, p_alvo: alvo, p_ip: ip };
+
+  if (acao === 'editar') {
+    const papel = opcional(corpo, 'papel', 20);
+    if (papel !== null && !PAPEIS.includes(papel)) throw new ErroHttp(422, 'VALIDACAO', 'Papel inválido.', [{ field: 'papel' }]);
+    const r = await rpc<{ usuario: unknown }>(srv, 'usuario_editar', {
+      ...args, p_nome: opcional(corpo, 'nome', 200)?.trim() ?? null, p_login: opcional(corpo, 'login', 100)?.trim().toLowerCase() ?? null,
+      p_papel: papel,
+    });
+    return json(req, 200, { usuario: r.usuario });
+  }
 
   if (acao === 'desativar') {
     const r = await rpc<Gerido>(srv, 'usuario_desativar', args);
