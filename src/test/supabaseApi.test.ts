@@ -202,7 +202,7 @@ describe('auth.trocarSenha e usuarios', () => {
     m.invoke.mockResolvedValueOnce({ data: { usuario: { ...USUARIO, papel: 'auditor' } }, error: null });
     const r = await m.api.usuarios.editar('u-1', { papel: 'auditor' });
     expect(r.papel).toBe('auditor');
-    const corpo = JSON.parse(JSON.stringify(m.invoke.mock.lastCall![1].body));
+    const corpo = JSON.parse(JSON.stringify((m.invoke.mock.lastCall![1] as { body: unknown }).body));
     expect(corpo).toEqual({ acao: 'editar', id: 'u-1', papel: 'auditor' });
   });
 
