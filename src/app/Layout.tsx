@@ -225,7 +225,7 @@ export function Layout() {
             </button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto px-4 pb-14 pt-5 focus:outline-none md:px-8 md:pt-7" id="conteudo" tabIndex={-1}>
+        <main className="relative flex-1 overflow-auto px-4 pb-14 pt-5 focus:outline-none md:px-8 md:pt-7" id="conteudo" tabIndex={-1}>
           {/* Transição só do conteúdo (150 ms, sem bloquear foco nem teclado); a chave é a seção, para filtros e detalhes não reanimarem */}
           <div key={loc.pathname.split('/')[1]} className="entrada-tela"><Outlet /></div>
         </main>
