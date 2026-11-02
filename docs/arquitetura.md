@@ -52,15 +52,17 @@ mesma permissão da listagem, nunca da soma de páginas no navegador. As assinat
 carregador da carga fictícia seguem pelo cursor. Unidades, presentes, funcionários e catálogo não são paginados: a grade
 mostra um bloco por vez e os outros conjuntos são pequenos.
 
-**Usuários do sistema** (migração 0038 e Edge `usuarios-admin`): a tela lista por `api.usuarios_listar` e
-`api.usuarios_resumo`, só leitura, com a mesma ação da gestão (`usuario.gerenciar`) e o contrato da 0037 (deslocamento
-ou cursor, `total`, desempate por id). O item não leva o vínculo com o Auth nem o e-mail sintético, a busca por nome ou
-login vai só no corpo do POST, e o usuário anonimizado pela retenção fica fora da lista e dos totais. Criar, desativar,
-reativar e redefinir senha continuam na Edge, que decide no banco (`srv.usuario_*`, 0018); a senha temporária sai uma
-vez na resposta e a tela a guarda só no estado do modal. O sistema não fica sem síndico ativo: só o síndico desativa
-síndico, ninguém desativa a si mesmo e o ator fica travado e ativo até o fim da transação, então quem desativa o último
-outro síndico continua ativo (pgTAP 12). Uma troca de papel, se vier, precisa conferir isso explicitamente, porque
-rebaixar o último síndico quebraria a garantia.
+**Usuários do sistema** (migrações 0038 e 0039, Edge `usuarios-admin`): a tela lista por `api.usuarios_listar` e
+`api.usuarios_resumo`, só leitura, com `usuario.ver` (síndico e administração) e o contrato da 0037 (deslocamento ou
+cursor, `total`, desempate por id). O item não leva o vínculo com o Auth nem o e-mail sintético, a busca por nome ou
+login vai só no corpo do POST, e o usuário anonimizado pela retenção fica fora da lista e dos totais. Criar, editar
+(nome, login e papel), desativar, reativar e redefinir senha são só do síndico (`usuario.gerenciar`, desde a 0039) e
+passam pela Edge, que decide no banco (`srv.usuario_*`, 0018 e 0039); a administração vê a tela sem nenhuma ação. A
+senha temporária sai uma vez na resposta e a tela a guarda só no estado do modal. Mudar o login não toca no Auth (a
+conta do Auth é o e-mail sintético); mudar o papel revoga as sessões do alvo na mesma transação, e ninguém muda o próprio
+papel. O sistema não fica sem síndico ativo: só o síndico desativa ou rebaixa síndico, ninguém desativa a si mesmo nem
+muda o próprio papel, e o ator fica travado e ativo até o fim da transação (pgTAP 12 e 13). A edição confere isso também
+de forma explícita: rebaixar o último síndico ativo dá 409, com os outros síndicos ativos travados.
 
 **Carga fictícia** (`scripts/popular/`): o porte do estudo de caso (543 moradores, 175 veículos, histórico curto) entra
 no hospedado como o síndico logado, só pelas RPCs `api.*` das telas, para que cada cadastro passe pelas regras e vá

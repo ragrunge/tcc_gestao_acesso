@@ -54,8 +54,9 @@ O protótipo atende **um condomínio**, com um banco de dados só. Funções:
 - **Acesso:** login por usuário e senha pelo Supabase Auth, quatro papéis (síndico, administração, porteiro e
   auditor), com permissões decididas no banco.
 - **Usuários do sistema:** lista com busca, filtro por papel e situação e totais do servidor; criação com senha
-  temporária mostrada uma vez (troca obrigatória no primeiro acesso), nova senha temporária, desativação e reativação.
-  Administração não gerencia síndico e ninguém desativa a si mesmo.
+  temporária mostrada uma vez (troca obrigatória no primeiro acesso), edição de nome, login e papel, nova senha
+  temporária, desativação e reativação. Só o síndico gerencia; a administração vê a lista e os totais. Ninguém desativa
+  a si mesmo nem muda o próprio papel, e o sistema nunca fica sem síndico ativo.
 
 **Previstas, ainda não migradas** (essas telas somem do menu e mostram "ainda não está disponível nesta versão")
 
@@ -199,7 +200,7 @@ painel do turno, histórico e a verificação de integridade da trilha.
 **2. Projeto hospedado.** Depois do ensaio:
 
 ```bash
-npm run db:push:dry                # deve listar só as pendentes (hoje: a 0038, listagem de usuários)
+npm run db:push:dry                # deve listar só as pendentes (hoje: a 0039, edição de usuários e gestão só do síndico)
 npm run db:push
 npm run popular:dry
 POPULAR_CONFIRMAR=<id-do-projeto>.supabase.co npm run popular   # usa VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY do .env
@@ -216,7 +217,7 @@ npm run typecheck        # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
 npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
 npm run test:supabase:sindico  # banco local SEM a demonstração, como o hospedado: primeiro síndico e estrutura (rode `supabase db reset` depois, para as outras suítes)
-npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts e2e/34-supabase-usuarios.spec.ts  # e2e (stack local)
+npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts e2e/34-supabase-usuarios.spec.ts e2e/35-supabase-usuarios-editar.spec.ts  # e2e (stack local)
 ```
 
 Na primeira vez, rode `npx playwright install chromium`.
