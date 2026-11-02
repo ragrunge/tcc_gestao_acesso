@@ -2,7 +2,7 @@
 // entregam a senha a `aoReceberSenha` (estado local da tela) e devolvem ao React Query só o usuário.
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useApi, type NovoUsuarioInput, type SituacaoUsuario, type UsuarioComSenhaTemporaria } from '../../api';
+import { useApi, type EdicaoUsuarioInput, type NovoUsuarioInput, type SituacaoUsuario, type UsuarioComSenhaTemporaria } from '../../api';
 import { usePaginacao } from '../../app/paginacao';
 import type { Papel, UsuarioSistema } from '@domain/types';
 
@@ -10,7 +10,7 @@ export const CHAVE_USUARIOS = ['usuarios'] as const;
 
 export interface FiltrosUsuarios { q: string; papel: Papel | ''; situacao: SituacaoUsuario | '' }
 
-/** `habilitado`: quem não gerencia usuários nem chega a pedir a lista (evita 403 à toa). */
+/** `habilitado`: quem não tem usuario.ver nem chega a pedir a lista (evita 403 à toa). */
 export function useListaUsuarios(f: FiltrosUsuarios, habilitado: boolean) {
   const api = useApi();
   return usePaginacao<UsuarioSistema>({
@@ -51,6 +51,7 @@ export function useAcoesUsuario(aoReceberSenha: (r: UsuarioComSenhaTemporaria, o
       onSuccess: invalidar,
     }),
     // 403/409 também invalidam: a linha volta ao estado que o servidor tem.
+    editar: useMutation({ mutationFn: ({ id, ...i }: EdicaoUsuarioInput & { id: string }) => api.usuarios.editar(id, i), onSettled: invalidar }),
     desativar: useMutation({ mutationFn: (id: string) => api.usuarios.desativar(id), onSettled: invalidar }),
     reativar: useMutation({ mutationFn: (id: string) => api.usuarios.reativar(id), onSettled: invalidar }),
   };

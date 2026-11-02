@@ -148,6 +148,8 @@ export interface NovaOcorrenciaInput {
 }
 
 export interface NovoUsuarioInput { nome: string; login: string; papel: Papel }
+/** Edição de usuário (0039): campo ausente não muda. */
+export type EdicaoUsuarioInput = Partial<NovoUsuarioInput>;
 
 /** Bloco e número como digitados: a API normaliza ("a" -> "A", "3" -> "03") e validam. */
 export interface NovaUnidadeInput { bloco: string; numero: string }
@@ -579,10 +581,12 @@ export interface Api {
     conferirAncora(i: { seq: number; hash: string }): Promise<ConferenciaAncora>;
   };
   usuarios: {
-    /** Uma página em ordem alfabética (usuario.gerenciar). A busca `q` vai no corpo; anonimizados não aparecem. */
+    /** Uma página em ordem alfabética (usuario.ver). A busca `q` vai no corpo; anonimizados não aparecem. */
     listarPagina(f?: FiltroUsuarios): Promise<Pagina<UsuarioSistema>>;
     resumo(): Promise<ResumoUsuarios>;
     criar(i: NovoUsuarioInput): Promise<UsuarioComSenhaTemporaria>;
+    /** Nome, login e papel (usuario.gerenciar). Mudar o papel encerra as sessões do alvo; o próprio papel não muda. */
+    editar(id: string, i: EdicaoUsuarioInput): Promise<UsuarioSistema>;
     desativar(id: string): Promise<UsuarioSistema>;
     reativar(id: string): Promise<UsuarioSistema>;
     /** Gera senha temporária, derruba as sessões do alvo e exige troca no próximo login. */

@@ -20,10 +20,12 @@ import { fmtDataHora } from '@domain/time';
 import { mensagemErro, useAgora } from '../../app/useAsync';
 import { ErroCarregar } from '../../components/Carregando';
 import { avisoSenhaTemporaria, mensagemAcesso, validadeTexto } from './senhaTemporaria';
-import { acoesDaLinha, papeisCriaveis, validarNovoUsuario } from './regras';
+import { acoesDaLinha, mudancas, papeisCriaveis, validarNovoUsuario } from './regras';
 import { useAcoesUsuario, useListaUsuarios, useResumoUsuarios, useValorAtrasado } from './useUsuarios';
 
 const COLUNAS = 'minmax(0,1.3fr) 150px 150px 150px 290px';
+/** Administração (usuario.ver sem usuario.gerenciar): a lista e os totais, sem a coluna de ações. */
+const COLUNAS_LEITURA = 'minmax(0,1.3fr) 150px 150px 150px';
 const PAPEIS = Object.keys(ROTULO_PAPEL) as Papel[];
 const SITUACOES: readonly SituacaoUsuario[] = ['ativos', 'desativados'];
 
@@ -33,6 +35,7 @@ interface SenhaExibida extends UsuarioComSenhaTemporaria { motivo: 'criado' | 'r
 export function UsuariosPage() {
   const { usuario: eu } = useAuth();
   const { avisar } = useToast();
+  const podeVer = useCan('usuario.ver');
   const podeGerenciar = useCan('usuario.gerenciar');
   const gerenciaSindico = useCan('usuario.gerenciar_sindico');
   const { params, gravar } = useFiltrosUrl();
@@ -41,12 +44,13 @@ export function UsuariosPage() {
   // Nome digitado é dado pessoal: fica só no estado (nunca na URL) e vai no corpo do POST.
   const [busca, setBusca] = useState('');
   const q = useValorAtrasado(busca.trim());
-  const pag = useListaUsuarios({ q, papel, situacao }, podeGerenciar);
-  const resumo = useResumoUsuarios(podeGerenciar).data;
+  const pag = useListaUsuarios({ q, papel, situacao }, podeVer);
+  const resumo = useResumoUsuarios(podeVer).data;
   const agora = useAgora(30_000);
   const [senha, setSenha] = useState<SenhaExibida | null>(null);
   const acoes = useAcoesUsuario((r, motivo) => setSenha({ ...r, motivo }));
   const [novo, setNovo] = useState(false);
+  const [editar, setEditar] = useState<UsuarioSistema | null>(null);
   const [desativar, setDesativar] = useState<UsuarioSistema | null>(null);
   const [redefinir, setRedefinir] = useState<UsuarioSistema | null>(null);
   const gestor = { id: eu?.id ?? '', gerenciaSindico };
@@ -85,8 +89,8 @@ export function UsuariosPage() {
       {filtrado && pag.total !== null && <ContagemResultado n={pag.total} singular="usuário" plural="usuários" className="-mb-3 px-1" />}
       <div className="rounded-[10px] border border-[#DCE1E5] bg-white">
         {lista.error && <div className="p-4"><ErroCarregar mensagem={mensagemErro(lista.error)} onTentar={() => lista.refetch()} /></div>}
-        <Lista legenda="Operadores do sistema" colunas={COLUNAS} empilhar className="!rounded-none !border-0" carregando={lista.isLoading}>
-          <ListaCab rotulos={['Nome', 'Papel', 'Situação', 'Último acesso', 'Ações']} />
+        <Lista legenda="Operadores do sistema" colunas={podeGerenciar ? COLUNAS : COLUNAS_LEITURA} empilhar className="!rounded-none !border-0" carregando={lista.isLoading}>
+          <ListaCab rotulos={['Nome', 'Papel', 'Situação', 'Último acesso', ...(podeGerenciar ? ['Ações'] : [])]} />
           {pag.itens.map((u) => {
             const a = acoesDaLinha(gestor, u);
             const aviso = avisoSenhaTemporaria(u, agora);
@@ -104,14 +108,15 @@ export function UsuariosPage() {
                     : <Badge tom={u.ativo ? 'verde' : 'neutro'}>{u.ativo ? 'Ativo' : 'Desativado'}</Badge>}
                 </Cel>
                 <Cel className="font-mono text-[13.5px]">{proprio ? <span className="font-sans text-[14px]">Agora (sessão atual)</span> : u.ultimoAcesso ? fmtDataHora(u.ultimoAcesso) : <span className="font-sans text-[14px] text-[#56616B]">Nunca</span>}</Cel>
-                <Cel className="col-span-2 flex flex-wrap gap-2 md:col-span-1">
+                {podeGerenciar && <Cel className="col-span-2 flex flex-wrap gap-2 md:col-span-1">
                   {a.motivo === 'so_sindico' && <span className="self-center text-[13px] text-[#56616B]">Só o síndico gerencia</span>}
+                  {a.editar && <button type="button" aria-label={`Editar ${u.nome}`} className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`} onClick={() => setEditar(u)}>Editar</button>}
                   {a.motivo === 'proprio' && u.ativo && <Link to="/trocar-senha" className={`${botao} inline-flex items-center border-[#B9C3CA] hover:bg-[#EEF2F4]`}>Trocar minha senha</Link>}
                   {a.redefinir && <button type="button" aria-label={`Nova senha temporária para ${u.nome}`} className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`} onClick={() => setRedefinir(u)}>Nova senha temporária</button>}
                   {a.desativar && <button type="button" aria-label={`Desativar ${u.nome}`} className={`${botao} border-[#FDA29B] text-[#B42318] hover:bg-[#FEF3F2]`} onClick={() => setDesativar(u)}>Desativar</button>}
                   {a.reativar && <button type="button" aria-label={`Reativar ${u.nome}`} className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`}
                     onClick={() => void executar(() => acoes.reativar.mutateAsync(u.id), `${u.nome} reativado(a).`)}>Reativar</button>}
-                </Cel>
+                </Cel>}
               </ListaLinha>
             );
           })}
@@ -126,6 +131,11 @@ export function UsuariosPage() {
 
       {novo && <NovoUsuarioModal papeis={papeisCriaveis(gerenciaSindico)} onClose={() => setNovo(false)}
         onSalvar={async (f) => { await acoes.criar.mutateAsync(f); setNovo(false); }} />}
+      {editar && <EditarUsuarioModal usuario={editar} proprio={editar.id === eu?.id} papeis={papeisCriaveis(gerenciaSindico)} onClose={() => setEditar(null)}
+        onSalvar={async (i) => {
+          if (Object.keys(i).length > 0) { await acoes.editar.mutateAsync({ id: editar.id, ...i }); avisar({ texto: `Dados de ${i.nome ?? editar.nome} atualizados.` }); }
+          setEditar(null);
+        }} />}
       {senha && <SenhaTemporariaModal senha={senha} onClose={() => setSenha(null)} />}
       {redefinir && (
         <Modal titulo={`Nova senha temporária para ${redefinir.nome}?`} tamanho="p" onClose={() => setRedefinir(null)}
@@ -200,6 +210,49 @@ function NovoUsuarioModal({ papeis, onClose, onSalvar }: { papeis: Papel[]; onCl
           </RadioGroup>
         </fieldset>
         <div className="rounded-lg bg-[#E3F0F2] px-3 py-[10px] text-[14px] text-[#0B4450]">A senha temporária aparece uma única vez, logo depois de criar.</div>
+        {erros.geral && <Alert tom="vermelho" role="alert">{erros.geral}</Alert>}
+      </form>
+    </Modal>
+  );
+}
+
+/** Nome, login e papel. Só o que mudou vai ao servidor; o próprio papel fica travado (AUTO_PAPEL no banco). */
+function EditarUsuarioModal({ usuario, proprio, papeis, onClose, onSalvar }: {
+  usuario: UsuarioSistema; proprio: boolean; papeis: Papel[]; onClose: () => void; onSalvar: (i: ReturnType<typeof mudancas>) => Promise<void>;
+}) {
+  const [f, setF] = useState<{ nome: string; login: string; papel: Papel }>({ nome: usuario.nome, login: usuario.login, papel: usuario.papel });
+  const [erros, setErros] = useState<ErrosNovo>({});
+  const [salvando, setSalvando] = useState(false);
+  const opcoes = papeis.includes(usuario.papel) ? papeis : [usuario.papel, ...papeis];
+  const mudouPapel = f.papel !== usuario.papel;
+  async function salvar(e: FormEvent) {
+    e.preventDefault();
+    if (salvando) return;
+    const m = mudancas(usuario, f);
+    const v = validarNovoUsuario(f);
+    const locais = { nome: m.nome !== undefined ? v.nome : undefined, login: m.login !== undefined ? v.login : undefined };
+    setErros(locais);
+    if (locais.nome || locais.login) return;
+    setSalvando(true);
+    try { await onSalvar(m); } catch (err) { setErros(errosDoServidor(err)); setSalvando(false); }
+  }
+  return (
+    <Modal titulo={`Editar ${usuario.nome}`} onClose={onClose}
+      rodape={<><Button type="submit" form="f-editar" variante="primario" grande className="flex-1" carregando={salvando}>Salvar</Button><Button grande onClick={onClose}>Cancelar</Button></>}>
+      <form id="f-editar" onSubmit={salvar} noValidate className="flex flex-col gap-[14px]">
+        <Field label="Nome completo" erro={erros.nome}>
+          <input data-autofocus className="input" autoComplete="off" value={f.nome} aria-invalid={erros.nome ? true : undefined} onChange={(e) => setF({ ...f, nome: e.target.value })} />
+        </Field>
+        <Field label="Login" erro={erros.login} dica="Letras minúsculas, números, ponto, hífen ou sublinhado. A senha não muda.">
+          <input className="input font-mono" autoComplete="off" autoCapitalize="none" spellCheck={false} value={f.login} aria-invalid={erros.login ? true : undefined}
+            onChange={(e) => setF({ ...f, login: e.target.value })} />
+        </Field>
+        <Field label="Papel" dica={proprio ? 'Ninguém muda o próprio papel: peça a outro síndico.' : undefined}>
+          <select className="input" value={f.papel} disabled={proprio} onChange={(e) => setF({ ...f, papel: e.target.value as Papel })}>
+            {opcoes.map((p) => <option key={p} value={p}>{ROTULO_PAPEL[p]}</option>)}
+          </select>
+        </Field>
+        {mudouPapel && <Alert tom="ambar">Ao mudar o papel, as sessões abertas de {usuario.nome} são encerradas e a nova permissão vale no próximo login.</Alert>}
         {erros.geral && <Alert tom="vermelho" role="alert">{erros.geral}</Alert>}
       </form>
     </Modal>

@@ -275,6 +275,9 @@ export function createSupabaseApi(sb: SupabaseClient, opcoes: OpcoesSupabaseApi)
         };
       },
       async criar(i) { return comSenhaTemporaria(await edge('usuarios-admin', { acao: 'criar', nome: i.nome, login: i.login, papel: i.papel })); },
+      async editar(id, i) {
+        return gerido((await edge<{ usuario: unknown }>('usuarios-admin', { acao: 'editar', id, nome: i.nome, login: i.login, papel: i.papel })).usuario);
+      },
       async desativar(id) { return gerido((await edge<{ usuario: unknown }>('usuarios-admin', { acao: 'desativar', id })).usuario); },
       async reativar(id) { return gerido((await edge<{ usuario: unknown }>('usuarios-admin', { acao: 'reativar', id })).usuario); },
       async redefinirAcesso(id) { return comSenhaTemporaria(await edge('usuarios-admin', { acao: 'redefinir_senha', id })); },

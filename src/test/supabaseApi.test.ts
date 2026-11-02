@@ -197,6 +197,15 @@ describe('auth.trocarSenha e usuarios', () => {
     expect(m.invoke).toHaveBeenCalledWith('usuarios-admin', { body: { acao: 'criar', nome: 'Roberto Faria', login: 'roberto.faria', papel: 'sindico' } });
   });
 
+  it('editar usuário vai à usuarios-admin só com os campos informados (ausente = não muda)', async () => {
+    const m = mock();
+    m.invoke.mockResolvedValueOnce({ data: { usuario: { ...USUARIO, papel: 'auditor' } }, error: null });
+    const r = await m.api.usuarios.editar('u-1', { papel: 'auditor' });
+    expect(r.papel).toBe('auditor');
+    const corpo = JSON.parse(JSON.stringify(m.invoke.mock.lastCall![1].body));
+    expect(corpo).toEqual({ acao: 'editar', id: 'u-1', papel: 'auditor' });
+  });
+
   it('o que ainda não foi migrado rejeita com NAO_MIGRADO (501)', async () => {
     const m = mock();
     const e = await erro(m.api.lgpd.anonimizar('p-1'));
