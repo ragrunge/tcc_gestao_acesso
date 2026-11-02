@@ -263,6 +263,40 @@ describe('troca obrigatória (auth-trocar-senha) e gestão (usuarios-admin)', ()
     expect((await admin(tokenSindico, { acao: 'desativar', id })).corpo.code).toBe('AUTO_DESATIVACAO');
     expect((await admin(tokenSindico, { acao: 'redefinir_senha', id })).corpo.code).toBe('AUTO_REDEFINICAO');
   });
+
+  it('administrador do sistema (0041): o síndico cria; ele gerencia porteiro, mas não síndico, admin_sistema nem dado pessoal', async () => {
+    const login = `tec.${sufixo()}`;
+    const criado = await admin(tokenSindico, { acao: 'criar', nome: 'Técnico de Teste', login, papel: 'admin_sistema' });
+    expect(criado.status, JSON.stringify(criado.corpo)).toBe(201);
+    expect(criado.corpo.usuario.papel).toBe('admin_sistema');
+    const temporaria: string = criado.corpo.senhaTemporaria;
+    senhasDoTeste.push(temporaria);
+    const nova = `Senha-Do-Tecnico-${sufixo()}`;
+    senhasDoTeste.push(nova);
+    expect((await trocar(await token(login, temporaria), temporaria, nova)).status).toBe(200);
+    const t = await token(login, nova);
+
+    const porteiro = await admin(t, { acao: 'criar', nome: 'Porteiro do Técnico', login: `pt.${sufixo()}`, papel: 'porteiro' });
+    expect(porteiro.status, JSON.stringify(porteiro.corpo)).toBe(201);
+    senhasDoTeste.push(porteiro.corpo.senhaTemporaria);
+    expect((await admin(t, { acao: 'redefinir_senha', id: porteiro.corpo.usuario.id })).status).toBe(200);
+
+    for (const papel of ['sindico', 'admin_sistema']) {
+      const r = await admin(t, { acao: 'criar', nome: 'Não Deve Existir', login: `nao.${sufixo()}`, papel });
+      expect([papel, r.status, r.corpo.code]).toEqual([papel, 403, 'SEM_PERMISSAO']);
+    }
+    expect((await admin(t, { acao: 'editar', id: porteiro.corpo.usuario.id, papel: 'sindico' })).corpo.code).toBe('SEM_PERMISSAO');
+    const idSindico = sql("SELECT id FROM public.usuario_sistema WHERE login = 'roberto.faria'");
+    for (const acao of ['editar', 'desativar', 'redefinir_senha']) {
+      const r = await admin(t, { acao, id: idSindico, nome: 'Não Deve Mudar' });
+      expect([acao, r.status, r.corpo.code]).toEqual([acao, 403, 'SEM_PERMISSAO']);
+    }
+    for (const rpc of ['pessoas_listar', 'eventos_listar', 'vinculos_listar', 'relatorio_resumo', 'auditoria_alteracoes']) {
+      const r = await post(`/rest/v1/rpc/${rpc}`, {}, { token: t, headers: { 'Content-Profile': 'api' } });
+      expect([rpc, r.status, r.corpo.code]).toEqual([rpc, 403, 'SEM_PERMISSAO']);
+    }
+    expect((await post('/rest/v1/rpc/usuarios_listar', {}, { token: t, headers: { 'Content-Profile': 'api' } })).status).toBe(200);
+  });
 });
 
 describe('credencial só muda pelo fluxo do sistema (0019)', () => {
