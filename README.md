@@ -51,8 +51,8 @@ O protótipo atende **um condomínio**, com um banco de dados só. Funções:
   funcionários e escala, importação de planilha e relatórios com exportação em CSV.
 - **Auditoria:** trilha de acessos só de inclusão, encadeada por hash (SHA-256), com verificação de integridade no
   navegador e exportação verificável.
-- **Acesso:** login por usuário e senha pelo Supabase Auth, quatro papéis (síndico, administração, porteiro e
-  auditor), com permissões decididas no banco.
+- **Acesso:** login por usuário e senha pelo Supabase Auth, cinco papéis (síndico, administração, porteiro, auditor e
+  administrador do sistema, que só gerencia contas e não vê dado pessoal), com permissões decididas no banco.
 - **Usuários do sistema:** lista com busca, filtro por papel e situação e totais do servidor; criação com senha
   temporária mostrada uma vez (troca obrigatória no primeiro acesso), edição de nome, login e papel, nova senha
   temporária, desativação e reativação. Só o síndico gerencia; a administração vê a lista e os totais. Ninguém desativa

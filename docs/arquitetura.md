@@ -64,6 +64,16 @@ papel. O sistema não fica sem síndico ativo: só o síndico desativa ou rebaix
 muda o próprio papel, e o ator fica travado e ativo até o fim da transação (pgTAP 12 e 13). A edição confere isso também
 de forma explícita: rebaixar o último síndico ativo dá 409, com os outros síndicos ativos travados.
 
+**Administrador do sistema** (migrações 0040 e 0041): o papel `admin_sistema` é o técnico que cuida das contas sem ver
+dado pessoal de morador. Tem só `usuario.ver` e `usuario.gerenciar`; a tela inicial e única é Usuários (mais "Trocar
+minha senha"). Contas de síndico e de administrador do sistema, e atribuir um desses papéis, exigem
+`usuario.gerenciar_sindico`, só do síndico (`app.exigir_gestao_sindico`, chamado por todas as `srv.usuario_*`): o técnico
+não se promove, não cria outro técnico nem edita o próprio cadastro. Toda RPC de `api.*` começa por `app.exigir(ação)`,
+então o papel novo é negado no resto pela falta de linha na matriz (pgTAP 14 percorre todas). Ficam abertas a ele só a
+própria sessão, o catálogo (estrutura do condomínio, sem dado pessoal) e a lista de usuários. Limite conhecido: quem
+cria conta ou redefine senha de um papel com acesso a dado pessoal recebe a senha temporária e poderia entrar com ela;
+o freio é a trilha (`usuario.criar`, `usuario.redefinir_senha`, `usuario.editar`, com o ator).
+
 **Carga fictícia** (`scripts/popular/`): o porte do estudo de caso (543 moradores, 175 veículos, histórico curto) entra
 no hospedado como o síndico logado, só pelas RPCs `api.*` das telas, para que cada cadastro passe pelas regras e vá
 para a trilha. Moradores adultos entram pela importação de planilha (vínculo legado) e são regularizados com a
