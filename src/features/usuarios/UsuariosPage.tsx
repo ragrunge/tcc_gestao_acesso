@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Clock, Copy, MessageSquareText, TriangleAlert } from 'lucide-react';
+import { Clock, Copy, KeyRound, MessageSquareText, Pencil, TriangleAlert, UserCheck, UserX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ApiError, type NovoUsuarioInput, type SituacaoUsuario, type UsuarioComSenhaTemporaria } from '../../api';
 import { useAuth, useCan } from '../../auth/AuthContext';
@@ -23,7 +23,7 @@ import { avisoSenhaTemporaria, mensagemAcesso, validadeTexto } from './senhaTemp
 import { acoesDaLinha, mudancas, papeisCriaveis, validarNovoUsuario } from './regras';
 import { useAcoesUsuario, useListaUsuarios, useResumoUsuarios, useValorAtrasado } from './useUsuarios';
 
-const COLUNAS = 'minmax(0,1.3fr) 150px 150px 150px 290px';
+const COLUNAS = 'minmax(0,1.3fr) 150px 150px 150px 150px';
 /** Administração (usuario.ver sem usuario.gerenciar): a lista e os totais, sem a coluna de ações. */
 const COLUNAS_LEITURA = 'minmax(0,1.3fr) 150px 150px 150px';
 const PAPEIS = Object.keys(ROTULO_PAPEL) as Papel[];
@@ -60,7 +60,9 @@ export function UsuariosPage() {
   async function executar(fn: () => Promise<unknown>, ok?: string) {
     try { await fn(); if (ok) avisar({ texto: ok }); } catch (e) { avisar({ tom: 'vermelho', texto: mensagemErro(e) }); }
   }
-  const botao = 'h-[44px] rounded-lg lg:h-10 border px-3 text-[14px] bg-white';
+  // Ícone com rótulo só no empilhado (celular, sem hover); de md para cima, quadrado com `title` e nome acessível.
+  const botao = 'inline-flex h-[44px] items-center justify-center gap-1.5 rounded-lg border bg-white px-3 text-[14px] md:w-10 md:px-0 lg:h-10';
+  const rotulo = (t: string) => <span className="md:hidden">{t}</span>;
   const lista = pag.consulta;
 
   return (
@@ -111,14 +113,14 @@ export function UsuariosPage() {
                     : <Badge tom={u.ativo ? 'verde' : 'neutro'}>{u.ativo ? 'Ativo' : 'Desativado'}</Badge>}
                 </Cel>
                 <Cel className="font-mono text-[13.5px]">{proprio ? <span className="font-sans text-[14px]">Agora (sessão atual)</span> : u.ultimoAcesso ? fmtDataHora(u.ultimoAcesso) : <span className="font-sans text-[14px] text-[#56616B]">Nunca</span>}</Cel>
-                {podeGerenciar && <Cel className="col-span-2 flex flex-wrap gap-2 md:col-span-1">
-                  {a.motivo === 'so_sindico' && <span className="self-center text-[13px] text-[#56616B]">Só o síndico gerencia</span>}
-                  {a.editar && <button type="button" aria-label={`Editar ${u.nome}`} className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`} onClick={() => setEditar(u)}>Editar</button>}
-                  {a.motivo === 'proprio' && u.ativo && <Link to="/trocar-senha" className={`${botao} inline-flex items-center border-[#B9C3CA] hover:bg-[#EEF2F4]`}>Trocar minha senha</Link>}
-                  {a.redefinir && <button type="button" aria-label={`Nova senha temporária para ${u.nome}`} className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`} onClick={() => setRedefinir(u)}>Nova senha temporária</button>}
-                  {a.desativar && <button type="button" aria-label={`Desativar ${u.nome}`} className={`${botao} border-[#FDA29B] text-[#B42318] hover:bg-[#FEF3F2]`} onClick={() => setDesativar(u)}>Desativar</button>}
-                  {a.reativar && <button type="button" aria-label={`Reativar ${u.nome}`} className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`}
-                    onClick={() => void executar(() => acoes.reativar.mutateAsync(u.id), `${u.nome} reativado(a).`)}>Reativar</button>}
+                {podeGerenciar && <Cel className="col-span-2 flex flex-wrap items-center gap-2 md:col-span-1">
+                  {a.motivo === 'so_sindico' && <span className="text-[13px] text-[#56616B]">Só o síndico gerencia</span>}
+                  {a.editar && <button type="button" aria-label={`Editar ${u.nome}`} title="Editar" className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`} onClick={() => setEditar(u)}><Pencil className="h-4 w-4" aria-hidden />{rotulo('Editar')}</button>}
+                  {a.motivo === 'proprio' && u.ativo && <Link to="/trocar-senha" aria-label="Trocar minha senha" title="Trocar minha senha" className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`}><KeyRound className="h-4 w-4" aria-hidden />{rotulo('Trocar minha senha')}</Link>}
+                  {a.redefinir && <button type="button" aria-label={`Nova senha temporária para ${u.nome}`} title="Nova senha temporária" className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`} onClick={() => setRedefinir(u)}><KeyRound className="h-4 w-4" aria-hidden />{rotulo('Nova senha temporária')}</button>}
+                  {a.desativar && <button type="button" aria-label={`Desativar ${u.nome}`} title="Desativar" className={`${botao} border-[#FDA29B] text-[#B42318] hover:bg-[#FEF3F2]`} onClick={() => setDesativar(u)}><UserX className="h-4 w-4" aria-hidden />{rotulo('Desativar')}</button>}
+                  {a.reativar && <button type="button" aria-label={`Reativar ${u.nome}`} title="Reativar" className={`${botao} border-[#B9C3CA] hover:bg-[#EEF2F4]`}
+                    onClick={() => void executar(() => acoes.reativar.mutateAsync(u.id), `${u.nome} reativado(a).`)}><UserCheck className="h-4 w-4" aria-hidden />{rotulo('Reativar')}</button>}
                 </Cel>}
               </ListaLinha>
             );
