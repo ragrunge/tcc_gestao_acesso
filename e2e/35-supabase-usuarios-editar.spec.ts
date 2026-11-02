@@ -81,6 +81,7 @@ test('síndico edita nome, login e papel; o login antigo para de valer e a sess�
 test('na própria linha, o papel fica travado', async ({ page }) => {
   await entrar(page, 'roberto.faria', SENHA_DEMO, /\/painel$/);
   await page.goto('/usuarios');
+  await page.getByLabel('Buscar por nome ou login').fill('roberto.faria');
   const minha = page.getByRole('row').filter({ hasText: 'roberto.faria' });
   await minha.getByRole('button', { name: /^Editar / }).click();
   const dialogo = page.getByRole('dialog', { name: /^Editar / });

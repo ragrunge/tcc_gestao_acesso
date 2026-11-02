@@ -86,6 +86,8 @@ test('administração: vê a lista e os totais sem nenhuma ação, e o servidor 
   await entrar(page, 'paula.nogueira', SENHA_DEMO, /\/vinculos$/);
   await page.goto('/usuarios');
   await expect(page.getByLabel('Usuários por situação e papel')).toContainText('Porteiro (ativos)');
+  await expect(page.getByRole('link', { name: 'Trocar minha senha' })).toBeVisible();
+  await page.getByLabel('Buscar por nome ou login').fill('roberto.faria');
   await expect(page.getByRole('row').filter({ hasText: 'roberto.faria' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Novo usuário' })).toHaveCount(0);
   await expect(page.getByRole('row').getByRole('button')).toHaveCount(0);

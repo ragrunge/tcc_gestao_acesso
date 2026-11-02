@@ -66,7 +66,10 @@ export function UsuariosPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader titulo="Usuários do sistema" descricao="Cada pessoa tem o próprio login. Senha nova é temporária (72 h) e precisa ser trocada na primeira entrada."
-        acoes={podeGerenciar && <Button variante="primario" onClick={() => setNovo(true)}>Novo usuário</Button>} />
+        acoes={podeGerenciar
+          ? <Button variante="primario" onClick={() => setNovo(true)}>Novo usuário</Button>
+          // Sem a coluna de ações, a troca voluntária da própria senha fica no cabeçalho.
+          : <Link to="/trocar-senha" className="inline-flex h-[44px] items-center rounded-lg border border-[#B9C3CA] bg-white px-3 text-[14px] hover:bg-[#EEF2F4] lg:h-10">Trocar minha senha</Link>} />
       <Totais rotulo="Usuários por situação e papel" itens={[
         { rotulo: 'Ativos', valor: resumo?.ativos },
         { rotulo: 'Desativados', valor: resumo?.desativados },

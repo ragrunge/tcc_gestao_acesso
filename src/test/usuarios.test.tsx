@@ -148,7 +148,7 @@ describe('UsuariosPage', () => {
     expect(screen.queryByRole('button', { name: 'Novo usuário' })).toBeNull();
     for (const nome of ['Sílvio Souza', 'João Lima', 'Davi Dias', 'Paula Nogueira']) expect(within(linha(nome)).queryByRole('button')).toBeNull();
     expect(screen.queryByText('Ações')).toBeNull();
-    expect(screen.queryByRole('link', { name: 'Trocar minha senha' })).toBeNull();
+    expect(screen.getAllByRole('link', { name: 'Trocar minha senha' })).toHaveLength(1);
   });
 
   it('porteiro e auditor (sem usuario.ver) nem pedem a lista nem o resumo', async () => {
