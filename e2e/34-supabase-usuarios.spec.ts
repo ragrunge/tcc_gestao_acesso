@@ -82,27 +82,25 @@ test('síndico cria um porteiro pela tela; ele entra com a temporária, troca a 
   await expect(page.getByRole('alert')).toHaveText('Usuário ou senha inválidos.');
 });
 
-test('administração: sem a opção Síndico na tela, linha do síndico sem ação, e o servidor recusa criar síndico', async ({ page }) => {
+test('administração: vê a lista e os totais sem nenhuma ação, e o servidor recusa criar (0039: só o síndico gerencia)', async ({ page }) => {
   await entrar(page, 'paula.nogueira', SENHA_DEMO, /\/vinculos$/);
   await page.goto('/usuarios');
-  const sindico = page.getByRole('row').filter({ hasText: 'roberto.faria' });
-  await expect(sindico).toContainText('Só o síndico gerencia');
-  await expect(sindico.getByRole('button')).toHaveCount(0);
+  await expect(page.getByLabel('Usuários por situação e papel')).toContainText('Porteiro (ativos)');
+  await expect(page.getByRole('row').filter({ hasText: 'roberto.faria' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Novo usuário' })).toHaveCount(0);
+  await expect(page.getByRole('row').getByRole('button')).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: 'Ações' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Novo usuário' }).click();
-  const novo = page.getByRole('dialog', { name: 'Novo usuário' });
-  await expect(novo.getByRole('radio', { name: 'Porteiro' })).toBeVisible();
-  await expect(novo.getByRole('radio', { name: 'Síndico' })).toHaveCount(0);
-  await novo.getByRole('button', { name: 'Cancelar' }).click();
-
-  // A tela só esconde: quem decide é o banco. Pedido forjado com o token da administração é recusado.
+  // A tela só esconde: quem decide é o banco. Pedidos forjados com o token da administração são recusados.
   const token = await tokenNoNavegador(page);
-  const r = await page.request.post(`${SUPABASE}/functions/v1/usuarios-admin`, {
-    headers: { apikey: ANON, Authorization: `Bearer ${token}` },
-    data: { acao: 'criar', nome: 'Sindico Forjado', login: `e2e.si.${Date.now().toString(36)}`, papel: 'sindico' },
-  });
-  expect(r.status()).toBe(403);
-  const corpo = await r.json();
-  expect(corpo.code).toBe('SEM_PERMISSAO');
-  expect(JSON.stringify(corpo)).not.toContain('senhaTemporaria');
+  for (const papel of ['sindico', 'porteiro']) {
+    const r = await page.request.post(`${SUPABASE}/functions/v1/usuarios-admin`, {
+      headers: { apikey: ANON, Authorization: `Bearer ${token}` },
+      data: { acao: 'criar', nome: 'Usuario Forjado', login: `e2e.f.${Date.now().toString(36)}`, papel },
+    });
+    expect(r.status()).toBe(403);
+    const corpo = await r.json();
+    expect(corpo.code).toBe('SEM_PERMISSAO');
+    expect(JSON.stringify(corpo)).not.toContain('senhaTemporaria');
+  }
 });
