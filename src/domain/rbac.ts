@@ -20,7 +20,7 @@ export type Acao =
   | 'lgpd.exportar' | 'lgpd.anonimizar' | 'lgpd.retencao';
 
 const SI: Papel = 'sindico', AD: Papel = 'administracao', PO: Papel = 'porteiro', AU: Papel = 'auditor';
-// Administrador do sistema (0041): o técnico que cuida das contas, sem ver dado pessoal de morador. Só usuario.*.
+// Administrador do sistema (0041): o técnico que cuida das contas, sem tela nem RPC de dado pessoal de morador (acesso indireto via conta: ver docs/arquitetura.md). Só usuario.*.
 const AS: Papel = 'admin_sistema';
 
 export const MATRIZ: Record<Acao, Papel[]> = {
