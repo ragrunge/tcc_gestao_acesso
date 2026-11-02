@@ -20,10 +20,14 @@ export function pares() {
   return acoes().flatMap((a) => PAPEIS.filter((p) => MATRIZ[a].includes(p)).map((p) => [a, p]));
 }
 
+// A matriz inteira, de novo, a cada migração que a muda: apaga os pares e regrava (a 0017 tem a primeira versão).
+// rbac_acao só cresce (ON CONFLICT): ação fora do TS continua conhecida e sem papel, nunca "digitada errada".
 export function sqlMigracao() {
   return [
+    'DELETE FROM public.rbac_matriz;',
+    '',
     'INSERT INTO public.rbac_acao (acao) VALUES',
-    acoes().map((a) => `  (${q(a)})`).join(',\n') + ';',
+    acoes().map((a) => `  (${q(a)})`).join(',\n') + '\nON CONFLICT (acao) DO NOTHING;',
     '',
     'INSERT INTO public.rbac_matriz (acao, papel) VALUES',
     pares().map(([a, p]) => `  (${q(a)}, ${q(p)})`).join(',\n') + ';',

@@ -12,7 +12,7 @@ export type Acao =
   | 'ocorrencia.ver' | 'ocorrencia.operar'
   | 'relatorio.ver' | 'turno.ver'
   | 'auditoria.verificar' | 'auditoria.exportar' | 'auditoria.selar'
-  | 'usuario.gerenciar' | 'usuario.gerenciar_sindico'
+  | 'usuario.ver' | 'usuario.gerenciar' | 'usuario.gerenciar_sindico'
   | 'veiculo.cadastrar'
   | 'funcionario.gerenciar' | 'funcionario.ver' | 'pessoa.editar' | 'pessoa.desativar'
   | 'autorizacao.area_comum' | 'encomenda.autorizar_retirada'
@@ -48,8 +48,11 @@ export const MATRIZ: Record<Acao, Papel[]> = {
   'auditoria.exportar': [SI, AD, AU],
   // Selo da cadeia sob demanda (spec §4.6): síndico e auditor (conselho). O selo diário é do agendador, sem usuário.
   'auditoria.selar': [SI, AU],
-  'usuario.gerenciar': [SI, AD], // spec 5.2 (RNF-04); quando o alvo é síndico, exige também usuario.gerenciar_sindico
-  'usuario.gerenciar_sindico': [SI], // criar, editar, desativar ou promover a síndico: só o síndico
+  // Usuários do sistema (0039): a administração vê a lista e os totais; criar, editar, desativar, reativar e redefinir
+  // senha são só do síndico.
+  'usuario.ver': [SI, AD],
+  'usuario.gerenciar': [SI],
+  'usuario.gerenciar_sindico': [SI], // alvo síndico ou promover a síndico; hoje coincide com usuario.gerenciar
   'veiculo.cadastrar': [SI, AD],
   'funcionario.gerenciar': [SI, AD], // RF-09
   // Listagem e ficha de funcionário (spec §14, decisão nº 29): síndico, administração e auditor; o porteiro NÃO.
@@ -91,7 +94,7 @@ export const ROTAS: Record<Rota, Papel[]> = {
   importar: [SI, AD],
   historico: [SI, AD, PO, AU],
   relatorios: [SI, AD, AU],
-  usuarios: [SI, AD],
+  usuarios: [SI, AD], // usuario.ver; as ações da tela exigem usuario.gerenciar (SI)
   funcionarios: [SI, AD, AU], // AU só lê (funcionario.ver); criar e editar exigem funcionario.gerenciar
   privacidade: [SI, AD], // lgpd.exportar (SI, AD); a aba Retenção exige lgpd.retencao (SI)
 };
