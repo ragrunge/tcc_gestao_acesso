@@ -148,7 +148,7 @@ SELECT is(pg_temp.editar('si', pg_temp.id('u_si2'), NULL, NULL, 'porteiro') -> '
 -- Hoje inalcançável pelo caminho normal (quem rebaixa é síndico ativo e não muda o próprio papel). Dentro desta
 -- transação: a administração ganha usuario.gerenciar e todos os síndicos ativos, menos u_si, são desativados.
 INSERT INTO public.rbac_matriz (acao, papel) VALUES ('usuario.gerenciar', 'administracao');
-SELECT is(pg_temp.editar('ad', pg_temp.id('u_ad'), NULL, NULL, 'sindico') ->> 'erro', 'SEM_PERMISSAO',
+SELECT is(pg_temp.editar('ad', pg_temp.id('u_po'), NULL, NULL, 'sindico') ->> 'erro', 'SEM_PERMISSAO',
   'com usuario.gerenciar mas sem usuario.gerenciar_sindico: não promove a síndico');
 SELECT is(pg_temp.editar('ad', pg_temp.id('u_si'), NULL, NULL, 'porteiro') ->> 'erro', 'SEM_PERMISSAO',
   'com usuario.gerenciar mas sem usuario.gerenciar_sindico: não mexe em síndico');
