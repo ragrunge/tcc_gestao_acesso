@@ -92,7 +92,7 @@ export function GradeAndares({ bloco, numero, onEscolher, variante = 'entrada', 
   const andares = andaresDoBloco(lista ?? numerosDoBloco(bloco));
   const colunas = Math.max(1, ...andares.map((a) => a.numeros.length));
   const rotuloLargura = variante === 'entrada' ? '48px' : '42px';
-  const botao = variante === 'entrada' ? 'h-[44px] rounded-md text-[14px] lg:mouse:h-[34px]' : 'h-[44px] rounded-[5px] text-[13px] lg:h-8';
+  const botao = variante === 'entrada' ? 'h-[44px] rounded-md text-[14px] lg:mouse:h-[34px]' : 'h-[44px] rounded-[5px] text-[13px] lg:mouse:h-8';
   return (
     <div role="group" aria-label={`Unidades ${doAgrupamento(agrupamento)} ${bloco}`}
       className={variante === 'modal' ? 'flex flex-col gap-1 max-w-[360px]' : `flex flex-col gap-1 ${variante === 'entrada' ? 'max-w-[420px]' : ''}`}>
