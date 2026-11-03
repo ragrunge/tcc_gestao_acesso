@@ -92,7 +92,7 @@ export function GradeAndares({ bloco, numero, onEscolher, variante = 'entrada', 
   const andares = andaresDoBloco(lista ?? numerosDoBloco(bloco));
   const colunas = Math.max(1, ...andares.map((a) => a.numeros.length));
   const rotuloLargura = variante === 'entrada' ? '48px' : '42px';
-  const botao = variante === 'entrada' ? 'h-[44px] rounded-md text-[14px] lg:h-[34px]' : 'h-[44px] rounded-[5px] text-[13px] lg:h-8';
+  const botao = variante === 'entrada' ? 'h-[44px] rounded-md text-[14px] lg:mouse:h-[34px]' : 'h-[44px] rounded-[5px] text-[13px] lg:h-8';
   return (
     <div role="group" aria-label={`Unidades ${doAgrupamento(agrupamento)} ${bloco}`}
       className={variante === 'modal' ? 'flex flex-col gap-1 max-w-[360px]' : `flex flex-col gap-1 ${variante === 'entrada' ? 'max-w-[420px]' : ''}`}>
@@ -125,7 +125,7 @@ export function UnidadeEscolhida({ id, onAlterar, grande = true }: { id: string;
   return (
     <div className={`flex items-center justify-between gap-4 rounded-[10px] border-2 border-[#0B5563] bg-[#F0F8F9] ${grande ? 'px-[18px] py-[14px]' : 'px-4 py-3'}`} aria-live="polite">
       <UnitTag id={id} tamanho={grande ? 'xl' : 'lg'} />
-      <button type="button" onClick={onAlterar} className="h-[44px] rounded-lg border border-[#B9C3CA] bg-white px-[14px] text-[14px] hover:bg-[#EEF2F4] lg:h-10">Alterar</button>
+      <button type="button" onClick={onAlterar} className="h-[44px] rounded-lg border border-[#B9C3CA] bg-white px-[14px] text-[14px] hover:bg-[#EEF2F4] lg:mouse:h-10">Alterar</button>
     </div>
   );
 }

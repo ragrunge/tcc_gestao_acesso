@@ -122,7 +122,7 @@ export function EncomendasPage() {
                       className="h-[44px] w-full rounded-lg border border-[#B9C3CA] bg-white text-[14px] font-medium hover:border-[#0B5563] hover:text-[#0B5563]">Entregar</button>
                   )}{podeAutorizar && (
                     <button type="button" onClick={() => setAutorizando(e)} aria-label={`Autorizar retirada da encomenda ${e.codigo}`}
-                      className="flex min-h-[44px] items-center justify-center text-[12.5px] font-semibold text-[#0B5563] hover:underline lg:min-h-0">Autorizar retirada</button>
+                      className="flex min-h-[44px] items-center justify-center text-[12.5px] font-semibold text-[#0B5563] hover:underline lg:mouse:min-h-0">Autorizar retirada</button>
                   )}</Cel>
                 </ListaLinha>
               );
@@ -252,7 +252,7 @@ function ReceberModal({ onClose, onFeito }: { onClose: () => void; onFeito: (e: 
           <div role="radiogroup" aria-labelledby="rot-transp" className="flex flex-wrap gap-1.5">
             {TRANSPORTADORAS.map((t) => (
               <button key={t} type="button" role="radio" aria-checked={f.transportadora === t} onClick={() => setF({ ...f, transportadora: t })}
-                className={`h-[44px] rounded-full border px-[14px] text-[14px] lg:h-10 ${f.transportadora === t ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white text-ink hover:bg-[#EEF2F4]'}`}>{t}</button>
+                className={`h-[44px] rounded-full border px-[14px] text-[14px] lg:mouse:h-10 ${f.transportadora === t ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white text-ink hover:bg-[#EEF2F4]'}`}>{t}</button>
             ))}
           </div>
         </div>

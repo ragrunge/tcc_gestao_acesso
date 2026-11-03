@@ -9,7 +9,7 @@ import { DIA, agora, fromInput, toInputDate } from '@domain/time';
 import { useCatalogo } from '../app/catalogo';
 
 /** Controle (input/select) dos filtros: 44px no celular, 40px no desktop. */
-export const CONTROLE = 'input !h-[44px] !px-[10px] !text-[14px] md:!h-10';
+export const CONTROLE = 'input !h-[44px] !px-[10px] !text-[14px] md:mouse:!h-10';
 
 // --- URL -------------------------------------------------------------------------------------------------------------
 
@@ -91,12 +91,12 @@ export function BarraFiltros({ children, ativos, onLimpar, principal, principalA
         {children}
         {ativos > 0 && (
           <button type="button" onClick={onLimpar}
-            className={`h-[44px] self-start px-1 text-[14px] font-semibold text-[#0B5563] hover:underline md:order-2 md:h-10 md:self-end ${resultado ? '' : 'md:ml-auto'}`}>
+            className={`h-[44px] self-start px-1 text-[14px] font-semibold text-[#0B5563] hover:underline md:order-2 md:mouse:h-10 md:self-end ${resultado ? '' : 'md:ml-auto'}`}>
             Limpar filtros ({ativos})
           </button>
         )}
       </div>
-      {resultado && <div className="flex w-full items-center md:order-1 md:ml-auto md:h-10 md:w-auto md:self-end">{resultado}</div>}
+      {resultado && <div className="flex w-full items-center md:order-1 md:ml-auto md:mouse:h-10 md:w-auto md:self-end">{resultado}</div>}
     </form>
   );
 }
@@ -126,7 +126,7 @@ export function FiltroBusca({ rotulo, value, onChange, placeholder, largura = 'm
 
 export function FiltroCheck({ rotulo, checked, onChange }: { rotulo: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 text-[14px] md:min-h-10 md:w-auto">
+    <label className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 text-[14px] md:mouse:min-h-10 md:w-auto">
       <input type="checkbox" className="h-[18px] w-[18px] accent-[#0B5563]" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {rotulo}
     </label>

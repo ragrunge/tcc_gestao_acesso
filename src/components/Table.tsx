@@ -38,7 +38,7 @@ export function Lista({ legenda, colunas, children, className = '', empilhar = f
   return (
     <ColsCtx.Provider value={{ cols: colunas, empilhar }}>
       {carregando && <span role="status" className="sr-only">Carregando {legenda.toLowerCase()}</span>}
-      <div role="table" aria-label={legenda} aria-busy={carregando || undefined} className={`overflow-x-auto rounded-[10px] border border-[#DCE1E5] bg-white ${className}`}>
+      <div role="table" aria-label={legenda} aria-busy={carregando || undefined} className={`relative overflow-x-auto rounded-[10px] border border-[#DCE1E5] bg-white ${className}`}>
         {/* A última linha de dados não repete a borda inferior (o cartão já fecha embaixo); o cabeçalho sozinho mantém a sua */}
         <div style={{ '--lw': `${min}px` } as CSSProperties} className={`${empilhar ? 'md:min-w-[var(--lw)]' : 'min-w-[var(--lw)]'} [&>[role=row]:not(:first-child):last-child]:border-b-0`}>
           {children}

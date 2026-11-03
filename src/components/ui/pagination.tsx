@@ -47,7 +47,7 @@ function PaginationNext({ className, ...props }: ComponentProps<typeof Paginatio
 
 function PaginationEllipsis({ className, ...props }: ComponentProps<'span'>) {
   return (
-    <span aria-hidden data-slot="pagination-ellipsis" className={cn('flex h-[44px] w-9 items-center justify-center lg:h-[40px]', className)} {...props}>
+    <span aria-hidden data-slot="pagination-ellipsis" className={cn('flex h-[44px] w-9 items-center justify-center lg:mouse:h-[40px]', className)} {...props}>
       <MoreHorizontal className="h-4 w-4" />
       <span className="sr-only">Mais páginas</span>
     </span>

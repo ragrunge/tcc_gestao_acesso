@@ -68,7 +68,7 @@ function PedidosTitular() {
               completa deve sair em até 15 dias do pedido (art. 19, II).
             </p>
           </div>
-          <Link to="/cadastro" className="inline-flex h-[44px] shrink-0 items-center rounded-lg bg-[#0B5563] px-4 text-[14px] font-semibold !text-white hover:bg-[#08434E] lg:h-10">
+          <Link to="/cadastro" className="inline-flex h-[44px] shrink-0 items-center rounded-lg bg-[#0B5563] px-4 text-[14px] font-semibold !text-white hover:bg-[#08434E] lg:mouse:h-10">
             Buscar a pessoa no Cadastro
           </Link>
         </div>

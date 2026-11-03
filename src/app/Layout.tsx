@@ -189,7 +189,7 @@ export function Layout() {
               <div className="px-3 pb-[6px] pt-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[#8DA2A9]">{g.titulo}</div>
               {itens.map((i) => (
                 <NavLink key={i.rota} to={`/${i.rota}`} onClick={fecharMenu}
-                  className={({ isActive }) => `flex min-h-[44px] items-center justify-between gap-2 rounded-md border-l-[3px] lg:min-h-[40px] py-0 pl-[10px] pr-3 text-[14.5px] hover:text-white ${
+                  className={({ isActive }) => `flex min-h-[44px] items-center justify-between gap-2 rounded-md border-l-[3px] lg:mouse:min-h-[40px] py-0 pl-[10px] pr-3 text-[14.5px] hover:text-white ${
                     isActive ? 'border-[#6CCBD8] bg-[#1E4952] text-white' : 'border-transparent text-[#C8D3D7]'}`}>
                   <span>{i.rotulo}</span>
                   {i.contador && (pend.data ?? 0) > 0 && (
@@ -220,7 +220,7 @@ export function Layout() {
               <div className="text-[13px] text-[#56616B]">{ROTULO_PAPEL[papel]}</div>
             </div>
             <button type="button" onClick={() => { void sair().then((ok) => { if (ok) nav('/login'); }); }}
-              className="h-[44px] rounded-lg border border-[#C5CDD3] bg-white px-[14px] text-[14px] hover:bg-[#EEF2F4] lg:h-10">
+              className="h-[44px] rounded-lg border border-[#C5CDD3] bg-white px-[14px] text-[14px] hover:bg-[#EEF2F4] lg:mouse:h-10">
               Sair
             </button>
           </div>

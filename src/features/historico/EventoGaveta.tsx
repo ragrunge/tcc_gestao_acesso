@@ -124,7 +124,7 @@ export function EventoGaveta({ ev, onClose, onCorrigido }: { ev: EventoView; onC
           <span className="font-medium">{ev.saida ? fmtHora(ev.saida.em) : ev.tipo === 'entrada' && ev.dentro ? 'Ainda no condomínio' : '—'}</span>
           {/* Atalho para a tela de saída já com esta entrada escolhida (lá a saída ainda é confirmada) */}
           {podeSaida && ev.tipo === 'entrada' && ev.dentro && !ev.saida && (
-            <Link to={`/saida?entrada=${ev.id}`} className="mt-1 inline-flex h-[44px] w-fit items-center rounded-lg border border-[#0B5563] bg-white px-3 text-[14px] font-semibold !text-[#0B5563] hover:bg-[#F0F8F9] lg:h-10">Registrar saída</Link>
+            <Link to={`/saida?entrada=${ev.id}`} className="mt-1 inline-flex h-[44px] w-fit items-center rounded-lg border border-[#0B5563] bg-white px-3 text-[14px] font-semibold !text-[#0B5563] hover:bg-[#F0F8F9] lg:mouse:h-10">Registrar saída</Link>
           )}</div>
       </div>
 

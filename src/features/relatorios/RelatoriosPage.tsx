@@ -102,7 +102,7 @@ export function RelatoriosPage() {
                 })}
               </div>
               <div className="mt-1.5 flex gap-1" aria-hidden>
-                {r.acessosPorDia.map((d, i) => <span key={d.dia} className={`min-w-0 flex-1 whitespace-nowrap text-[11px] text-[#56616B] ${i % 7 === 0 ? '' : 'hidden sm:block'}`}>{r.acessosPorDia.length <= 31 || i % 7 === 0 ? String(partes(d.dia).dia).padStart(2, '0') : ''}</span>)}
+                {r.acessosPorDia.map((d, i) => <span key={d.dia} className={`min-w-0 flex-1 whitespace-nowrap text-[12px] text-[#56616B] ${i % 7 === 0 ? '' : 'hidden sm:block'}`}>{r.acessosPorDia.length <= 31 || i % 7 === 0 ? String(partes(d.dia).dia).padStart(2, '0') : ''}</span>)}
               </div>
               <figcaption className="sr-only">Entradas por dia: {r.acessosPorDia.map((d) => `${fmtDataCurta(d.dia)} ${d.entradas}`).join('; ')}</figcaption>
             </figure>

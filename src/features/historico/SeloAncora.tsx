@@ -102,7 +102,7 @@ export function SeloAncora() {
         </div>
       )}
       <details className="group text-[14px]">
-        <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1 font-semibold text-[#0B5563] hover:underline md:min-h-0 [&::-webkit-details-marker]:hidden">
+        <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1 font-semibold text-[#0B5563] hover:underline md:mouse:min-h-0 [&::-webkit-details-marker]:hidden">
           Conferir âncora recebida<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden />
         </summary>
         <form className="mt-3 grid grid-cols-1 items-end gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]" onSubmit={(x) => void conferir(x)} aria-label="Conferir âncora recebida">

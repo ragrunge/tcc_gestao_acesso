@@ -27,7 +27,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const tamanhoBotao = (grande?: boolean, pequeno?: boolean) =>
-  grande ? 'h-[48px] px-[18px] text-[15px]' : pequeno ? 'h-[44px] px-[14px] text-[14px] lg:h-[40px]' : 'h-[44px] px-[18px] text-[15px]';
+  grande ? 'h-[48px] px-[18px] text-[15px]' : pequeno ? 'h-[44px] px-[14px] text-[14px] lg:mouse:h-[40px]' : 'h-[44px] px-[18px] text-[15px]';
 const BASE = 'inline-flex items-center justify-center gap-[10px] rounded-lg transition-colors';
 
 function Tecla({ atalho, variante, bloqueado }: { atalho: string; variante: Variante; bloqueado?: boolean }) {

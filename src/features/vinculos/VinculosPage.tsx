@@ -151,7 +151,7 @@ export function VinculosPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 ref={titulo} tabIndex={-1} className="scroll-mt-4 text-[22px] font-semibold outline-none">{atual.pessoaNome} · {ROTULO_VINCULO[atual.tipo]}</h2>
-                <Link to={`/unidades/${atual.unidadeId}`} className="mt-1 flex min-h-[44px] items-center font-mono text-[22px] font-semibold !text-[#0B3F49] hover:underline lg:min-h-0">{rotulo(atual.unidadeId)}</Link>
+                <Link to={`/unidades/${atual.unidadeId}`} className="mt-1 flex min-h-[44px] items-center font-mono text-[22px] font-semibold !text-[#0B3F49] hover:underline lg:mouse:min-h-0">{rotulo(atual.unidadeId)}</Link>
               </div>
               {(atual.status === 'pendente' || atual.status === 'legado') && (
                 <Badge tom={conferido ? 'verde' : 'ambar'} tamanho="sm">{conferido ? 'Comprovante conferido' : 'Comprovante não conferido'}</Badge>

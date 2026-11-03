@@ -373,7 +373,7 @@ function NovaOcorrenciaModal({ inicial, onClose, onFeito }: { inicial: Record<st
     onFeito(o, falhas);
   }
 
-  const chip = (on: boolean) => `h-[44px] rounded-full border px-[14px] text-[14px] lg:h-10 ${on ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white text-ink hover:bg-[#EEF2F4]'}`;
+  const chip = (on: boolean) => `h-[44px] rounded-full border px-[14px] text-[14px] lg:mouse:h-10 ${on ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white text-ink hover:bg-[#EEF2F4]'}`;
   const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
   const resumo = [
     tipo ? ROTULO_TIPO_OCORRENCIA[tipo] : 'Tipo não escolhido',
@@ -418,7 +418,7 @@ function NovaOcorrenciaModal({ inicial, onClose, onFeito }: { inicial: Record<st
                 const on = nomesEnvolvidos.includes(m.pessoa.nome);
                 return (
                   <button key={m.pessoa.id} type="button" aria-pressed={on} onClick={() => alternarEnvolvido(m.pessoa.nome)}
-                    className={`flex h-[44px] items-center gap-2 rounded-lg border-2 px-[12px] lg:h-10 ${on ? 'border-[#0B5563] bg-[#F0F8F9]' : 'border-[#DCE1E5] bg-white hover:border-[#9AA7B0]'}`}>
+                    className={`flex h-[44px] items-center gap-2 rounded-lg border-2 px-[12px] lg:mouse:h-10 ${on ? 'border-[#0B5563] bg-[#F0F8F9]' : 'border-[#DCE1E5] bg-white hover:border-[#9AA7B0]'}`}>
                     {on && <Check className="h-4 w-4 text-[#0B5563]" strokeWidth={2.6} aria-hidden />}
                     <span className="font-medium">{m.pessoa.nome}</span><span className="text-[13px] text-[#56616B]">{ROTULO_VINCULO[m.vinculo.tipo]}</span>
                   </button>
@@ -434,7 +434,7 @@ function NovaOcorrenciaModal({ inicial, onClose, onFeito }: { inicial: Record<st
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-[14px] font-medium">Anexos</span>
             <label htmlFor="anexos-oc"
-              className="flex h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-[#B9C3CA] bg-white px-[14px] text-[14px] font-medium hover:bg-[#EEF2F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#0B5563] lg:h-10">
+              className="flex h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-[#B9C3CA] bg-white px-[14px] text-[14px] font-medium hover:bg-[#EEF2F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#0B5563] lg:mouse:h-10">
               <Paperclip className="h-4 w-4" aria-hidden />Adicionar foto ou PDF
               <input id="anexos-oc" type="file" multiple accept={ACEITOS} aria-label="Anexos" className="sr-only"
                 onChange={(e) => { adicionarArquivos(e.target.files); e.target.value = ''; }} />
@@ -459,7 +459,7 @@ function NovaOcorrenciaModal({ inicial, onClose, onFeito }: { inicial: Record<st
           <div className="flex flex-wrap items-center justify-between gap-2 px-[14px] py-[10px]">
             <span className="text-[14px] font-medium">Eventos de acesso vinculados{vinc.length > 0 ? ` (${vinc.length})` : ''}</span>
             <button type="button" aria-expanded={mostrarEventos} onClick={() => setMostrarEventos((v) => !v)}
-              className="h-[44px] shrink-0 rounded-lg border border-[#0B5563] bg-white px-[14px] lg:h-10 text-[14px] font-semibold text-[#0B5563]">{mostrarEventos ? 'Ocultar' : 'Vincular eventos'}</button>
+              className="h-[44px] shrink-0 rounded-lg border border-[#0B5563] bg-white px-[14px] lg:mouse:h-10 text-[14px] font-semibold text-[#0B5563]">{mostrarEventos ? 'Ocultar' : 'Vincular eventos'}</button>
           </div>
           {mostrarEventos && <SeletorEventos selecionados={vinc} onChange={setVinc} unidadePrimeiro={unidadeId ? catalogo.codigo(unidadeId) : null} />}
         </div>

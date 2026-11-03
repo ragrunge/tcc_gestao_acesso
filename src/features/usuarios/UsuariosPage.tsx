@@ -23,7 +23,7 @@ import { avisoSenhaTemporaria, mensagemAcesso, validadeTexto } from './senhaTemp
 import { acoesDaLinha, mudancas, papeisCriaveis, validarNovoUsuario } from './regras';
 import { useAcoesUsuario, useListaUsuarios, useResumoUsuarios, useValorAtrasado } from './useUsuarios';
 
-const COLUNAS = 'minmax(0,1.3fr) 150px 150px 150px 150px';
+const COLUNAS = 'minmax(0,1.3fr) 150px 150px 150px 176px';
 /** Administração (usuario.ver sem usuario.gerenciar): a lista e os totais, sem a coluna de ações. */
 const COLUNAS_LEITURA = 'minmax(0,1.3fr) 150px 150px 150px';
 const PAPEIS = Object.keys(ROTULO_PAPEL) as Papel[];
@@ -61,7 +61,7 @@ export function UsuariosPage() {
     try { await fn(); if (ok) avisar({ texto: ok }); } catch (e) { avisar({ tom: 'vermelho', texto: mensagemErro(e) }); }
   }
   // Ícone com rótulo só no empilhado (celular, sem hover); de md para cima, quadrado com `title` e nome acessível.
-  const botao = 'inline-flex h-[44px] items-center justify-center gap-1.5 rounded-lg border bg-white px-3 text-[14px] md:w-10 md:px-0 lg:h-10';
+  const botao = 'inline-flex h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-lg border bg-white px-3 text-[14px] md:w-[44px] md:px-0 md:mouse:h-10 md:mouse:w-10';
   const rotulo = (t: string) => <span className="md:hidden">{t}</span>;
   const lista = pag.consulta;
 
@@ -71,7 +71,7 @@ export function UsuariosPage() {
         acoes={podeGerenciar
           ? <Button variante="primario" onClick={() => setNovo(true)}>Novo usuário</Button>
           // Sem a coluna de ações, a troca voluntária da própria senha fica no cabeçalho.
-          : <Link to="/trocar-senha" className="inline-flex h-[44px] items-center rounded-lg border border-[#B9C3CA] bg-white px-3 text-[14px] hover:bg-[#EEF2F4] lg:h-10">Trocar minha senha</Link>} />
+          : <Link to="/trocar-senha" className="inline-flex h-[44px] items-center rounded-lg border border-[#B9C3CA] bg-white px-3 text-[14px] hover:bg-[#EEF2F4] lg:mouse:h-10">Trocar minha senha</Link>} />
       <Totais rotulo="Usuários por situação e papel" itens={[
         { rotulo: 'Ativos', valor: resumo?.ativos },
         { rotulo: 'Desativados', valor: resumo?.desativados },

@@ -63,7 +63,7 @@ function Contagens({ r }: { r: ResultadoRetencao }) {
       {vistas.length > 0 && lista(vistas)}
       {zeradas.length > 0 && (
         <details className="group text-[14px]">
-          <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1 font-semibold text-[#0B5563] hover:underline md:min-h-0 [&::-webkit-details-marker]:hidden">
+          <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1 font-semibold text-[#0B5563] hover:underline md:mouse:min-h-0 [&::-webkit-details-marker]:hidden">
             {zeradas.length === 1 ? 'Ver 1 item sem alteração' : `Ver os ${zeradas.length} itens sem alteração`}<ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden />
           </summary>
           <div className="mt-2">{lista(zeradas)}</div>

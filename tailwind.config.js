@@ -25,5 +25,8 @@ export default {
       boxShadow: { cartao: '0 1px 2px rgba(16,38,44,.08)' },
     },
   },
-  plugins: [],
+  plugins: [
+    // Compacto só com mouse: tablet de toque (iPad retrato ou paisagem) mantém alvos de 44 px.
+    ({ addVariant }) => addVariant('mouse', '@media (hover: hover) and (pointer: fine)'),
+  ],
 };

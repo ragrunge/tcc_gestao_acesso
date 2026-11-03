@@ -16,7 +16,7 @@ const VARIANTES: Record<VarianteBotao, string> = {
 };
 const TAMANHOS: Record<TamanhoBotao, string> = {
   default: 'h-[44px] px-[18px] text-[15px] gap-[10px]',
-  sm: 'h-[44px] px-[14px] text-[14px] gap-2 lg:h-[40px]',
+  sm: 'h-[44px] px-[14px] text-[14px] gap-2 lg:mouse:h-[40px]',
   lg: 'h-[48px] px-[18px] text-[15px] gap-[10px]',
 };
 // `disabled:` vem depois de `hover:` na ordem do Tailwind: o visual de bloqueado vence qualquer variante.
