@@ -133,7 +133,7 @@ export function Layout() {
   // Trocou de rota ou a tela cresceu até o desktop: a gaveta fecha.
   useEffect(() => { setMenuAberto(false); }, [loc.pathname]);
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
+    const mq = window.matchMedia('(min-width: 1280px)');
     const aoMudar = () => { if (mq.matches) setMenuAberto(false); };
     mq.addEventListener('change', aoMudar);
     return () => mq.removeEventListener('change', aoMudar);
@@ -156,15 +156,15 @@ export function Layout() {
   }, [papel, nav]);
 
   return (
-    <div className="app-raiz grid h-screen h-dvh grid-cols-[minmax(0,1fr)] lg:grid-cols-[248px_minmax(0,1fr)]">
+    <div className="app-raiz grid h-screen h-dvh grid-cols-[minmax(0,1fr)] xl:grid-cols-[248px_minmax(0,1fr)]">
       <a href="#conteudo" className="sr-only z-50 rounded-lg bg-white px-4 py-2 font-semibold text-[#0B5563] shadow-cartao focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         Pular para o conteúdo
       </a>
-      {menuAberto && <div className="fixed inset-0 z-40 bg-[rgba(12,22,28,0.58)] lg:hidden" onClick={fecharMenu} aria-hidden />}
+      {menuAberto && <div className="fixed inset-0 z-40 bg-[rgba(12,22,28,0.58)] xl:hidden" onClick={fecharMenu} aria-hidden />}
       <aside ref={menuRef} id="menu-principal" tabIndex={-1} aria-label="Menu principal"
-        className={`sobre-escuro ${menuAberto ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-50 w-[288px] max-w-[85vw] flex-col gap-[18px] overflow-auto bg-[#10262C] px-3 py-5 text-[#C8D3D7] lg:static lg:z-auto lg:flex lg:w-auto lg:max-w-none`}>
+        className={`sobre-escuro ${menuAberto ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-50 w-[288px] max-w-[85vw] flex-col gap-[18px] overflow-auto bg-[#10262C] px-3 py-5 text-[#C8D3D7] xl:static xl:z-auto xl:flex xl:w-auto xl:max-w-none`}>
         {/* Só montado com a gaveta aberta: no desktop não duplica nome/botão no DOM (leitor de tela e testes). */}
-        {menuAberto && <div className="flex items-start justify-between gap-2 lg:hidden">
+        {menuAberto && <div className="flex items-start justify-between gap-2 xl:hidden">
           <div className="min-w-0 px-[10px]">
             <div className="truncate font-semibold text-white">{usuario!.nome}</div>
             <div className="text-[13px] text-[#9FB1B7]">{ROTULO_PAPEL[papel]}</div>
@@ -204,15 +204,15 @@ export function Layout() {
       </aside>
 
       <div className="flex h-screen h-dvh min-w-0 flex-col">
-        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-[#DCE1E5] bg-white px-3 py-2 md:px-6 lg:h-16 lg:flex-nowrap lg:gap-6 lg:py-0">
+        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-[#DCE1E5] bg-white px-3 py-2 md:px-6 xl:h-16 xl:flex-nowrap xl:gap-6 xl:py-0">
           <button type="button" onClick={() => setMenuAberto(true)} aria-label="Abrir menu" aria-expanded={menuAberto} aria-controls="menu-principal"
-            className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-lg border border-[#C5CDD3] hover:bg-[#EEF2F4] lg:hidden">
+            className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-lg border border-[#C5CDD3] hover:bg-[#EEF2F4] xl:hidden">
             <Menu className="h-5 w-5" aria-hidden />
           </button>
-          <div className="min-w-0 flex-1 truncate font-semibold lg:flex-none lg:whitespace-nowrap">{usuario!.condominio?.nome ?? 'Gestão de Acesso'}</div>
+          <div className="min-w-0 flex-1 truncate font-semibold xl:flex-none xl:whitespace-nowrap">{usuario!.condominio?.nome ?? 'Gestão de Acesso'}</div>
           {/* api.busca_global exige pessoa.ver: o administrador do sistema não vê o campo (só daria 403). */}
-          {pode(papel, 'pessoa.ver') && <div className="order-last w-full lg:order-none lg:flex lg:w-auto lg:flex-1"><BuscaGlobal onPessoa={setFichaId} /></div>}
-          <div className="flex items-center gap-5 lg:ml-auto">
+          {pode(papel, 'pessoa.ver') && <div className="order-last w-full xl:order-none xl:flex xl:w-auto xl:flex-1"><BuscaGlobal onPessoa={setFichaId} /></div>}
+          <div className="flex items-center gap-5 xl:ml-auto">
             <Relogio />
             <div className="hidden h-8 w-px bg-[#DCE1E5] md:block" />
             <div className="hidden leading-tight md:block">

@@ -17,7 +17,7 @@ import { CelPermanencia, destaquePresente, usePresentes } from './presentes';
 import { ConfirmarSaidaModal, SaidaRetroativaModal } from './saida';
 import { ErroCarregar } from '../../components/Carregando';
 
-const COLUNAS = 'minmax(0,1.4fr) 110px 80px 80px 190px minmax(0,1.3fr) 340px';
+const COLUNAS = 'minmax(0,1.2fr) 100px 72px 72px 160px minmax(0,1fr) 250px';
 const BOTAO_LINHA = 'h-[44px] rounded-lg border border-[#B9C3CA] bg-white px-[14px] text-[14px] font-medium hover:border-[#0B5563] hover:text-[#0B5563] lg:mouse:h-10';
 
 export function PessoasDentroPage() {

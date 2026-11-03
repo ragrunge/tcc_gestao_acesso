@@ -179,7 +179,7 @@ export function PainelPage() {
           <span className="text-[13px] text-[#56616B]">Clique em uma linha para ver o registro completo</span>
         </div>
         {eventos.error && <div className="p-4"><ErroCarregar mensagem="Não foi possível carregar as movimentações." onTentar={() => eventos.refetch()} /></div>}
-        <Lista legenda="Últimas movimentações de acesso" colunas={COLUNAS} className="!rounded-none !border-0" carregando={eventos.isLoading} linhasCarregando={6}>
+        <Lista legenda="Últimas movimentações de acesso" colunas={COLUNAS} empilhar className="!rounded-none !border-0" carregando={eventos.isLoading} linhasCarregando={6}>
           <ListaCab rotulos={['Hora', 'Nome', 'Unidade', 'Tipo', 'Autorização', 'Registrado por']} />
           {(eventos.data ?? []).map((e) => (
             <ListaLinha key={e.id} destaque={destaqueEvento(e)} onClick={() => setEvento(e)} padY={12}>
@@ -187,7 +187,7 @@ export function PainelPage() {
               <Cel className="truncate font-medium">{e.pessoaNome}</Cel>
               <CelUnidade id={e.unidadeDestinoId} texto={e.unidadeRotulo} />
               <Cel className="text-[14px] text-[#33424B]">{ROTULO_CATEGORIA[e.categoriaPessoa]}</Cel>
-              <Cel><AutorizacaoEvento ev={e} /></Cel>
+              <Cel className="col-span-2 md:col-span-1"><AutorizacaoEvento ev={e} /></Cel>
               <Cel className="text-[14px] text-[#33424B]">{e.operadorNome}</Cel>
             </ListaLinha>
           ))}
