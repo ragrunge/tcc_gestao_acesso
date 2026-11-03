@@ -1,4 +1,4 @@
-// npm run popular:dry (só valida) e npm run popular (carga). Ver README, "Carga fictícia da demonstração".
+// npm run popular:dry (só valida) e npm run popular (carga). Ver docs/desenvolvimento-local.md.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { executar } from './programa.ts';

@@ -1,6 +1,6 @@
 -- Demonstração SÓ LOCAL (supabase db reset, via [db.seed] do config.toml). Dados fictícios: nenhum nome, login ou
 -- senha daqui é de pessoa real. Nunca rodar no projeto hospedado (não usar `db push --include-seed`): a senha de
--- demonstração é pública (README). A estrutura (unidades, áreas, portaria, configuração) vem da migração 0035.
+-- demonstração é pública (docs/desenvolvimento-local.md). A estrutura (unidades, áreas, portaria, configuração) vem da migração 0035.
 --
 -- Recusa banco que já tem usuário ou pessoa: depois do reset local ele está vazio; o hospedado, depois do primeiro
 -- síndico, não. Não protege um hospedado ainda sem ninguém: a proteção ali é nunca usar --include-seed.
