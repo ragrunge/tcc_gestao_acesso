@@ -39,6 +39,17 @@ function montar({ buscar = vi.fn(async () => [LARISSA, LUCAS]), onCadastrar, ind
 const digitar = (el: HTMLElement, v: string) => fireEvent.change(el, { target: { value: v } });
 
 describe('PessoaCombobox', () => {
+  it('CPF parcial de 6 a 10 dígitos: o texto de apoio do campo pede os 11; com 5 ou 11 volta ao normal', async () => {
+    const { campo } = montar({ buscar: vi.fn(async () => []) });
+    const apoio = () => document.getElementById(campo().getAttribute('aria-describedby')!)!.textContent;
+    digitar(campo(), '868.373.45');
+    expect(apoio()).toBe('Para buscar por CPF, digite os 11 dígitos.');
+    digitar(campo(), '86837');
+    expect(apoio()).toMatch(/Setas escolhem/);
+    digitar(campo(), '868.373.450-91');
+    expect(apoio()).toMatch(/Setas escolhem/);
+  });
+
   it('menos de 2 caracteres: pede mais texto e não busca', async () => {
     const { buscar, campo } = montar();
     digitar(campo(), 'L');

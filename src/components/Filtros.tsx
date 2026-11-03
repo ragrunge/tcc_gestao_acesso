@@ -111,14 +111,16 @@ export function CampoFiltro({ rotulo, children, largura = '', como = 'label', cl
     : <div role="group" className={cls} aria-label={typeof rotulo === 'string' ? rotulo : undefined}><span aria-hidden>{rotulo}</span>{children}</div>;
 }
 
-export function FiltroBusca({ rotulo, value, onChange, placeholder, largura = 'md:w-80' }: {
+export function FiltroBusca({ rotulo, value, onChange, placeholder, largura = 'md:w-80', descritoPor }: {
   rotulo: string; value: string; onChange: (v: string) => void; placeholder?: string; largura?: string;
+  /** id do texto de apoio que fica fora da barra (a barra alinha os campos pela base: texto embaixo desalinharia). */
+  descritoPor?: string;
 }) {
   return (
     <CampoFiltro rotulo={rotulo} largura={largura}>
       <span className="relative block">
         <Search className="pointer-events-none absolute left-[11px] top-1/2 h-4 w-4 -translate-y-1/2 text-[#56616B]" aria-hidden />
-        <input type="text" className={`${CONTROLE} !pl-[34px]`} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+        <input type="text" className={`${CONTROLE} !pl-[34px]`} value={value} placeholder={placeholder} aria-describedby={descritoPor} onChange={(e) => onChange(e.target.value)} />
       </span>
     </CampoFiltro>
   );

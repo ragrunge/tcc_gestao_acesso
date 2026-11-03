@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApi, type PessoaBusca } from '../api';
+import { dicaBuscaCpf } from '@domain/cpf';
 import { ROTULO_CATEGORIA } from '@domain/types';
 import { Button } from './Button';
 import { Field } from './Field';
@@ -47,7 +48,7 @@ export function PessoaPicker({ rotulo, valor, onChange, semMoradores, autoFocus,
   }
   return (
     <div className="flex flex-col gap-1">
-      <Field label={rotulo}><input {...(autoFocus ? { 'data-autofocus': true } : {})} className="input" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" placeholder="Nome, documento ou unidade" /></Field>
+      <Field label={rotulo} dica={dicaBuscaCpf(q)}><input {...(autoFocus ? { 'data-autofocus': true } : {})} className="input" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" placeholder="Nome, documento ou unidade" /></Field>
       <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto empty:hidden">
         {achados.map((p) => (
           <li key={p.id}><button type="button" className="flex min-h-12 w-full items-center gap-3 rounded-lg border border-[#E1E6EA] bg-white px-3 py-1.5 text-left hover:bg-[#EEF5F6]" onClick={() => { onChange(p); setQ(''); }}>

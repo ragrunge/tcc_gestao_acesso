@@ -35,6 +35,20 @@ export function formatoDaMascara(mascara: string | null | undefined): FormatoMas
   return null;
 }
 
+export const DICA_BUSCA_CPF = 'Para buscar por CPF, digite os 11 dígitos.';
+
+/**
+ * Dica para a busca de pessoas (migração 0042): de 6 a 10 dígitos a busca não casa por CPF na máscara 'inicio', que só
+ * mostra 5, então quem digita parte do CPF precisa ir até os 11. Só quando a consulta é essencialmente numérica (80%+ de
+ * dígitos, sem contar ".", "-" e espaços), para não aparecer em nome, placa ou unidade.
+ */
+export function dicaBuscaCpf(consulta: string): string | null {
+  const resto = consulta.replace(/[.\-\s]/g, '');
+  const n = soDigitos(resto).length;
+  if (n < 6 || n > 10) return null;
+  return n / resto.length >= 0.8 ? DICA_BUSCA_CPF : null;
+}
+
 /**
  * Chave HMAC FIXA de demonstração, para desenvolvimento e testes. Não é segredo: qualquer um que leia o código
  * pode recalcular o HMAC. Em produção a chave vem de PORTARIA_HMAC_CPF_KEY (32+ bytes aleatórios, fora do repositório).

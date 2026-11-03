@@ -5,7 +5,8 @@
 // Filtro local por nome, categoria, tipo de visita, empresa/serviço e destino ("D-32", "d32", área comum). CPF: a
 // lista de presentes não traz documento (minimização), então um termo só de dígitos (3+) também consulta a busca de
 // pessoas que já existe (POST /pessoas/busca, termo no corpo) e cruza pelo id da pessoa. A API casa pelo COMEÇO do CPF
-// (máscara nova, 5 primeiros dígitos) e pelo meio só nos cadastros antigos ("***.456.789-**"); 11 dígitos, pelo HMAC.
+// com 3 a 5 dígitos (máscara nova, 5 visíveis) e pelo meio com 3 a 6 só nos cadastros antigos ("***.456.789-**"); 11
+// dígitos, pelo HMAC. De 6 a 10 a máscara nova não casa (0042) e a linha de status pede os 11 (dicaBuscaCpf).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -17,6 +18,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { Vazio } from '../../components/Table';
 import { Badge } from '../../components/ui/badge';
 import { Command, CommandItem, CommandList, CommandPrimitive } from '../../components/ui/command';
+import { dicaBuscaCpf } from '@domain/cpf';
 import { ROTULO_CATEGORIA, ROTULO_TIPO_VISITA, type EventoView } from '@domain/types';
 import { mensagemErro, useAgora } from '../../app/useAsync';
 import { CHAVES, useDebounce } from '../../app/consultas';
@@ -113,10 +115,12 @@ export function SaidaPage() {
   function aposSaida() { setSelecionada(null); setRetro(null); setQ(''); }
 
   const total = dados.length;
-  const status = lista.isPending ? 'Carregando quem está dentro…'
+  const dicaCpf = dicaBuscaCpf(q);
+  const contagem = lista.isPending ? 'Carregando quem está dentro…'
     : buscandoCpf ? 'Buscando pelo CPF…'
     : q.trim() ? `${achados.length} de ${total} ${total === 1 ? 'pessoa dentro' : 'pessoas dentro'}`
     : `${total} ${total === 1 ? 'pessoa dentro' : 'pessoas dentro'} agora`;
+  const status = dicaCpf ? `${contagem} · ${dicaCpf}` : contagem;
 
   return (
     <div className="flex flex-col gap-5">

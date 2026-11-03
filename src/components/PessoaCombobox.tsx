@@ -7,6 +7,7 @@
 import { useLayoutEffect, useEffect, useId, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, UserPlus } from 'lucide-react';
+import { dicaBuscaCpf } from '@domain/cpf';
 import { ROTULO_CATEGORIA } from '@domain/types';
 import { useApi, type PessoaBusca } from '../api';
 import { CHAVES, useDebounce } from '../app/consultas';
@@ -59,6 +60,7 @@ export function PessoaCombobox({ rotulo = 'Pessoa', valor, onChange, onCadastrar
   const achados = !curto && termo === texto ? busca.data ?? [] : [];
   const falhou = !curto && !buscando && busca.isError;
   const vazio = !curto && !buscando && !falhou && busca.isSuccess && achados.length === 0;
+  const dicaCpf = dicaBuscaCpf(texto);
   const motivo = (p: PessoaBusca) => (p.desativadaEm ? 'Desativada' : indisponivel?.(p) ?? null);
 
   // O cmdk fixa aria-expanded="true" no campo; aqui ele reflete a lista aberta de fato (o Modal usa isso no Esc).
@@ -158,11 +160,11 @@ export function PessoaCombobox({ rotulo = 'Pessoa', valor, onChange, onCadastrar
         </Popover>
       </Command>
       <p id={dicaId} className={cn('text-[13px]', erro ? 'font-medium text-perigo' : 'text-[#56616B]')}>
-        {erro ?? 'Setas escolhem, Enter confirma, Esc fecha a lista.'}
+        {erro ?? dicaCpf ?? 'Setas escolhem, Enter confirma, Esc fecha a lista.'}
       </p>
       {/* Anúncio para leitor de tela (a lista é um popover e não fala sozinha o resultado). */}
       <span className="sr-only" role="status" aria-live="polite">
-        {aberto ? (buscando ? 'Busca em andamento.' : falhou ? 'Falha na busca.' : vazio ? 'Nenhum resultado.' : achados.length ? `${achados.length} resultado(s).` : '') : ''}
+        {aberto ? (buscando ? 'Busca em andamento.' : falhou ? 'Falha na busca.' : vazio ? 'Nenhum resultado.' : achados.length ? `${achados.length} resultado(s).` : '') + (dicaCpf ? ` ${dicaCpf}` : '') : ''}
       </span>
     </div>
   );

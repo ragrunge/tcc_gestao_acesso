@@ -25,7 +25,7 @@ import {
   podeConfirmarEntrada, type DadosAutorizacao,
 } from '@domain/rules';
 import { fmtData, fmtHora, fromInput, toInputDate, toInputTime } from '@domain/time';
-import { mascaraPlaca, normalizarPlaca } from '@domain/cpf';
+import { dicaBuscaCpf, mascaraPlaca, normalizarPlaca } from '@domain/cpf';
 import type { VeiculoAcesso } from '@domain/types';
 import { mensagemErro, useAgora } from '../../app/useAsync';
 import { useCatalogo } from '../../app/catalogo';
@@ -165,6 +165,8 @@ export function EntradaPage() {
   const previstosAgora = (previstos.data ?? []).filter((p) => p.inicio - agora <= ANTECEDENCIA_ENTRADA_MS).slice(0, 5);
   const [idxPrevisto, setIdxPrevisto] = useState(0);
   const escolherPrevisto = (p: PrevistoView) => void preencherRef.current(p.pessoaId, p.destino.tipo === 'unidade' ? p.destino.id : null, p.destino.tipo === 'area_comum' ? p.destino.id : null);
+
+  const dicaCpf = dicaBuscaCpf(query);
 
   // Busca incremental
   useEffect(() => {
@@ -532,6 +534,7 @@ export function EntradaPage() {
                   <Search className="pointer-events-none absolute left-[14px] top-[14px] h-5 w-5 text-[#56616B]" strokeWidth={2} aria-hidden />
                   <label htmlFor="busca-pessoa" className="sr-only">Buscar por nome, documento ou placa</label>
                   <input id="busca-pessoa" ref={buscaRef} autoComplete="off" role="combobox" aria-expanded={sugestoes.length > 0}
+                    aria-describedby="busca-pessoa-dica"
                     aria-controls={!query.trim() && previstosAgora.length > 0 ? 'lista-previstos' : 'lista-sugestoes'}
                     aria-activedescendant={!query.trim() && previstosAgora[idxPrevisto] ? `prev-${previstosAgora[idxPrevisto].autorizacaoId}` : sugestoes[idx] ? `sug-${sugestoes[idx].id}` : undefined}
                     className="h-12 w-full rounded-lg border border-[#9AA7B0] bg-white pl-11 pr-[14px] text-[16px] text-ink placeholder:text-[#56616B]/70"
@@ -549,6 +552,7 @@ export function EntradaPage() {
                     }} />
                 </div>
                 <div className="mt-2 flex flex-col gap-1">
+                  <p id="busca-pessoa-dica" role="status" className={dicaCpf ? 'px-0.5 text-[13px] text-[#56616B]' : 'sr-only'}>{dicaCpf ?? ''}</p>
                   <ul id="lista-sugestoes" role="listbox" aria-label="Pessoas encontradas" className="flex flex-col gap-1 empty:hidden">
                     {sugestoes.map((p, i) => (
                       <li key={p.id} id={`sug-${p.id}`} role="option" aria-selected={i === idx}>

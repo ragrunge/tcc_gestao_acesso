@@ -11,6 +11,7 @@ import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { Cel, Lista, ListaCab, ListaLinha, Vazio } from '../../components/Table';
 import { useToast } from '../../components/Toast';
+import { dicaBuscaCpf } from '@domain/cpf';
 import { ROTULO_CATEGORIA, ROTULO_VINCULO, type CategoriaPessoa } from '@domain/types';
 import { mensagemErro } from '../../app/useAsync';
 import { useCatalogo } from '../../app/catalogo';
@@ -47,6 +48,7 @@ export function CadastroPage() {
   const [novo, setNovo] = useState(false);
   const termo = useDebounce(q.trim(), 200);
   const buscando = termo.length >= 2;
+  const dicaCpf = dicaBuscaCpf(q);
 
   // Sem texto: a lista inteira, paginada no servidor (categoria filtra lá; a página vai para a URL).
   const lista = usePaginacao<PessoaLista>({
@@ -106,7 +108,7 @@ export function CadastroPage() {
         { rotulo: 'Desativados', valor: resumo?.desativadas },
       ]} />
       <BarraFiltros ativos={ativos} principalAtivo={!!q.trim()} onLimpar={() => { setQ(''); gravar({ tipo: undefined, desativados: undefined }); }}
-        principal={<FiltroBusca rotulo="Buscar por nome, CPF, unidade ou placa" value={q} onChange={setQ} />}>
+        principal={<FiltroBusca rotulo="Buscar por nome, CPF, unidade ou placa" value={q} onChange={setQ} descritoPor="busca-cadastro-dica" />}>
         <CampoFiltro rotulo="Tipo" largura="md:w-48">
           <select className={CONTROLE} value={cat} onChange={(e) => gravar({ tipo: naUrl(e.target.value, 'todas') })}>
             <option value="todas">Todos</option>{(Object.keys(ROTULO_CATEGORIA) as CategoriaPessoa[]).map((c) => <option key={c} value={c}>{ROTULO_CATEGORIA[c]}</option>)}
@@ -115,6 +117,8 @@ export function CadastroPage() {
         <FiltroCheck rotulo="Mostrar desativados" checked={desativados} onChange={(v) => gravar({ desativados: v ? '1' : undefined })} />
       </BarraFiltros>
       <ContagemResultado n={nContagem} singular="pessoa" plural="pessoas" sufixo={sufixoContagem} className="-mb-2 px-1" />
+      {/* Sempre montado (região viva que já existe antes do texto); vazio, fica fora do fluxo e não abre espaço. */}
+      <p id="busca-cadastro-dica" role="status" className={dicaCpf ? '-mb-2 px-1 text-[13px] text-[#56616B]' : 'sr-only'}>{dicaCpf ?? ''}</p>
       {erro && <Alert tom="vermelho" role="alert">{mensagemErro(erro)}</Alert>}
       <Lista legenda="Pessoas cadastradas" colunas={COLUNAS} empilhar carregando={carregando}>
         <ListaCab rotulos={['Nome', 'Vínculo ou tipo', 'CPF · telefone', 'Unidade', 'Situação']} />

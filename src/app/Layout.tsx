@@ -6,6 +6,7 @@ import { rotaDisponivel, useAuth } from '../auth/AuthContext';
 import { pode, type Rota } from '@domain/rbac';
 import { ROTULO_CATEGORIA, ROTULO_PAPEL } from '@domain/types';
 import { partes } from '@domain/time';
+import { dicaBuscaCpf } from '@domain/cpf';
 import { temModalAberto, useArmadilhaDeFoco } from '../components/Modal';
 import { FichaPessoaModal } from '../features/cadastro/FichaPessoaModal';
 import { useAgora } from './useAsync';
@@ -75,6 +76,7 @@ function BuscaGlobal({ onPessoa }: { onPessoa: (id: string) => void }) {
   }, []);
 
   const vazio = res && res.pessoas.length === 0 && res.unidades.length === 0;
+  const dica = dicaBuscaCpf(q);
   const item = 'flex min-h-[44px] w-full items-center justify-between gap-3 rounded-md bg-white px-[10px] py-[6px] text-left hover:bg-[#EEF2F4]';
   return (
     <div className="relative w-full max-w-[520px] flex-1" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setAberto(false); }}>
@@ -82,11 +84,12 @@ function BuscaGlobal({ onPessoa }: { onPessoa: (id: string) => void }) {
       <Search className="pointer-events-none absolute left-3 top-[13px] h-[18px] w-[18px] text-[#56616B]" strokeWidth={2} aria-hidden />
       <input id="busca-global" ref={inputRef} placeholder="Buscar por nome, documento, unidade ou placa" value={q}
         className="h-[44px] w-full rounded-lg border border-[#C5CDD3] bg-[#F3F5F6] pl-10 pr-3 text-[14.5px] text-ink placeholder:text-[#56616B]"
-        autoComplete="off" onChange={(e) => { setQ(e.target.value); setAberto(true); }} onFocus={() => setAberto(true)}
+        autoComplete="off" aria-describedby={aberto && res && dica ? 'busca-global-dica' : undefined} onChange={(e) => { setQ(e.target.value); setAberto(true); }} onFocus={() => setAberto(true)}
         onKeyDown={(e) => { if (e.key === 'Escape') { setAberto(false); setQ(''); } }} />
       {aberto && res && (
         <div className="absolute inset-x-0 top-[50px] z-40 flex max-h-96 flex-col gap-0.5 overflow-y-auto rounded-[10px] border border-[#DCE1E5] bg-white p-[6px] shadow-[0_12px_32px_rgba(16,38,44,0.16)]" role="listbox" aria-label="Resultados da busca">
           {vazio && <div className="px-[10px] py-3 text-[#56616B]">Nenhum resultado para “{q}”.</div>}
+          {dica && <p id="busca-global-dica" role="status" className="px-[10px] py-2 text-[13px] text-[#56616B]">{dica}</p>}
           {res.unidades.map((u, i) => (
             <button key={u.id + i} type="button" role="option" aria-selected={false} className={item}
               onClick={() => { setAberto(false); setQ(''); nav(`/unidades/${u.id}`); }}>

@@ -111,6 +111,16 @@ describe('SaidaPage', () => {
     expect(screen.getByText('3 pessoas dentro agora')).toBeTruthy();
   });
 
+  it('CPF parcial de 6 a 10 dígitos: a linha de status pede os 11', async () => {
+    montar();
+    await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(3));
+    const status = () => document.getElementById('busca-saida-status')!.textContent;
+    digitar('868.373.45');
+    expect(status()).toContain('Para buscar por CPF, digite os 11 dígitos.');
+    digitar('86837');
+    expect(status()).not.toContain('11 dígitos');
+  });
+
   it('a busca filtra por nome, destino e tipo de visita', async () => {
     montar();
     await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(3));

@@ -12,7 +12,14 @@ lidos do banco a cada chamada (`app.ator()`), nunca do token. A matriz de permis
 **Portaria** (migrações 0020–0024): cada operação é uma função `api.*` no Postgres que começa por `app.exigir(ação)` e
 roda com as permissões mínimas do papel `app_rw`; nenhuma tabela é exposta. O hash da trilha continua sendo calculado
 pelo trigger do banco. O CPF é guardado como máscara e HMAC, com a chave no Supabase Vault (nunca sai do banco); a busca
-devolve a pessoa, nunca o hash. As regras do servidor (autorização da entrada, restrições, escala, permanência) têm uma
+devolve a pessoa, nunca o hash. Busca por CPF (`app.buscar_pessoas`, regra da 0042): 11 dígitos, igualdade pelo HMAC;
+parcial, só contra os dígitos visíveis da máscara: no formato novo (`123.45*.***-**`) pelo começo, com 3 a 5 dígitos, e no
+antigo (`***.456.789-**`) em qualquer ponto, com 3 a 6. Consulta parcial maior que a parte visível não casa por CPF (a
+0022 cortava a consulta em 5 dígitos e devolvia todo CPF com o mesmo começo); nome, unidade e placa continuam valendo, e
+as telas de busca pedem os 11 dígitos quando a consulta é numérica com 6 a 10 (`dicaBuscaCpf`, `src/domain/cpf.ts`).
+Limite conhecido, decisão declarada do projeto: a máscara nova expõe 5 dos 11 dígitos (cerca de 45%), e a busca por
+prefixo permite confirmar que existe alguém cadastrado com aquele começo. A mitigação é não aceitar busca parcial acima
+de 5 dígitos nesse formato: a partir daí só os 11 identificam a pessoa. As regras do servidor (autorização da entrada, restrições, escala, permanência) têm uma
 versão em SQL e um teste de paridade com as de `src/domain`.
 
 **Operação** (migrações 0025–0032): mesmo padrão. Funcionário nunca devolve o telefone inteiro; a conferência de
