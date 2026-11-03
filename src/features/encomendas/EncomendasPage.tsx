@@ -15,6 +15,7 @@ import { Tabs } from '../../components/Tabs';
 import { TowerUnitPicker } from '../../components/TowerUnitPicker';
 import { useToast } from '../../components/Toast';
 import { UnitTag } from '../../components/UnitTag';
+import { dicaBuscaCpf } from '@domain/cpf';
 import { ROTULO_VINCULO, type Encomenda } from '@domain/types';
 import { diasDesde, encomendaAtrasada } from '@domain/rules';
 import { useCatalogo } from '../../app/catalogo';
@@ -314,8 +315,9 @@ function EntregarModal({ encomenda, onClose, onFeito }: { encomenda: EncomendaVi
       {!escolhida ? (
         <>
           <label className="flex flex-col gap-1.5 text-[14px] font-medium">Quem está retirando?
-            <input data-autofocus className="h-12 rounded-lg border border-[#9AA7B0] bg-white px-[14px] text-[16px] font-normal" placeholder="Nome da pessoa" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+            <input data-autofocus className="h-12 rounded-lg border border-[#9AA7B0] bg-white px-[14px] text-[16px] font-normal" placeholder="Nome da pessoa" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" aria-describedby="retirada-busca-dica" />
           </label>
+          <p id="retirada-busca-dica" role="status" className={dicaBuscaCpf(q) ? '-mt-2 text-[13px] text-[#56616B]' : 'sr-only'}>{dicaBuscaCpf(q) ?? ''}</p>
           <div className="flex flex-col gap-1">
             {achados.map((p) => (
               <button key={p.id} type="button" className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-[#E1E6EA] bg-white px-3 py-1.5 text-left hover:bg-[#EEF5F6]" onClick={() => { setEscolhida(p); setErro(''); }}>
