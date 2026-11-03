@@ -151,7 +151,7 @@ export function FiltroPeriodo({ de, ate, onChange, atalhos = false }: {
               const marcado = de === p.de && ate === p.ate;
               return (
                 <button key={a.dias} type="button" aria-pressed={marcado} onClick={() => onChange(p.de, p.ate)}
-                  className={`h-10 rounded-md px-2.5 text-[12.5px] md:mouse:h-6 ${marcado ? 'bg-[#E3F0F2] font-semibold text-[#0B5563]' : 'font-medium text-[#56616B] hover:bg-[#EEF2F4] hover:text-ink'}`}>
+                  className={`h-[44px] rounded-md px-2.5 text-[12.5px] md:mouse:h-6 ${marcado ? 'bg-[#E3F0F2] font-semibold text-[#0B5563]' : 'font-medium text-[#56616B] hover:bg-[#EEF2F4] hover:text-ink'}`}>
                   {a.rotulo}
                 </button>
               );

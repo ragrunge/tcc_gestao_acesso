@@ -28,7 +28,7 @@ import { BarraFiltros, CampoFiltro, CONTROLE, ContagemResultado, FiltroBusca, Fi
 const TIPOS = ['', 'entrada', 'saida', 'negado', 'recusado', 'correcao'] as const;
 const ROTULO_TIPO: Record<string, string> = { entrada: 'Entrada', saida: 'Saída', negado: 'Negado', recusado: 'Recusado', correcao: 'Correção' };
 const MEIOS = ['', ...Object.keys(ROTULO_MEIO)] as ('' | MeioAutorizacao)[];
-const COLUNAS = '150px 104px minmax(0,1.1fr) 64px minmax(0,1.5fr) 130px 124px';
+const COLUNAS = '136px 104px minmax(0,1fr) 64px minmax(0,1.3fr) 120px 124px';
 
 /** Selo da coluna Evento: o tipo do registro (a autorização vai na coluna ao lado, em texto). */
 const EVENTO: Record<EventoView['tipo'], { texto: string; tom: Tom; icone?: typeof Ban }> = {

@@ -54,7 +54,7 @@ export type TamanhoModal = keyof typeof TAMANHO;
 function BotaoFechar({ onClose, className = '' }: { onClose: () => void; className?: string }) {
   return (
     <button type="button" data-fechar aria-label="Fechar" onClick={onClose}
-      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[#56616B] transition-colors hover:bg-[#EEF2F4] sm:h-10 sm:w-10 ${className}`}>
+      className={`inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-lg text-[#56616B] transition-colors hover:bg-[#EEF2F4] sm:mouse:h-10 sm:mouse:w-10 ${className}`}>
       <X className="h-5 w-5" aria-hidden />
     </button>
   );
