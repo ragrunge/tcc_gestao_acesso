@@ -194,7 +194,7 @@ export function HistoricoPage() {
           <div className="flex flex-wrap gap-1.5">
             {TIPOS.filter(Boolean).map((t) => (
               <button key={t} type="button" aria-pressed={tipo === t} onClick={() => gravar({ tipo: tipo === t ? undefined : t })}
-                className={`h-[44px] rounded-full border px-[14px] text-[14px] font-medium md:h-9 ${tipo === t ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white text-ink hover:bg-[#EEF2F4]'}`}>
+                className={`h-[44px] rounded-full border px-[14px] text-[14px] font-medium md:mouse:h-9 ${tipo === t ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white text-ink hover:bg-[#EEF2F4]'}`}>
                 {ROTULO_TIPO[t]}
               </button>
             ))}

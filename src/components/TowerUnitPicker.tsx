@@ -192,7 +192,7 @@ export const TowerUnitPicker = forwardRef<TowerUnitPickerHandle, {
               <label htmlFor="campo-unidade" className="text-[13px] text-[#56616B]">
                 Ou digite o apartamento{numeros.length > 0 && numeros.length <= 6 ? ` (${numeros[0]} a ${numeros[numeros.length - 1]})` : ''}
               </label>
-              <input ref={unidadeRef} id="campo-unidade" className="input !h-[44px] !w-[88px] lg:!h-9 font-mono" inputMode="numeric" maxLength={maxDigitos} autoComplete="off"
+              <input ref={unidadeRef} id="campo-unidade" className="input !h-[44px] !w-[88px] lg:mouse:!h-9 font-mono" inputMode="numeric" maxLength={maxDigitos} autoComplete="off"
                 disabled={desabilitado} placeholder="ex.: 32" value={digitado}
                 onChange={(e) => {
                   const v = e.target.value.replace(/\D/g, '').slice(0, maxDigitos);

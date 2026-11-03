@@ -769,7 +769,7 @@ export function EntradaPage() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {SUGESTOES_EXCECAO.map((s) => (
-                          <button key={s} type="button" onClick={() => setJustificativa(s)} className="h-[44px] rounded-full border border-[#F5B54A] lg:h-9 bg-white px-3 text-[14px] text-[#7A2E0E] hover:bg-[#FFF8E6]">{s}</button>
+                          <button key={s} type="button" onClick={() => setJustificativa(s)} className="h-[44px] rounded-full border border-[#F5B54A] lg:mouse:h-9 bg-white px-3 text-[14px] text-[#7A2E0E] hover:bg-[#FFF8E6]">{s}</button>
                         ))}
                       </div>
                       <label htmlFor="just" className="flex flex-col gap-1.5 text-[14px] font-medium text-[#7A2E0E]">Justificativa (obrigatória, mínimo {MIN_JUSTIFICATIVA} caracteres)

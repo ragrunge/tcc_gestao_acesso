@@ -55,7 +55,7 @@ function PedidosTitular() {
     getNextPageParam: (p) => (p.temMais && p.cursor ? p.cursor : undefined),
   });
   const itens = useMemo(() => (lista.data?.pages ?? []).flatMap((p) => p.itens), [lista.data]);
-  const pilula = (on: boolean) => `h-[44px] rounded-full border px-[14px] text-[14px] font-medium md:h-9 ${on ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white text-ink hover:bg-[#EEF2F4]'}`;
+  const pilula = (on: boolean) => `h-[44px] rounded-full border px-[14px] text-[14px] font-medium md:mouse:h-9 ${on ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white text-ink hover:bg-[#EEF2F4]'}`;
 
   return (
     <div className="flex flex-col gap-4">
