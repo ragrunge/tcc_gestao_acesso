@@ -1,26 +1,10 @@
-import { useState, type FormEvent } from 'react'
-import {
-  Clock,
-  Copy,
-  KeyRound,
-  MessageSquareText,
-  Pencil,
-  TriangleAlert,
-  UserCheck,
-  UserX,
-} from 'lucide-react'
+import { useState } from 'react'
+import { Clock, KeyRound, Pencil, TriangleAlert, UserCheck, UserX } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import {
-  ApiError,
-  type NovoUsuarioInput,
-  type SituacaoUsuario,
-  type UsuarioComSenhaTemporaria,
-} from '@/api'
+import { type SituacaoUsuario } from '@/api'
 import { useAuth, useCan } from '@/auth/AuthContext'
-import { Alert } from '@/componentes/Alert'
 import { Badge } from '@/componentes/Badge'
 import { Button } from '@/componentes/Button'
-import { Field } from '@/componentes/Field'
 import { Modal } from '@/componentes/Modal'
 import { PageHeader } from '@/componentes/PageHeader'
 import { Cel, Lista, ListaCab, ListaLinha, Vazio } from '@/componentes/Table'
@@ -36,31 +20,31 @@ import {
   useFiltrosUrl,
 } from '@/componentes/Filtros'
 import { Paginacao, Totais } from '@/componentes/Paginacao'
-import { RadioGroup, RadioGroupItem } from '@/componentes/ui/radio-group'
-import { Label } from '@/componentes/ui/label'
 import { ROTULO_PAPEL, type Papel, type UsuarioSistema } from '@/domain/types'
 import { fmtDataHora } from '@/domain/time'
 import { mensagemErro, useAgora } from '@/app/useAsync'
 import { ErroCarregar } from '@/componentes/Carregando'
-import { avisoSenhaTemporaria, mensagemAcesso, validadeTexto } from './senhaTemporaria'
-import { acoesDaLinha, mudancas, papeisCriaveis, validarNovoUsuario } from './regras'
+import { avisoSenhaTemporaria } from './senhaTemporaria'
+import { acoesDaLinha, papeisCriaveis } from './regras'
 import {
   useAcoesUsuario,
   useListaUsuarios,
   useResumoUsuarios,
   useValorAtrasado,
 } from './useUsuarios'
+import { SenhaExibida } from './tipos'
+import { NovoUsuarioModal } from './NovoUsuarioModal'
+import { EditarUsuarioModal } from './EditarUsuarioModal'
+import { SenhaTemporariaModal } from './SenhaTemporariaModal'
 
 const COLUNAS = 'minmax(0,1.3fr) 150px 150px 150px 176px'
+
 /** Administração (usuario.ver sem usuario.gerenciar): a lista e os totais, sem a coluna de ações. */
 const COLUNAS_LEITURA = 'minmax(0,1.3fr) 150px 150px 150px'
-const PAPEIS = Object.keys(ROTULO_PAPEL) as Papel[]
-const SITUACOES: readonly SituacaoUsuario[] = ['ativos', 'desativados']
 
-/** Senha temporária em exibição: vive só neste estado local e some ao fechar o modal. */
-interface SenhaExibida extends UsuarioComSenhaTemporaria {
-  motivo: 'criado' | 'redefinido'
-}
+const PAPEIS = Object.keys(ROTULO_PAPEL) as Papel[]
+
+const SITUACOES: readonly SituacaoUsuario[] = ['ativos', 'desativados']
 
 export function UsuariosPage() {
   const { usuario: eu } = useAuth()
@@ -432,351 +416,5 @@ export function UsuariosPage() {
         </Modal>
       )}
     </div>
-  )
-}
-
-type ErrosNovo = { nome?: string; login?: string; geral?: string }
-
-/** Erro do servidor no campo certo (VALIDACAO com `field`, login repetido); o resto vai para o alerta do formulário. */
-function errosDoServidor(e: unknown): ErrosNovo {
-  if (e instanceof ApiError) {
-    if (e.code === 'LOGIN_EXISTENTE') return { login: e.message }
-    const campo = Array.isArray(e.detalhes)
-      ? (e.detalhes[0] as { field?: unknown } | undefined)?.field
-      : undefined
-    if (e.code === 'VALIDACAO' && (campo === 'nome' || campo === 'login'))
-      return { [campo]: e.message }
-  }
-  return { geral: mensagemErro(e) }
-}
-
-function NovoUsuarioModal({
-  papeis,
-  onClose,
-  onSalvar,
-}: {
-  papeis: Papel[]
-  onClose: () => void
-  onSalvar: (f: NovoUsuarioInput) => Promise<void>
-}) {
-  const [f, setF] = useState<{ nome: string; login: string; papel: Papel }>({
-    nome: '',
-    login: '',
-    papel: 'porteiro',
-  })
-  const [erros, setErros] = useState<ErrosNovo>({})
-  const [salvando, setSalvando] = useState(false)
-  async function salvar(e: FormEvent) {
-    e.preventDefault()
-    if (salvando) return
-    const locais = validarNovoUsuario(f)
-    setErros(locais)
-    if (locais.nome || locais.login) return
-    setSalvando(true)
-    try {
-      await onSalvar({ nome: f.nome.trim(), login: f.login.trim().toLowerCase(), papel: f.papel })
-    } catch (err) {
-      setErros(errosDoServidor(err))
-      setSalvando(false)
-    }
-  }
-  return (
-    <Modal
-      titulo="Novo usuário"
-      onClose={onClose}
-      rodape={
-        <>
-          <Button
-            type="submit"
-            form="f-user"
-            variante="primario"
-            grande
-            className="flex-1"
-            carregando={salvando}
-          >
-            Criar usuário
-          </Button>
-          <Button grande onClick={onClose}>
-            Cancelar
-          </Button>
-        </>
-      }
-    >
-      <form id="f-user" onSubmit={salvar} noValidate className="flex flex-col gap-[14px]">
-        <Field label="Nome completo" erro={erros.nome}>
-          <input
-            data-autofocus
-            className="input"
-            autoComplete="off"
-            value={f.nome}
-            aria-invalid={erros.nome ? true : undefined}
-            onChange={(e) => setF({ ...f, nome: e.target.value })}
-          />
-        </Field>
-        <Field
-          label="Login"
-          erro={erros.login}
-          dica="Letras minúsculas, números, ponto, hífen ou sublinhado (ex.: nome.sobrenome)."
-        >
-          <input
-            className="input font-mono"
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            value={f.login}
-            aria-invalid={erros.login ? true : undefined}
-            onChange={(e) => setF({ ...f, login: e.target.value })}
-            placeholder="nome.sobrenome"
-          />
-        </Field>
-        <fieldset className="flex flex-col gap-1.5">
-          <legend id="rot-perfil" className="mb-1.5 text-[14px] font-medium">
-            Papel
-          </legend>
-          <RadioGroup
-            value={f.papel}
-            onValueChange={(v) => setF({ ...f, papel: v as Papel })}
-            aria-labelledby="rot-perfil"
-            className="grid-cols-2 sm:grid-cols-4"
-          >
-            {papeis.map((p) => (
-              <div
-                key={p}
-                className="flex items-center gap-2 rounded-lg border border-[#B9C3CA] bg-white px-3 py-2.5 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary-claro"
-              >
-                <RadioGroupItem id={`papel-${p}`} value={p} />
-                <Label htmlFor={`papel-${p}`} className="cursor-pointer">
-                  {ROTULO_PAPEL[p]}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </fieldset>
-        <div className="rounded-lg bg-[#E3F0F2] px-3 py-[10px] text-[14px] text-[#0B4450]">
-          A senha temporária aparece uma única vez, logo depois de criar.
-        </div>
-        {erros.geral && (
-          <Alert tom="vermelho" role="alert">
-            {erros.geral}
-          </Alert>
-        )}
-      </form>
-    </Modal>
-  )
-}
-
-/** Nome, login e papel. Só o que mudou vai ao servidor; o próprio papel fica travado (AUTO_PAPEL no banco). */
-function EditarUsuarioModal({
-  usuario,
-  proprio,
-  papeis,
-  onClose,
-  onSalvar,
-}: {
-  usuario: UsuarioSistema
-  proprio: boolean
-  papeis: Papel[]
-  onClose: () => void
-  onSalvar: (i: ReturnType<typeof mudancas>) => Promise<void>
-}) {
-  const [f, setF] = useState<{ nome: string; login: string; papel: Papel }>({
-    nome: usuario.nome,
-    login: usuario.login,
-    papel: usuario.papel,
-  })
-  const [erros, setErros] = useState<ErrosNovo>({})
-  const [salvando, setSalvando] = useState(false)
-  const opcoes = papeis.includes(usuario.papel) ? papeis : [usuario.papel, ...papeis]
-  const mudouPapel = f.papel !== usuario.papel
-  async function salvar(e: FormEvent) {
-    e.preventDefault()
-    if (salvando) return
-    const m = mudancas(usuario, f)
-    const v = validarNovoUsuario(f)
-    const locais = {
-      nome: m.nome !== undefined ? v.nome : undefined,
-      login: m.login !== undefined ? v.login : undefined,
-    }
-    setErros(locais)
-    if (locais.nome || locais.login) return
-    setSalvando(true)
-    try {
-      await onSalvar(m)
-    } catch (err) {
-      setErros(errosDoServidor(err))
-      setSalvando(false)
-    }
-  }
-  return (
-    <Modal
-      titulo={`Editar ${usuario.nome}`}
-      onClose={onClose}
-      rodape={
-        <>
-          <Button
-            type="submit"
-            form="f-editar"
-            variante="primario"
-            grande
-            className="flex-1"
-            carregando={salvando}
-          >
-            Salvar
-          </Button>
-          <Button grande onClick={onClose}>
-            Cancelar
-          </Button>
-        </>
-      }
-    >
-      <form id="f-editar" onSubmit={salvar} noValidate className="flex flex-col gap-[14px]">
-        <Field label="Nome completo" erro={erros.nome}>
-          <input
-            data-autofocus
-            className="input"
-            autoComplete="off"
-            value={f.nome}
-            aria-invalid={erros.nome ? true : undefined}
-            onChange={(e) => setF({ ...f, nome: e.target.value })}
-          />
-        </Field>
-        <Field
-          label="Login"
-          erro={erros.login}
-          dica="Letras minúsculas, números, ponto, hífen ou sublinhado. A senha não muda."
-        >
-          <input
-            className="input font-mono"
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            value={f.login}
-            aria-invalid={erros.login ? true : undefined}
-            onChange={(e) => setF({ ...f, login: e.target.value })}
-          />
-        </Field>
-        <Field
-          label="Papel"
-          dica={proprio ? 'Ninguém muda o próprio papel: peça a outro síndico.' : undefined}
-        >
-          <select
-            className="input"
-            value={f.papel}
-            disabled={proprio}
-            onChange={(e) => setF({ ...f, papel: e.target.value as Papel })}
-          >
-            {opcoes.map((p) => (
-              <option key={p} value={p}>
-                {ROTULO_PAPEL[p]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        {mudouPapel && (
-          <Alert tom="ambar">
-            Ao mudar o papel, as sessões abertas de {usuario.nome} são encerradas e a nova permissão
-            vale no próximo login.
-          </Alert>
-        )}
-        {erros.geral && (
-          <Alert tom="vermelho" role="alert">
-            {erros.geral}
-          </Alert>
-        )}
-      </form>
-    </Modal>
-  )
-}
-
-/**
- * Mostra a senha temporária UMA vez. Ao fechar, o estado da tela é zerado e a senha some da memória da UI
- * (não fica em contexto global, cache do React Query nem storage). A API também não a devolve de novo.
- */
-function SenhaTemporariaModal({ senha, onClose }: { senha: SenhaExibida; onClose: () => void }) {
-  const [copiado, setCopiado] = useState<'senha' | 'mensagem' | 'falhou' | null>(null)
-  const expiraEm = senha.usuario.senhaTemporariaExpiraEm ?? null
-  const mensagem = mensagemAcesso({
-    login: senha.usuario.login,
-    senhaTemporaria: senha.senhaTemporaria,
-    expiraEm,
-    origem: window.location.origin,
-  })
-  async function copiar(texto: string, qual: 'senha' | 'mensagem') {
-    try {
-      await navigator.clipboard.writeText(texto)
-      setCopiado(qual)
-    } catch {
-      setCopiado('falhou')
-    }
-  }
-  return (
-    <Modal
-      titulo={
-        senha.motivo === 'criado'
-          ? `Usuário ${senha.usuario.nome} criado`
-          : `Acesso de ${senha.usuario.nome} redefinido`
-      }
-      tamanho="p"
-      tom="petroleo"
-      tituloId="modal-senha-temporaria"
-      semFechar
-      onClose={onClose}
-      rodape={
-        <Button variante="primario" grande className="flex-1" data-autofocus onClick={onClose}>
-          Já copiei, fechar
-        </Button>
-      }
-    >
-      <div className="flex gap-[10px] rounded-lg border border-[#FEC84B] bg-[#FEF0C7] px-[14px] py-3 text-[#7A2E0E]">
-        <TriangleAlert className="h-5 w-5 shrink-0" strokeWidth={2.2} aria-hidden />
-        <span>
-          <strong>Copie agora.</strong> Esta senha temporária não será mostrada de novo. No primeiro
-          acesso, {senha.usuario.nome} vai precisar trocá-la.
-        </span>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[14px] font-medium">Login</span>
-        <span className="font-mono text-[15px]">{senha.usuario.login}</span>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <span id="rot-senha-temp" className="text-[14px] font-medium">
-          Senha temporária
-        </span>
-        <div className="flex flex-wrap items-center gap-2">
-          <output
-            aria-labelledby="rot-senha-temp"
-            className="min-w-0 flex-1 select-all break-all rounded-lg border border-[#B9C3CA] bg-[#F6F8F9] px-[14px] py-[10px] font-mono text-[18px] tracking-[0.04em]"
-          >
-            {senha.senhaTemporaria}
-          </output>
-          <Button onClick={() => void copiar(senha.senhaTemporaria, 'senha')}>
-            <Copy className="mr-1.5 inline h-4 w-4" aria-hidden />
-            {copiado === 'senha' ? 'Copiada' : 'Copiar senha'}
-          </Button>
-        </div>
-        <span className="text-[13px] text-[#56616B]">
-          Digite com os hífens, só letras minúsculas e números.
-        </span>
-        {expiraEm != null && (
-          <span className="text-[14px] font-medium text-[#7A2E0E]">
-            Válida até {validadeTexto(expiraEm)}. Depois disso, será preciso gerar outra.
-          </span>
-        )}
-      </div>
-      <Button onClick={() => void copiar(mensagem, 'mensagem')}>
-        <MessageSquareText className="mr-1.5 inline h-4 w-4" aria-hidden />
-        {copiado === 'mensagem'
-          ? 'Mensagem copiada'
-          : 'Copiar mensagem com login, senha e endereço'}
-      </Button>
-      <span className="sr-only" aria-live="polite">
-        {copiado === 'mensagem' ? 'Mensagem copiada.' : copiado === 'senha' ? 'Senha copiada.' : ''}
-      </span>
-      {copiado === 'falhou' && (
-        <Alert tom="ambar" role="alert">
-          Não foi possível copiar. Selecione a senha e copie manualmente.
-        </Alert>
-      )}
-    </Modal>
   )
 }
