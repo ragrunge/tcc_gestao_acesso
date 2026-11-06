@@ -1,9 +1,9 @@
 // Gerador e validador do conjunto fictício, sem rede e sem Docker. As regras locais do validador são
 // conferidas contra as de src/domain/rules.ts (que o Node puro não importa) para não divergirem.
-import { cpfValido, escalaVigente, justificativaValida as justificativaDomain, temNumeroDePessoa as numeroDomain, validarEscala as escalaDomain } from '@domain/rules';
-import { normalizarPlaca } from '@domain/cpf';
-import { brt, partes } from '@domain/time';
-import { codigoUnidade, gerarUnidades } from '@domain/units';
+import { cpfValido, escalaVigente, justificativaValida as justificativaDomain, temNumeroDePessoa as numeroDomain, validarEscala as escalaDomain } from '@/domain/rules';
+import { normalizarPlaca } from '@/domain/cpf';
+import { brt, partes } from '@/domain/time';
+import { codigoUnidade, gerarUnidades } from '@/domain/units';
 import { criarAleatorio } from './aleatorio';
 import { contar, cpfComDigitoValido, formatarCpf, formatarTelefone, gerarConjunto, semAcento, SEMENTE_PADRAO, type Conjunto } from './gerador';
 import { escalaVigenteNoMinuto, justificativaValida, temNumeroDePessoa, validarConjunto, validarEscala } from './validar';

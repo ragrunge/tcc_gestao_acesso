@@ -8,16 +8,16 @@
 //   * as linhas da planilha (com CPF em claro) ficam só na memória desta aba entre analisar e confirmar, como no
 //     cliente HTTP antigo: o banco guarda só a impressão HMAC delas.
 // Texto livre que pode identificar alguém (nome, placa, linhas da planilha) vai sempre no CORPO do POST da RPC.
-import type { AutorizacaoRetirada, Encomenda, Ocorrencia, RegistroAlteracao } from '@domain/types';
-import { csvRelatorio } from '@domain/relatorio';
-import { montarExportacaoJsonl } from '@domain/exportacao';
-import { hashGenese, verificarCadeia, type Ancora, type EventoExportado, type ResultadoIntegridade } from '@domain/hashChain';
-import { toInputDate } from '@domain/time';
-import { ApiError } from '../types';
+import type { AutorizacaoRetirada, Encomenda, Ocorrencia, RegistroAlteracao } from '@/domain/types';
+import { csvRelatorio } from '@/domain/relatorio';
+import { montarExportacaoJsonl } from '@/domain/exportacao';
+import { hashGenese, verificarCadeia, type Ancora, type EventoExportado, type ResultadoIntegridade } from '@/domain/hashChain';
+import { toInputDate } from '@/domain/time';
+import { ApiError } from '@/api/types';
 import type {
   Api, EncomendaView, FiltroEncomendas, FiltroOcorrencias, FiltroRelatorio, FuncionarioView, LinhaPlanilha, OcorrenciaView, Pagina,
   RelatorioImportacao, RelatorioResumo, ResumoOcorrencias,
-} from '../types';
+} from '@/api/types';
 import { contagem, filtroEventos, naoMigrado, paginaDe, pessoaDe, posicao, respostaInvalida, semIndefinidos, todas, type Rpc } from './portaria';
 
 const DIA_MS = 86_400_000;

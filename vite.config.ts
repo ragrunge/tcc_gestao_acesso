@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Sem proxy: o front fala direto com o Supabase (VITE_SUPABASE_URL), ver src/lib/supabase.ts.
+// Sem proxy: o front fala direto com o Supabase (VITE_SUPABASE_URL), ver src/integrations/supabase/client.ts.
 
 // PWA: só o SHELL (JS/CSS/HTML/ícones/fontes do build) fica em cache, para o app ser instalável e abrir rápido.
 // REGRA DURA (LGPD + trilha append-only): NADA do Supabase no cache do service worker. Por isso: sem runtimeCaching
@@ -27,7 +27,7 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: { alias: { '@domain': fileURLToPath(new URL('./src/domain', import.meta.url)) } },
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: { port: 5173 },
   test: {
     globals: true,

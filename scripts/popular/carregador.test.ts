@@ -1,7 +1,7 @@
 // Fluxo do carregador contra um banco FALSO em memória que imita o contrato das RPCs usadas (formato das respostas,
 // recusas 409 e transições de estado). Prova a orquestração (ordem, chaves de retomada, idempotência); as regras reais
 // só o Supabase local prova (ver o roteiro de ensaio no README).
-import { codigoUnidade, gerarUnidades } from '@domain/units';
+import { codigoUnidade, gerarUnidades } from '@/domain/units';
 import { carregar } from './carregador';
 import { ErroCarga, type Api } from './cliente';
 import { gerarConjunto, semAcento } from './gerador';

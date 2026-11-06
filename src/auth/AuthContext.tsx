@@ -4,10 +4,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useApi, type TrocarSenhaInput, type UsuarioSessao } from '../api';
-import { useToast } from '../components/Toast';
-import { pode, ROTAS, rotaInicial, type Acao, type Rota } from '@domain/rbac';
-import { Splash } from '../components/Carregando';
+import { useApi, type TrocarSenhaInput, type UsuarioSessao } from '@/api';
+import { useToast } from '@/componentes/Toast';
+import { pode, ROTAS, rotaInicial, type Acao, type Rota } from '@/domain/rbac';
+import { Splash } from '@/componentes/Carregando';
 
 interface AuthCtx {
   usuario: UsuarioSessao | null;

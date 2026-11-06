@@ -4,7 +4,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { AREAS_COMUNS_INICIAIS, codigoUnidade, ESTRUTURA_PADRAO, gerarUnidades, PORTARIA_SOCIAL } from '@domain/units';
+import { AREAS_COMUNS_INICIAIS, codigoUnidade, ESTRUTURA_PADRAO, gerarUnidades, PORTARIA_SOCIAL } from '@/domain/units';
 
 const CONTAINER = 'supabase_db_tcc-gestao-acesso';
 const raiz = (caminho: string) => fileURLToPath(new URL(`../../../${caminho}`, import.meta.url));

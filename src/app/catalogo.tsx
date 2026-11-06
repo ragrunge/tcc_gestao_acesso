@@ -4,9 +4,9 @@
 // React Query (chave CHAVES.catalogo): o CRUD de unidades invalida, e o logout limpa o cache (AuthContext).
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useApi } from '../api';
-import type { AreaComum, Unidade } from '@domain/types';
-import { acharUnidadePorTexto, codigoUnidade, ESTRUTURA_PADRAO, rotuloUnidade, type Agrupamento } from '@domain/units';
+import { useApi } from '@/api';
+import type { AreaComum, Unidade } from '@/domain/types';
+import { acharUnidadePorTexto, codigoUnidade, ESTRUTURA_PADRAO, rotuloUnidade, type Agrupamento } from '@/domain/units';
 import { CHAVES } from './consultas';
 
 interface CatalogoCtx {

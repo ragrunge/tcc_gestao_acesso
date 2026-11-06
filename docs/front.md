@@ -38,6 +38,6 @@ Telas cujo backend ainda não foi migrado somem do menu: `suporta()` em `api/` d
 
 ## Regras compartilhadas
 
-`src/domain` (`@domain`) tem as regras puras usadas pela UI (habilitar botões) e espelhadas em SQL, com
+`src/domain` (`@/domain`) tem as regras puras usadas pela UI (habilitar botões) e espelhadas em SQL, com
 teste de paridade. Mudou a matriz de permissões em `rbac.ts`: gere o SQL com `node scripts/rbac-sql.mjs` e crie a
 migração.

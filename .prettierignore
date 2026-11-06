@@ -1,4 +1,5 @@
 dist
+src/integrations/supabase/type.ts
 supabase/migrations
 supabase/functions
 package-lock.json

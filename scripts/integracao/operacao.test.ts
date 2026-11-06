@@ -5,10 +5,10 @@
 // Pré-requisitos: supabase start && supabase db reset && supabase functions serve.
 import { execFileSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
-import { lerExportacaoJsonl } from '@domain/exportacao';
-import { verificarCadeia } from '@domain/hashChain';
-import { createSupabaseApi } from '../../src/api/supabase/createSupabaseApi';
-import { ApiError, type Api } from '../../src/api/types';
+import { lerExportacaoJsonl } from '@/domain/exportacao';
+import { verificarCadeia } from '@/domain/hashChain';
+import { createSupabaseApi } from '@/api/supabase/createSupabaseApi';
+import { ApiError, type Api } from '@/api/types';
 
 const PROJETO = 'tcc-gestao-acesso';
 const SENHA_DEMO = 'Demo-Portaria-2026';

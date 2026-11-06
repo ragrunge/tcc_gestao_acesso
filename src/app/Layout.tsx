@@ -2,19 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, Search, X } from 'lucide-react';
-import { rotaDisponivel, useAuth } from '../auth/AuthContext';
-import { pode, type Rota } from '@domain/rbac';
-import { ROTULO_CATEGORIA, ROTULO_PAPEL } from '@domain/types';
-import { partes } from '@domain/time';
-import { dicaBuscaCpf } from '@domain/cpf';
-import { temModalAberto, useArmadilhaDeFoco } from '../components/Modal';
-import { FichaPessoaModal } from '../features/cadastro/FichaPessoaModal';
+import { rotaDisponivel, useAuth } from '@/auth/AuthContext';
+import { pode, type Rota } from '@/domain/rbac';
+import { ROTULO_CATEGORIA, ROTULO_PAPEL } from '@/domain/types';
+import { partes } from '@/domain/time';
+import { dicaBuscaCpf } from '@/domain/cpf';
+import { temModalAberto, useArmadilhaDeFoco } from '@/componentes/Modal';
+import { FichaPessoaModal } from '@/paginas/cadastro/FichaPessoaModal';
 import { useAgora } from './useAsync';
 import { CHAVES, useBuscaGlobal, useContagemPendentes } from './consultas';
 import { useCatalogo } from './catalogo';
-import { useApi } from '../api';
+import { useApi } from '@/api';
 import { useTituloPagina } from './titulo';
-import { Marca } from '../components/Marca';
+import { Marca } from '@/componentes/Marca';
 
 const DIAS_EXTENSO = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 

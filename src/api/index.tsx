@@ -1,7 +1,7 @@
 import { createContext, createElement, useContext, useMemo, type ReactNode } from 'react';
 import type { Api } from './types';
-import { createSupabaseApi } from './supabase/createSupabaseApi';
-import { criarClienteSupabase } from '../lib/supabase';
+import { createSupabaseApi } from '@/api/supabase/createSupabaseApi';
+import { criarClienteSupabase } from '@/integrations/supabase/client';
 
 export * from './types';
 

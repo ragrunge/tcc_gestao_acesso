@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ApiError } from '../api/types';
+import { ApiError } from '@/api/types';
 
 /** `details` do 400 de validação: [{ field, message }]. Só caminho e mensagem; a API nunca devolve o valor enviado. */
 function camposInvalidos(detalhes: unknown): string[] {
@@ -47,7 +47,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
 }
 
 /** Hora atual (relógio do navegador), atualizada a cada `intervaloMs`. */
-import { agora } from '@domain/time';
+import { agora } from '@/domain/time';
 export function useAgora(intervaloMs = 1000): number {
   const [t, setT] = useState(agora());
   useEffect(() => {

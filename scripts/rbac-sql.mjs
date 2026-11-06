@@ -1,7 +1,7 @@
 // Gera o SQL da matriz RBAC a partir de src/domain/rbac.ts (fonte única; desenho §2.3).
 //   node scripts/rbac-sql.mjs migracao   -> bloco INSERT para uma migração NOVA (nunca editar migração aplicada)
 //   node scripts/rbac-sql.mjs teste      -> conteúdo de supabase/tests/database/04_rbac_matriz.test.sql
-// O teste de paridade (src/test/rbac-paridade.test.ts) confere que o teste pgTAP commitado é exatamente o gerado
+// O teste de paridade (src/domain/rbac-paridade.test.ts) confere que o teste pgTAP commitado é exatamente o gerado
 // agora; o pgTAP confere que a tabela do banco é a esperada e que app.exigir() decide igual para papel x ação.
 // Cadeia: rbac.ts == teste commitado (vitest) e teste == banco (supabase test db).
 import { pathToFileURL } from 'node:url';
@@ -42,7 +42,7 @@ export function sqlTeste() {
   const linhas = [];
   linhas.push(
     '-- GERADO por `node scripts/rbac-sql.mjs teste` a partir de src/domain/rbac.ts. NÃO editar à mão:',
-    '-- o teste src/test/rbac-paridade.test.ts falha se este arquivo divergir do gerado.',
+    '-- o teste src/domain/rbac-paridade.test.ts falha se este arquivo divergir do gerado.',
     '-- Matriz RBAC (desenho §3.4, item 2): a tabela do banco é a do TS, e app.exigir() decide igual para cada',
     '-- papel x ação, passando pelo caminho real (claims da JWT -> sessão -> usuário -> papel ATUAL -> rbac_matriz).',
     'BEGIN;',

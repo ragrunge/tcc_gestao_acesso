@@ -4,19 +4,19 @@
 // conversões que o contrato do cliente HTTP antigo fazia: placa com hífen no veículo da unidade, datas de calendário
 // ('AAAA-MM-DD') na ida, o "negado" vindo como sucesso virando o 422 de sempre e a paginação percorrida.
 // Texto livre que pode identificar alguém (termo de busca, nome, placa) vai sempre no CORPO do POST da RPC.
-import type { Database } from '../../supabase/type';
+import type { Database } from '@/integrations/supabase/type';
 import type {
   AutorizacaoPrevia, EventoView, Funcionario, Pessoa, Restricao, Unidade, Veiculo, VinculoUnidade,
-} from '@domain/types';
-import type { PermanenciaView, VeiculoAcesso } from '@domain/types';
-import { AGRUPAMENTOS } from '@domain/units';
-import { toInputDate } from '@domain/time';
-import { ApiError } from '../types';
+} from '@/domain/types';
+import type { PermanenciaView, VeiculoAcesso } from '@/domain/types';
+import { AGRUPAMENTOS } from '@/domain/units';
+import { toInputDate } from '@/domain/time';
+import { ApiError } from '@/api/types';
 import type {
   Api, Autorizador, AutorizacaoView, Catalogo, FichaPessoa, FiltroEventos, FiltroEventosPagina, Pagina, PaginaEventos, PessoaBusca, PessoaLista,
   PosicaoTrilha, PrevistoView, RestricaoView, ResultadoBuscaGlobal, ResultadoRestricao, ResumoPessoas, ResumoTurno, ResumoUnidades, ResumoVinculos,
   UnidadeDetalhe, UnidadeResumo, VinculoView,
-} from '../types';
+} from '@/api/types';
 
 type FuncoesApi = Database['api']['Functions'];
 export type NomeRpc = keyof FuncoesApi;

@@ -8,8 +8,8 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import { createSupabaseApi } from '../../src/api/supabase/createSupabaseApi';
-import { ApiError } from '../../src/api/types';
+import { createSupabaseApi } from '@/api/supabase/createSupabaseApi';
+import { ApiError } from '@/api/types';
 
 const PROJETO = 'tcc-gestao-acesso';
 const SENHA_DEMO = 'Demo-Portaria-2026';

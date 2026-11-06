@@ -2,7 +2,7 @@
 // (CRUD de unidades, decisão de vínculo) invalida pelo prefixo, sem precisar conhecer cada tela que lê.
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useApi } from '../api';
+import { useApi } from '@/api';
 
 export const CHAVES = {
   catalogo: ['catalogo'] as const,

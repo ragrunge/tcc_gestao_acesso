@@ -5,8 +5,8 @@
 // contra registro novo; voltar à página 1 o renova.
 import { useCallback, useEffect, useRef } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import type { Pagina } from '../api';
-import { useFiltrosUrl } from '../components/Filtros';
+import type { Pagina } from '@/api';
+import { useFiltrosUrl } from '@/componentes/Filtros';
 
 export const POR_PAGINA = 50;
 /** Teto do deslocamento no servidor (0037): além disso, só com filtro. */

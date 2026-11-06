@@ -28,7 +28,7 @@
     "popular:sindico-local": "node --disable-warning=ExperimentalWarning scripts/popular/sindico-local.ts",
     "fn:deploy:all": "dotenv -- supabase functions deploy",
     "db:start": "supabase start",
-    "gen:types": "supabase gen types typescript --local --schema api > src/supabase/type.ts",
+    "gen:types": "supabase gen types typescript --local --schema api > src/integrations/supabase/type.ts",
     "db:mig:new": "supabase migration new",
     "db:diff": "supabase db diff --local",
     "check:migrations": "node scripts/checar-migrations.mjs"

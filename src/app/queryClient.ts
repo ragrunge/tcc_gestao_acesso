@@ -1,6 +1,6 @@
 // React Query (v5). Por enquanto só login, sessão e usuários usam; as demais telas seguem com useAsync.
 import { QueryClient } from '@tanstack/react-query';
-import { ApiError } from '../api/types';
+import { ApiError } from '@/api/types';
 
 /**
  * Repetir só falha transitória (rede, 5xx). 4xx é resposta definitiva: 401 (sessão), 403 (permissão ou troca de

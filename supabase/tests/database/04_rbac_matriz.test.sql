@@ -1,5 +1,5 @@
 -- GERADO por `node scripts/rbac-sql.mjs teste` a partir de src/domain/rbac.ts. NÃO editar à mão:
--- o teste src/test/rbac-paridade.test.ts falha se este arquivo divergir do gerado.
+-- o teste src/domain/rbac-paridade.test.ts falha se este arquivo divergir do gerado.
 -- Matriz RBAC (desenho §3.4, item 2): a tabela do banco é a do TS, e app.exigir() decide igual para cada
 -- papel x ação, passando pelo caminho real (claims da JWT -> sessão -> usuário -> papel ATUAL -> rbac_matriz).
 BEGIN;
