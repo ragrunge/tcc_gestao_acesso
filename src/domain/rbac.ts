@@ -1,27 +1,54 @@
 // Matriz RBAC (spec seção 5.2). É aplicada no servidor (API); a UI apenas oculta o que o papel não pode.
-import type { Papel } from './types';
+import type { Papel } from './types'
 
 export type Acao =
-  | 'unidade.ver' | 'unidade.editar'
-  | 'pessoa.ver' | 'pessoa.cadastrar_externo' | 'pessoa.cadastrar_morador'
-  | 'vinculo.ver' | 'vinculo.criar' | 'vinculo.decidir'
+  | 'unidade.ver'
+  | 'unidade.editar'
+  | 'pessoa.ver'
+  | 'pessoa.cadastrar_externo'
+  | 'pessoa.cadastrar_morador'
+  | 'vinculo.ver'
+  | 'vinculo.criar'
+  | 'vinculo.decidir'
   | 'importacao.executar'
-  | 'autorizacao.criar' | 'restricao.criar' | 'restricao.aprovar'
-  | 'evento.registrar' | 'evento.retroativo' | 'evento.retroativo_antigo' | 'evento.corrigir' | 'evento.ver'
-  | 'encomenda.ver' | 'encomenda.operar'
-  | 'ocorrencia.ver' | 'ocorrencia.operar'
-  | 'relatorio.ver' | 'turno.ver'
-  | 'auditoria.verificar' | 'auditoria.exportar' | 'auditoria.selar'
-  | 'usuario.ver' | 'usuario.gerenciar' | 'usuario.gerenciar_sindico'
+  | 'autorizacao.criar'
+  | 'restricao.criar'
+  | 'restricao.aprovar'
+  | 'evento.registrar'
+  | 'evento.retroativo'
+  | 'evento.retroativo_antigo'
+  | 'evento.corrigir'
+  | 'evento.ver'
+  | 'encomenda.ver'
+  | 'encomenda.operar'
+  | 'ocorrencia.ver'
+  | 'ocorrencia.operar'
+  | 'relatorio.ver'
+  | 'turno.ver'
+  | 'auditoria.verificar'
+  | 'auditoria.exportar'
+  | 'auditoria.selar'
+  | 'usuario.ver'
+  | 'usuario.gerenciar'
+  | 'usuario.gerenciar_sindico'
   | 'veiculo.cadastrar'
-  | 'funcionario.gerenciar' | 'funcionario.ver' | 'pessoa.editar' | 'pessoa.desativar'
-  | 'autorizacao.area_comum' | 'encomenda.autorizar_retirada'
+  | 'funcionario.gerenciar'
+  | 'funcionario.ver'
+  | 'pessoa.editar'
+  | 'pessoa.desativar'
+  | 'autorizacao.area_comum'
+  | 'encomenda.autorizar_retirada'
   | 'documento.ver'
-  | 'lgpd.exportar' | 'lgpd.anonimizar' | 'lgpd.retencao';
+  | 'lgpd.exportar'
+  | 'lgpd.anonimizar'
+  | 'lgpd.retencao'
 
-const SI: Papel = 'sindico', AD: Papel = 'administracao', PO: Papel = 'porteiro', AU: Papel = 'auditor';
+const SI: Papel = 'sindico',
+  AD: Papel = 'administracao',
+  PO: Papel = 'porteiro',
+  AU: Papel = 'auditor'
 // Administrador do sistema (0041): o técnico que cuida das contas, sem tela nem RPC de dado pessoal de morador (acesso indireto via conta: ver docs/arquitetura.md). Só usuario.*.
-const AS: Papel = 'admin_sistema';
+const AS: Papel = 'admin_sistema'
 
 export const MATRIZ: Record<Acao, Papel[]> = {
   'unidade.ver': [SI, AD, PO, AU],
@@ -73,16 +100,29 @@ export const MATRIZ: Record<Acao, Papel[]> = {
   'lgpd.exportar': [SI, AD], // spec 9.3
   'lgpd.anonimizar': [SI],
   'lgpd.retencao': [SI], // RNF-09
-};
+}
 
-export const pode = (papel: Papel | undefined, acao: Acao): boolean => !!papel && MATRIZ[acao].includes(papel);
+export const pode = (papel: Papel | undefined, acao: Acao): boolean =>
+  !!papel && MATRIZ[acao].includes(papel)
 
 // 2FA fica para a fase de segurança (pós-MVP).
 
 export type Rota =
-  | 'painel' | 'entrada' | 'saida' | 'pessoas' | 'encomendas' | 'ocorrencias'
-  | 'unidades' | 'vinculos' | 'cadastro' | 'importar'
-  | 'historico' | 'relatorios' | 'usuarios' | 'funcionarios' | 'privacidade';
+  | 'painel'
+  | 'entrada'
+  | 'saida'
+  | 'pessoas'
+  | 'encomendas'
+  | 'ocorrencias'
+  | 'unidades'
+  | 'vinculos'
+  | 'cadastro'
+  | 'importar'
+  | 'historico'
+  | 'relatorios'
+  | 'usuarios'
+  | 'funcionarios'
+  | 'privacidade'
 
 /** Quais papéis acessam cada rota. */
 export const ROTAS: Record<Rota, Papel[]> = {
@@ -101,7 +141,13 @@ export const ROTAS: Record<Rota, Papel[]> = {
   usuarios: [SI, AD, AS], // usuario.ver; as ações da tela exigem usuario.gerenciar (SI, AS)
   funcionarios: [SI, AD, AU], // AU só lê (funcionario.ver); criar e editar exigem funcionario.gerenciar
   privacidade: [SI, AD], // lgpd.exportar (SI, AD); a aba Retenção exige lgpd.retencao (SI)
-};
+}
 
 export const rotaInicial = (papel: Papel): Rota =>
-  papel === 'auditor' ? 'historico' : papel === 'administracao' ? 'vinculos' : papel === 'admin_sistema' ? 'usuarios' : 'painel';
+  papel === 'auditor'
+    ? 'historico'
+    : papel === 'administracao'
+      ? 'vinculos'
+      : papel === 'admin_sistema'
+        ? 'usuarios'
+        : 'painel'

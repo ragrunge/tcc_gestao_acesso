@@ -1,7 +1,7 @@
 # Controle e Gestão de Acesso em Condomínio Residencial
 
-Material do Trabalho de Conclusão de Curso de Sistemas de Informação (EAD) *Controle e Gestão de Acesso em
-Condomínio Residencial: contribuições para a segurança patrimonial, administrativa e jurídica*.
+Material do Trabalho de Conclusão de Curso de Sistemas de Informação (EAD) _Controle e Gestão de Acesso em
+Condomínio Residencial: contribuições para a segurança patrimonial, administrativa e jurídica_.
 
 Autores: Ana Carolina Vilelo Moreira Dias, Rafael Aparecido Vidal e Ruan Abolis de Araújo.
 Orientador: Prof. Me. Gilberto Alves Pereira. Faculdade Impacta, São Paulo, 2026.
@@ -24,17 +24,17 @@ participou da pesquisa.
 
 ## Conteúdo
 
-| Pasta | O que tem |
-|---|---|
-| `docs/requisitos.md` | Documento de requisitos: problemas levantados, escopo, requisitos funcionais e não funcionais, regras de negócio, proteção de dados (LGPD), casos de uso e matriz de rastreabilidade com os indicadores de avaliação |
-| `docs/rastreabilidade.md` | Ligação de cada requisito funcional ao código que o implementa |
-| `docs/arquitetura.md`, `docs/anexos.md`, `docs/front.md` | Decisões de segurança do backend, dos anexos cifrados e guia do front |
-| `docs/desenvolvimento-local.md` | Seed de desenvolvimento do banco local e carga de dados de teste (nada disso roda no projeto hospedado por padrão) |
-| `diagramas/` | Diagramas de casos de uso (portaria, administração e auditoria), em PlantUML, SVG e PNG |
-| `src/`, `public/`, `index.html` | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração) |
-| `src/domain` | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco |
-| `supabase/` | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/` |
-| `scripts/` | Geração dos ícones e da marca, do SQL da matriz de permissões (`rbac-sql.mjs`), primeiro síndico (`sindico/`) e carga de dados de teste (`popular/`) |
+| Pasta                                                    | O que tem                                                                                                                                                                                                            |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/requisitos.md`                                     | Documento de requisitos: problemas levantados, escopo, requisitos funcionais e não funcionais, regras de negócio, proteção de dados (LGPD), casos de uso e matriz de rastreabilidade com os indicadores de avaliação |
+| `docs/rastreabilidade.md`                                | Ligação de cada requisito funcional ao código que o implementa                                                                                                                                                       |
+| `docs/arquitetura.md`, `docs/anexos.md`, `docs/front.md` | Decisões de segurança do backend, dos anexos cifrados e guia do front                                                                                                                                                |
+| `docs/desenvolvimento-local.md`                          | Seed de desenvolvimento do banco local e carga de dados de teste (nada disso roda no projeto hospedado por padrão)                                                                                                   |
+| `diagramas/`                                             | Diagramas de casos de uso (portaria, administração e auditoria), em PlantUML, SVG e PNG                                                                                                                              |
+| `src/`, `public/`, `index.html`                          | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração)                                                                                                        |
+| `src/domain`                                             | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco                                                                                                  |
+| `supabase/`                                              | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/`                                                                                                            |
+| `scripts/`                                               | Geração dos ícones e da marca, do SQL da matriz de permissões (`rbac-sql.mjs`), primeiro síndico (`sindico/`) e carga de dados de teste (`popular/`)                                                                 |
 
 ## O sistema
 
@@ -72,7 +72,7 @@ está na tag `nestjs-final`.
 
 ## Artigo e demonstração
 
-- Artigo: *a definir*.
+- Artigo: _a definir_.
 - Sistema publicado: https://tcc-gestao-acesso.vercel.app (acesso por usuário cadastrado; ver "Versão publicada").
 
 ## Como rodar localmente

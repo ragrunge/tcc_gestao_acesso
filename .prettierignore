@@ -1,5 +1,9 @@
 dist
-src/integrations/supabase/type.ts
-supabase/migrations
-supabase/functions
+node_modules
 package-lock.json
+src/integrations/supabase/type.ts
+supabase
+docs
+diagramas
+public
+.claude

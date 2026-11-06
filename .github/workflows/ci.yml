@@ -22,6 +22,7 @@ jobs:
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
+      - run: npm run format:check
       - run: node scripts/checar-migrations.mjs
         env:
           BASE_REF: ${{ github.base_ref }}

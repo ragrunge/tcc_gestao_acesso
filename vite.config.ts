@@ -1,8 +1,8 @@
 /// <reference types="vitest" />
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import { fileURLToPath } from 'node:url'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // Sem proxy: o front fala direto com o Supabase (VITE_SUPABASE_URL), ver src/integrations/supabase/client.ts.
 
@@ -22,7 +22,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
         globIgnores: ['og-image.png'],
         navigateFallback: 'index.html',
-        
+
         cleanupOutdatedCaches: true,
       },
     }),
@@ -35,4 +35,4 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
     exclude: ['scripts/integracao/**', 'node_modules/**', 'dist/**'],
   },
-});
+})
