@@ -1,11 +1,11 @@
 // Primeiro síndico contra o Supabase LOCAL, pelo núcleo real do script (scripts/sindico) com a chave secreta local.
-// Exige o banco SEM seed (o projeto hospedado nasce assim): `npm run test:supabase:sindico` faz o reset sem seed.
+// Exige o banco SEM seed (o projeto hospedado nasce assim): `npm run test:integracao:sem-seed` faz o reset sem seed.
 // Depois, `supabase db reset` volta o seed para as demais suítes.
 // Pré-requisitos: supabase start e supabase functions serve --env-file supabase/functions/.env.local.
 import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { criarPrimeiroSindico, type ErroBootstrap } from '../../../scripts/sindico/nucleo.ts';
-import { dependenciasSupabase } from '../../../scripts/sindico/supabase.ts';
+import { criarPrimeiroSindico, type ErroBootstrap } from '../../sindico/nucleo.ts';
+import { dependenciasSupabase } from '../../sindico/supabase.ts';
 
 const CONTAINER = 'supabase_db_tcc-gestao-acesso';
 
@@ -46,7 +46,7 @@ let sindico: { login: string; senha: string } | null = null;
 
 beforeAll(async () => {
   if (contar('public.usuario_sistema') !== 0 || contar('auth.users') !== 0) {
-    throw new Error('Banco com usuários: rode `npm run test:supabase:sindico` (faz supabase db reset --no-seed).');
+    throw new Error('Banco com usuários: rode `npm run test:integracao:sem-seed` (faz supabase db reset --no-seed).');
   }
   // Logo depois do reset, o Auth e o PostgREST ainda estão reiniciando. A preparar não grava nada: serve de sonda.
   for (let i = 0; i < 60; i++) {

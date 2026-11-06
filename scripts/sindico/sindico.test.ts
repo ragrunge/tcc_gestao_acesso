@@ -1,5 +1,5 @@
 // Bootstrap do primeiro síndico sem terminal nem rede: núcleo com dependências falsas, busca da chave com fetch falso
-// e a camada interativa com um TTY simulado. A integração real (Auth, Edge, banco) está em supabase/tests/sindico.
+// e a camada interativa com um TTY simulado. A integração real (Auth, Edge, banco) está em scripts/integracao/sem-seed.
 import { randomUUID } from 'node:crypto';
 import { obterChaveServico } from './chave.ts';
 import { criarPrimeiroSindico, ErroBootstrap, type Dependencias } from './nucleo.ts';

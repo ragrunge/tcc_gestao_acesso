@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'supabase/functions'] },
+  { ignores: ['dist', 'node_modules', 'supabase/functions', 'playwright-report', 'test-results'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -22,7 +22,7 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node } },
   },
   {
-    files: ['**/*.test.ts', '**/*.test.tsx', 'src/test/**', 'supabase/tests/**'],
+    files: ['**/*.test.ts', '**/*.test.tsx', 'src/test/**', 'scripts/integracao/**'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
   },
   prettier,

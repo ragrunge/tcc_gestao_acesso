@@ -56,7 +56,7 @@ describe('paridade TS == SQL das regras da F3', () => {
     const r = emLote(casos.map(([p, t]) => ({ p: { sem_cpf: p.semCpf, documento_busca: p.documentoBusca, telefone: p.telefone,
       anonimizada_em: p.anonimizadaEm ? ts(p.anonimizadaEm) : null, menor_idade: p.menorIdade }, t })),
       `to_jsonb(app.cadastro_completo(jsonb_populate_record(NULL::public.pessoa, c -> 'p'), (c ->> 't')::public.tipo_vinculo))`);
-    expect(r).toEqual(casos.map(([p, t]) => cadastroCompleto(p, t)));
+    expect(r).toEqual(casos.map(([p, t]) => cadastroCompleto({ ...p, documentoBusca: p.documentoBusca ?? undefined, telefone: p.telefone ?? undefined }, t)));
   });
 
   it('diasDesde e encomendaAtrasada (limite de 7 dias e outros N)', () => {

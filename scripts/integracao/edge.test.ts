@@ -1,6 +1,6 @@
 // Integração das Edge Functions de auth contra o Supabase LOCAL (desenho §8, F1). Pré-requisitos:
 //   supabase start && supabase db reset && supabase functions serve
-//   npm run test:supabase
+//   npm run test:integracao
 // As chaves vêm de `supabase status -o env` (as padrão do CLI local, descartáveis) em tempo de execução: nada fica em
 // arquivo. O estado do banco é ajustado por `docker exec ... psql` (só para simular o tempo: senha vencida, atraso 0).
 import { execFileSync, spawnSync } from 'node:child_process';

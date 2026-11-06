@@ -1,15 +1,15 @@
 // Anexos de ocorrência (F4) contra o Supabase LOCAL: Edge `anexos` + Storage + srv.anexo_* (migração 0033), pelo caminho
 // real (login na Edge auth-entrar, fetch na Edge, e o adaptador do front no fim). Pré-requisitos:
 //   supabase start && supabase db reset && supabase functions serve --env-file <arquivo com PORTARIA_KEK_V1>
-//   npm run test:supabase
+//   npm run test:integracao
 // As chaves do stack (anon e service_role, as padrão do CLI local, descartáveis) vêm de `supabase status -o env` em tempo de
 // execução; o service_role só é usado aqui para OLHAR e ADULTERAR o bucket como faria quem tem a chave (provar que o
 // conteúdo é cifrado e que a adulteração é detectada). A KEK nunca é lida pelo teste.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import { createSupabaseApi } from '../../../src/api/supabase/createSupabaseApi';
-import { ApiError } from '../../../src/api/types';
+import { createSupabaseApi } from '../../src/api/supabase/createSupabaseApi';
+import { ApiError } from '../../src/api/types';
 
 const PROJETO = 'tcc-gestao-acesso';
 const SENHA_DEMO = 'Demo-Portaria-2026';
@@ -298,7 +298,7 @@ describe('adaptador do front (createSupabaseApi)', () => {
     const api = createSupabaseApi(sb, { chaveAnon: ANON });
     await api.auth.login({ login: 'paula.nogueira', senha: SENHA_DEMO });
     expect(api.suporta!('anexos')).toBe(true);
-    const oc = await api.ocorrencias.criar({ tipo: 'dano', descricao: 'Pelo adaptador', unidadeId: null });
+    const oc = await api.ocorrencias.criar({ tipo: 'dano', descricao: 'Pelo adaptador', unidadeId: null, envolvidos: '' });
     const claro = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...randomBytes(64)]);
     const v = await api.ocorrencias.anexar(oc.id, new File([claro], '../../Fulano de Tal CPF 123.pdf', { type: 'application/pdf' }));
     const d = v.documentos![0]!;

@@ -5,9 +5,9 @@ Nada daqui roda no projeto hospedado por padrão, e nenhum dado é real.
 
 ## Seed de desenvolvimento (só local)
 
-O `supabase/seed/demo.sql` (`[db.seed]` do `supabase/config.toml`) roda em `supabase db reset` e só no banco local.
+O `supabase/seed.sql` (`[db.seed]` do `supabase/config.toml`) roda em `supabase db reset` e só no banco local.
 
-**Usuários de demonstração (só no banco local, criados por `supabase/seed/demo.sql`; dados fictícios):** `roberto.faria`
+**Usuários de demonstração (só no banco local, criados por `supabase/seed.sql`; dados fictícios):** `roberto.faria`
 (síndico), `paula.nogueira` (administração), `joao.lima` (porteiro) e `luiza.campos` (auditor), todos com a senha
 `Demo-Portaria-2026`. Essa senha é pública: a demonstração nunca roda no projeto hospedado (não use `--include-seed` no
 `db push`), e o arquivo recusa um banco que já tenha usuário ou pessoa. Ela cria também pessoas fictícias para
@@ -57,7 +57,7 @@ POPULAR_SUPABASE_URL=http://127.0.0.1:54321 POPULAR_SUPABASE_ANON_KEY=<ANON_KEY 
   POPULAR_CONFIRMAR=127.0.0.1:54321 npm run popular
 # rode a mesma linha de novo: o relatório deve mostrar 0 criados em tudo. Interrompa uma terceira execução no meio
 # (Ctrl+C) e rode outra vez: deve terminar sem duplicar.
-npm run test:supabase:sindico      # opcional, depois: reseta o banco local e roda a suíte sem seed
+npm run test:integracao:sem-seed      # opcional, depois: reseta o banco local e roda a suíte sem seed
 ```
 
 Confira também nas telas (front apontado para o local, ver "Como rodar localmente"): unidades, vínculos legados,

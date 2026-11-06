@@ -7,8 +7,8 @@ import { execFileSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 import { lerExportacaoJsonl } from '@domain/exportacao';
 import { verificarCadeia } from '@domain/hashChain';
-import { createSupabaseApi } from '../../../src/api/supabase/createSupabaseApi';
-import { ApiError, type Api } from '../../../src/api/types';
+import { createSupabaseApi } from '../../src/api/supabase/createSupabaseApi';
+import { ApiError, type Api } from '../../src/api/types';
 
 const PROJETO = 'tcc-gestao-acesso';
 const SENHA_DEMO = 'Demo-Portaria-2026';
@@ -74,7 +74,7 @@ describe('concorrência (cada RPC na sua transação)', () => {
 
   it('aprovar e rejeitar o mesmo vínculo ao mesmo tempo: só uma decisão vale', async () => {
     const p = await admin.pessoas.criar({ nome: `Concorrência Vínculo ${sufixo}`, documento: cpf(`7${sufixo}11`), telefone: '11977001100', categoria: 'morador' });
-    const v = await admin.vinculos.criar({ pessoaId: p.id, unidadeId: unidade, tipo: 'proprietario', vigenciaInicio: null, vigenciaFim: null, solicitadoPor: '' });
+    const v = await admin.vinculos.criar({ pessoaId: p.id, unidadeId: unidade, tipo: 'proprietario', vigenciaInicio: null as unknown as number, vigenciaFim: null, solicitadoPor: '' });
     await admin.vinculos.registrarConferencia(v.id, { tipo: 'escritura' });
     const r = await Promise.all([codigo(admin.vinculos.decidir({ id: v.id, decisao: 'aprovar' })),
       codigo(sindico.vinculos.decidir({ id: v.id, decisao: 'rejeitar', justificativa: 'Duplicado' }))]);

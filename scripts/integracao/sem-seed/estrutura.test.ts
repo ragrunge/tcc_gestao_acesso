@@ -1,5 +1,5 @@
 // Estrutura do condomínio (migrações 0035 e 0036) contra o Supabase LOCAL SEM seed, o estado em que o projeto hospedado fica
-// depois do `db push`. Roda no `npm run test:supabase:sindico` (faz `supabase db reset --no-seed`), junto com o
+// depois do `db push`. Roda no `npm run test:integracao:sem-seed` (faz `supabase db reset --no-seed`), junto com o
 // bootstrap do síndico; por isso nada aqui depende de rodar antes ou depois dele.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -10,7 +10,7 @@ const CONTAINER = 'supabase_db_tcc-gestao-acesso';
 const raiz = (caminho: string) => fileURLToPath(new URL(`../../../${caminho}`, import.meta.url));
 const ESTRUTURA = readFileSync(raiz('supabase/migrations/20261031003500_0035_estrutura_condominio.sql'), 'utf8');
 const TERREO_02 = readFileSync(raiz('supabase/migrations/20261031003600_0036_estrutura_terreo_02.sql'), 'utf8');
-const DEMO = readFileSync(raiz('supabase/seed/demo.sql'), 'utf8');
+const DEMO = readFileSync(raiz('supabase/seed.sql'), 'utf8');
 
 // Mesmo papel do `db push` (postgres: dono das tabelas, não superusuário).
 const sql = (comando: string): string => execFileSync('docker',
@@ -20,7 +20,7 @@ const valor = (consulta: string) => sql(consulta);
 
 beforeAll(() => {
   if (Number(valor('SELECT count(*) FROM public.pessoa')) !== 0) {
-    throw new Error('Banco com seed: rode `npm run test:supabase:sindico` (faz supabase db reset --no-seed).');
+    throw new Error('Banco com seed: rode `npm run test:integracao:sem-seed` (faz supabase db reset --no-seed).');
   }
 });
 

@@ -1,6 +1,6 @@
 -- Anexos de ocorrência (F4, migração 0033): as RPCs srv.* que a Edge `anexos` chama (como service_role, com o id da sessão
 -- do usuário), o append-only de documento/ocorrencia_anexo e a contenção do Storage. A cifra, o tipo pelos primeiros bytes
--- e o tamanho real do arquivo são da Edge (supabase/tests/functions/anexos.test.ts); aqui, o que o banco decide.
+-- e o tamanho real do arquivo são da Edge (scripts/integracao/anexos.test.ts); aqui, o que o banco decide.
 -- Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;

@@ -92,7 +92,7 @@ Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`
 
 ```bash
 supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
-supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed/demo.sql
+supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed.sql
 supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação, anexos, paginação, usuários, edição de usuário e administrador do sistema
 # KEK local dos anexos (32 bytes aleatórios, só desta máquina; o arquivo é ignorado pelo git). Uma vez:
 (umask 077; printf 'PORTARIA_KEK_V1=%s\n' "$(openssl rand -base64 32)" > supabase/functions/.env.local)
@@ -108,7 +108,7 @@ Para o front falar com o stack local, passe a URL e a anon key **locais** por va
 O banco tem duas partes de dados. A **estrutura do condomínio** (configuração com o agrupamento "Bloco", o ponto de acesso
 "Portaria social", as 7 áreas comuns e as unidades: 9 blocos, A a I, 165 unidades) entra pelas migrações
 `supabase/migrations/…_0035_estrutura_condominio.sql` e `…_0036_estrutura_terreo_02.sql`, no banco local e no hospedado
-(`db push`). Os **dados de teste de desenvolvimento** (`supabase/seed/demo.sql`) rodam **só no banco local**: o arquivo
+(`db push`). Os **dados de teste de desenvolvimento** (`supabase/seed.sql`) rodam **só no banco local**: o arquivo
 recusa um banco que já tenha usuário ou pessoa, e a senha dos usuários de teste é pública, por isso nunca use
 `--include-seed` no `db push`. Credenciais e conteúdo: [docs/desenvolvimento-local.md](docs/desenvolvimento-local.md).
 
@@ -137,7 +137,7 @@ no primeiro acesso, porque foi escolhida por quem vai usá-la. O banco recusa se
 execuções simultâneas se enfileiram: a segunda recusa e apaga a conta que tinha criado no Auth. Os demais usuários são
 criados pelo síndico, no sistema.
 
-O bootstrap não depende de seed algum: a demonstração (`supabase/seed/demo.sql`) nunca roda no projeto hospedado, porque a
+O bootstrap não depende de seed algum: a demonstração (`supabase/seed.sql`) nunca roda no projeto hospedado, porque a
 senha dela é pública.
 
 Detalhes do login, da autorização no banco, da trilha, da importação e dos anexos: [docs/arquitetura.md](docs/arquitetura.md).
@@ -147,8 +147,8 @@ Detalhes do login, da autorização no banco, da trilha, da importação e dos a
 ```bash
 npm run type-check       # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
-npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
-npm run test:supabase:sindico  # banco local SEM a demonstração, como o hospedado: primeiro síndico e estrutura (rode `supabase db reset` depois, para as outras suítes)
+npm run test:integracao    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
+npm run test:integracao:sem-seed  # banco local SEM a demonstração, como o hospedado: primeiro síndico e estrutura (rode `supabase db reset` depois, para as outras suítes)
 ```
 
 O CI (`.github/workflows/ci.yml`) roda type-check, lint, checagem de migrations, `npm test` e build; o pgTAP e a integração rodam só na máquina, com o Supabase local aberto.
