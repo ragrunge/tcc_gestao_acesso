@@ -9,12 +9,12 @@
 
 | Tipo | Cobertura |
 | --- | --- |
-| Funcional | pgTAP `08_operacao` (receber, entregar, autorizar, listas) e E2E `32` e `37` |
+| Funcional | pgTAP `08_operacao` (receber, entregar, autorizar, listas) e a verificação manual da ficha da unidade |
 | Regressão | todas as suítes abaixo; todo bug virou caso |
 | API | contrato das RPCs `api.encomenda*` e `api.unidade_detalhe`, limites de tamanho, códigos de erro |
 | Segurança | RBAC por papel (porteiro, administração, auditor, admin_sistema), pessoa desativada, anonimizada |
 | Performance | fora: um condomínio, índice parcial `encomenda_pendente_ix` cobre a consulta da ficha |
-| Compatibilidade | fora: sem matriz de navegadores; só Chromium nos E2E |
+| Compatibilidade | fora: sem matriz de navegadores e sem E2E automatizado |
 | Usabilidade | fora desta rodada: só o TAM (n = 9) |
 
 Técnicas: valor limite (7 dias, tamanhos de campo), transição de estado (aguardando para entregue, e as transições proibidas), tabela de decisão por papel.
@@ -32,7 +32,7 @@ Técnicas: valor limite (7 dias, tamanhos de campo), transição de estado (agua
 | TC-UNI-01 | decisão por papel | os 4 papéis com `unidade.ver` recebem a chave `encomendas`; `admin_sistema` recebe `SEM_PERMISSAO` | pgTAP 08 | passou |
 | TC-UNI-02 | valor limite | 21 aguardando: contagem 21, 20 itens, da mais antiga para a mais nova | pgTAP 08 | passou |
 | TC-UNI-03 | estado | unidade desativada ainda lista as aguardando | pgTAP 08 | passou |
-| TC-UNI-04 | fluxo | encomenda recebida aparece na ficha com contagem, código e transportadora; entregue, sai | E2E 37 | passou |
+| TC-UNI-04 | fluxo | encomenda recebida aparece na ficha com contagem, código e transportadora; entregue, sai | manual (sem E2E automatizado) | verificado em 06/11/2026 |
 
 Regressão do BUG-1: reaplicando as funções da 0026, falham exatamente os testes 50 e 53 de `08_operacao`; com a 0044 passa tudo.
 
@@ -44,14 +44,14 @@ Regressão do BUG-1: reaplicando as funções da 0026, falham exatamente os test
 
 **BUG-3 — baixa — corrigido (0046).** A tela exigia transportadora e o servidor aceitava vazio. Decisão: obrigatória nos dois (`TRANSPORTADORA_OBRIGATORIA`; a opção "Outra" cobre o resto). Teste TC-ENC-BUG3 em pgTAP 08.
 
-**BUG-4 — alta — corrigido antes da entrega.** O adaptador `detalhe` (`src/api/supabase/portaria.ts`) descartava a chave `encomendas`; a seção da ficha nunca aparecia, e `tsc` e Vitest passavam. Pego pelo E2E 37.
+**BUG-4 — alta — corrigido antes da entrega.** O adaptador `detalhe` (`src/api/supabase/portaria.ts`) descartava a chave `encomendas`; a seção da ficha nunca aparecia, e `tsc` e Vitest passavam. Pego pelo E2E que existia na época (removido na padronização); hoje só a verificação manual da ficha da unidade cobre esse caminho.
 
 ## Perguntas ao síndico (passo 0)
 1. Pessoa com restrição vigente, inclusive a de todo o condomínio, pode retirar encomenda? Hoje pode.
 2. O nome do destinatário deve ser conferido com os moradores da unidade, ou o texto livre basta?
 
 ## Critério de finalização
-Todos os casos críticos passam em banco recém-resetado; nenhum bug crítico ou alto aberto. Estado em 06/11/2026: casos passando, BUG-3 e as perguntas abertas, rodada final limpa pendente (E2E e integração exigem banco recém-resetado).
+Todos os casos críticos passam em banco recém-resetado; nenhum bug crítico ou alto aberto. Estado em 06/11/2026: casos passando, BUG-3 e as perguntas abertas, rodada final limpa pendente (a integração exige banco recém-resetado).
 
 ## Rodada 2 (parcial) — entrada retroativa na portaria
 

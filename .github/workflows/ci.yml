@@ -1,7 +1,7 @@
 name: CI
 
 # Só o que roda sem segredo e sem banco: tipos, lint, testes unitários e build.
-# pgTAP, integração e Playwright ficam de fora: exigem Docker com `supabase start` (docs/desenvolvimento-local.md).
+# pgTAP e integração ficam de fora: exigem Docker com `supabase start` (docs/desenvolvimento-local.md).
 on:
   pull_request:
   push:

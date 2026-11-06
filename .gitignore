@@ -9,10 +9,6 @@ coverage/
 .env.*
 !.env.example
 
-# Testes e2e
-test-results/
-playwright-report/
-
 # Deploy e ferramentas
 .vercel/
 *.log
@@ -27,3 +23,7 @@ npm-debug.log*
 
 # Credenciais locais
 local.credentials.txt
+
+# Artefatos de execuções antigas do Playwright (podem ser apagados)
+test-results/
+playwright-report/

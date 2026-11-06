@@ -34,7 +34,6 @@ participou da pesquisa.
 | `src/`, `public/`, `index.html` | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração) |
 | `src/domain` | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco |
 | `supabase/` | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/` |
-| `e2e/` | Testes de ponta a ponta (Playwright) contra o Supabase local |
 | `scripts/` | Geração dos ícones e da marca, do SQL da matriz de permissões (`rbac-sql.mjs`), primeiro síndico (`sindico/`) e carga de dados de teste (`popular/`) |
 
 ## O sistema
@@ -146,16 +145,13 @@ Detalhes do login, da autorização no banco, da trilha, da importação e dos a
 ## Testes
 
 ```bash
-npm run typecheck        # front e domain
+npm run type-check       # front e domain
 npm test                 # Vitest + Testing Library (front) e regras do domain
 npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
 npm run test:supabase:sindico  # banco local SEM a demonstração, como o hospedado: primeiro síndico e estrutura (rode `supabase db reset` depois, para as outras suítes)
-npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts e2e/34-supabase-usuarios.spec.ts e2e/35-supabase-usuarios-editar.spec.ts e2e/36-supabase-admin-sistema.spec.ts  # e2e (stack local)
 ```
 
-Na primeira vez, rode `npx playwright install chromium`.
-
-Não há CI: os testes rodam só na máquina, com os comandos acima (o pgTAP e a integração precisam do Supabase local aberto).
+O CI (`.github/workflows/ci.yml`) roda type-check, lint, checagem de migrations, `npm test` e build; o pgTAP e a integração rodam só na máquina, com o Supabase local aberto.
 
 ## Versão publicada
 

@@ -1,6 +1,4 @@
 dist
-playwright-report
-test-results
 supabase/migrations
 supabase/functions
 package-lock.json
