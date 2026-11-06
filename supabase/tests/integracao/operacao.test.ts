@@ -66,7 +66,7 @@ afterAll(() => { sql('UPDATE public.auth_parametros SET login_atraso_base_ms = 2
 
 describe('concorrência (cada RPC na sua transação)', () => {
   it('duas retiradas da mesma encomenda ao mesmo tempo: uma entrega, a outra 409 ENCOMENDA_JA_ENTREGUE', async () => {
-    const e = await porteiro.encomendas.receber({ unidadeId: unidade, destinatario: 'Fernanda', transportadora: '', codigoRastreio: '', unidadeConfirmada: true });
+    const e = await porteiro.encomendas.receber({ unidadeId: unidade, destinatario: 'Fernanda', transportadora: 'Correios', codigoRastreio: '', unidadeConfirmada: true });
     const r = await Promise.all([codigo(porteiro.encomendas.entregar({ id: e.id, pessoaId: moradora })), codigo(porteiro2.encomendas.entregar({ id: e.id, pessoaId: moradora }))]);
     expect(r.sort()).toEqual(['ENCOMENDA_JA_ENTREGUE', 'ok']);
     expect(sql(`SELECT count(*) FROM public.audit_log WHERE acao = 'encomenda.entregar' AND registro_id = '${e.id}'`)).toBe('1');
@@ -108,7 +108,7 @@ describe('ocorrência, funcionário e relatório pelo adaptador', () => {
 
 describe('auditoria: verificação no navegador e exportação sobre o banco real', () => {
   it('cadeia íntegra pelo verificador TS; adulteração direta no banco (como dono) é detectada', async () => {
-    const e = await porteiro.encomendas.receber({ unidadeId: unidade, destinatario: 'X', transportadora: '', codigoRastreio: '', unidadeConfirmada: true });
+    const e = await porteiro.encomendas.receber({ unidadeId: unidade, destinatario: 'X', transportadora: 'Correios', codigoRastreio: '', unidadeConfirmada: true });
     expect(e.id).toBeTruthy();
     const ok = await auditor.auditoria.verificarIntegridade();
     expect(ok.valido, JSON.stringify(ok)).toBe(true);
