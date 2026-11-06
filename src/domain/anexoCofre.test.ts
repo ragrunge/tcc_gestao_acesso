@@ -80,7 +80,7 @@ describe('envelope AES-256-GCM', () => {
       edge.decifrarAnexo(await edge.importarKek(kekBruta()), a, a.objeto),
     ).rejects.toThrow()
     const virado = a.objeto.slice()
-    virado[10] ^= 1
+    virado[10] = (virado[10] ?? 0) ^ 1
     await expect(edge.decifrarAnexo(kek, a, virado)).rejects.toThrow()
     await expect(
       edge.decifrarAnexo(kek, { ...a, sha256: '0'.repeat(64) }, a.objeto),

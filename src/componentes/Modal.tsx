@@ -51,6 +51,7 @@ export function useArmadilhaDeFoco(ref: RefObject<HTMLElement>, onClose: () => v
       }
       const primeiro = itens[0],
         ultimo = itens[itens.length - 1]
+      if (!primeiro || !ultimo) return
       if (
         e.shiftKey &&
         (document.activeElement === primeiro || !el.contains(document.activeElement))

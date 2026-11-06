@@ -93,9 +93,9 @@ beforeAll(async () => {
   sql(
     'UPDATE public.auth_parametros SET login_atraso_base_ms = 0; UPDATE public.login_limite SET falhas = 0, bloqueado_ate = NULL;',
   )
-  ;[porteiro, porteiro2, admin, sindico, auditor] = await Promise.all(
+  ;[porteiro, porteiro2, admin, sindico, auditor] = (await Promise.all(
     ['joao.lima', 'joao.lima', 'paula.nogueira', 'roberto.faria', 'luiza.campos'].map(entrar),
-  )
+  )) as [Api, Api, Api, Api, Api]
   ;[moradora, unidade] =
     sql(`SELECT p.id || '|' || u.id FROM public.pessoa p JOIN public.vinculo_unidade v ON v.pessoa_id = p.id
     JOIN public.unidade u ON u.id = v.unidade_id WHERE p.nome = 'Fernanda Costa'`).split('|') as [

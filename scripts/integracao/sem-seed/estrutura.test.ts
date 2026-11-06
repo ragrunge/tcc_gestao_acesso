@@ -151,7 +151,7 @@ describe('estrutura do condomínio sem a demonstração', () => {
         ...semComentario(s).matchAll(
           /\b(INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE|MERGE\s+INTO)\s+([\w.]+)/gi,
         ),
-      ].map((m) => `${m[1].toUpperCase()} ${m[2]}`)
+      ].map((m) => `${m[1]!.toUpperCase()} ${m[2]}`)
     expect(escritas(ESTRUTURA).sort()).toEqual([
       'INSERT INTO public.area_comum',
       'INSERT INTO public.configuracao',

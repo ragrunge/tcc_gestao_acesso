@@ -647,7 +647,7 @@ function NovaOcorrenciaModal({
   const catalogo = useCatalogo()
   // O tipo começa vazio (o porteiro escolhe; tudo virar "Outro" estraga o relatório), exceto quando o link já traz um
   const [tipo, setTipo] = useState<TipoOcorrencia | null>(
-    (TIPOS as string[]).includes(inicial.tipo) ? (inicial.tipo as TipoOcorrencia) : null,
+    (TIPOS as string[]).includes(inicial.tipo ?? '') ? (inicial.tipo as TipoOcorrencia) : null,
   )
   const [descricao, setDescricao] = useState('')
   // Local: unidade pelo mesmo seletor de bloco e apartamento da encomenda, ou área comum (escolha explícita)

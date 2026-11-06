@@ -168,9 +168,9 @@ beforeAll(async () => {
   sql(
     'UPDATE public.auth_parametros SET login_atraso_base_ms = 0; UPDATE public.login_limite SET falhas = 0, bloqueado_ate = NULL;',
   )
-  ;[porteiro, administracao, sindico, auditor] = await Promise.all(
+  ;[porteiro, administracao, sindico, auditor] = (await Promise.all(
     ['joao.lima', 'paula.nogueira', 'roberto.faria', 'luiza.campos'].map(entrar),
-  )
+  )) as [string, string, string, string]
   ocPorteiro = await novaOcorrencia(porteiro)
 }, 60_000)
 afterAll(() => {

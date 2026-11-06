@@ -63,7 +63,7 @@ export function fromInput(data: string, hora = '00:00'): number | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data)
   const h = /^(\d{2}):(\d{2})$/.exec(hora)
   if (!m || !h) return null
-  return brt(+m[1], +m[2], +m[3], +h[1], +h[2])
+  return brt(+m[1]!, +m[2]!, +m[3]!, +h[1]!, +h[2]!)
 }
 /** Início do dia (00:00 BRT) do instante. */
 export const inicioDoDia = (ts: number) => {
@@ -78,7 +78,7 @@ export const minutosDoDia = (ts: number) => {
 }
 export const hhmmParaMin = (s: string) => {
   const [h, m] = s.split(':').map(Number)
-  return h * 60 + (m || 0)
+  return (h ?? 0) * 60 + (m || 0)
 }
 export const DIAS_SEMANA_ABREV = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 

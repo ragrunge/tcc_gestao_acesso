@@ -223,7 +223,7 @@ export function Layout() {
   const menuRef = useRef<HTMLElement>(null)
   const fecharMenu = () => setMenuAberto(false)
   const papel = usuario!.papel
-  useTituloPagina(ROTULO_ROTA.get(loc.pathname.split('/')[1]))
+  useTituloPagina(ROTULO_ROTA.get(loc.pathname.split('/')[1] ?? ''))
 
   const pend = useContagemPendentes(pode(papel, 'vinculo.decidir'))
   // Recontar a cada navegação (a decisão de um vínculo acontece em outra tela); a primeira carga já é do useQuery.

@@ -53,9 +53,9 @@ describe('núcleo: criarPrimeiroSindico', () => {
       'criarConta',
       'bootstrap_sindico_criar',
     ])
-    expect(f.chamadas[0][1]).toEqual({ p_nome: 'Sônia Síndica', p_login: 'sonia.sindica' })
-    expect(f.chamadas[1][1]).toEqual({ email: EMAIL, senha: SENHA })
-    expect(f.chamadas[2][1]).toEqual({
+    expect(f.chamadas[0]![1]).toEqual({ p_nome: 'Sônia Síndica', p_login: 'sonia.sindica' })
+    expect(f.chamadas[1]![1]).toEqual({ email: EMAIL, senha: SENHA })
+    expect(f.chamadas[2]![1]).toEqual({
       p_nome: 'Sônia Síndica',
       p_login: 'sonia.sindica',
       p_auth_user_id: AUTH_ID,
@@ -234,7 +234,7 @@ describe('terminal', () => {
     })
     expect(codigo).toBe(0)
     expect(recebeu).toEqual([`https://${REF}.supabase.co`, CHAVE])
-    expect(f.chamadas[1][1]).toEqual({ email: EMAIL, senha: SENHA })
+    expect(f.chamadas[1]![1]).toEqual({ email: EMAIL, senha: SENHA })
     expect(t.escrito()).toContain('Síndico "sonia.sindica" criado')
     expect(t.escrito()).toContain('Sônia Síndica')
     expect(t.escrito()).not.toContain(SENHA)
@@ -258,7 +258,7 @@ describe('terminal', () => {
     ).toBe(0)
     expect(t.escrito()).toContain('pelo menos 12')
     expect(t.escrito()).toContain('As senhas não conferem')
-    expect(f.chamadas[1][1]).toEqual({ email: EMAIL, senha: SENHA })
+    expect(f.chamadas[1]![1]).toEqual({ email: EMAIL, senha: SENHA })
   })
 
   it('três senhas recusadas: desiste sem chamar nada', async () => {

@@ -198,7 +198,7 @@ export function ImportacaoPage() {
                             strokeWidth={2.4}
                             aria-hidden
                           />
-                          {ps[0].tipo === 'erro' ? 'Inconsistente' : 'Aviso'}
+                          {ps[0]?.tipo === 'erro' ? 'Inconsistente' : 'Aviso'}
                         </span>
                       )}
                     </div>

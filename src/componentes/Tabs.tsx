@@ -41,7 +41,7 @@ export function Tabs<T extends string>({
           onKeyDown={(e) => {
             if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
             const prox = (i + (e.key === 'ArrowRight' ? 1 : abas.length - 1)) % abas.length
-            onChange(abas[prox].id)
+            onChange(abas[prox]!.id)
             refs.current[prox]?.focus()
           }}
           className={`h-[48px] shrink-0 whitespace-nowrap border-b-[3px] ${compacta ? 'px-[10px]' : 'px-[14px]'} font-semibold ${a.id === ativa ? 'border-[#0B5563] text-[#0B5563]' : 'border-transparent text-[#56616B] hover:text-ink'}`}

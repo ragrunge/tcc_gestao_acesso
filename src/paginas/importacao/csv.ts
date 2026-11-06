@@ -39,13 +39,16 @@ const ALIAS: Record<keyof Omit<LinhaPlanilha, 'linha'>, string[]> = {
 /** Mapeia uma matriz (primeira linha = cabeçalho) para as linhas da planilha. Serve a CSV e a .xlsx (RF-11). */
 export function mapearMatriz(matriz: string[][]): { linhas: LinhaPlanilha[]; faltando: string[] } {
   if (matriz.length === 0) return { linhas: [], faltando: ['cabeçalho'] }
-  const cab = matriz[0].map(norm)
+  const cab = matriz[0]!.map(norm)
   const idx = {} as Record<string, number>
   for (const [campo, aliases] of Object.entries(ALIAS))
     idx[campo] = cab.findIndex((c) => aliases.includes(c))
-  const faltando = ['bloco', 'unidade', 'nome'].filter((c) => idx[c] < 0)
+  const faltando = ['bloco', 'unidade', 'nome'].filter((c) => (idx[c] ?? -1) < 0)
   const linhas = matriz.slice(1).map((c, i): LinhaPlanilha => {
-    const v = (k: string) => (idx[k] >= 0 ? (c[idx[k]] ?? '') : '')
+    const v = (k: string) => {
+      const i = idx[k] ?? -1
+      return i >= 0 ? (c[i] ?? '') : ''
+    }
     return {
       linha: i + 2,
       bloco: v('bloco'),
@@ -67,7 +70,7 @@ export function lerCsv(texto: string): { linhas: LinhaPlanilha[]; faltando: stri
     .filter((l) => l.trim())
   if (brutas.length === 0) return { linhas: [], faltando: ['cabeçalho'] }
   const sep =
-    (brutas[0].match(/;/g)?.length ?? 0) >= (brutas[0].match(/,/g)?.length ?? 0) ? ';' : ','
+    (brutas[0]!.match(/;/g)?.length ?? 0) >= (brutas[0]!.match(/,/g)?.length ?? 0) ? ';' : ','
   return mapearMatriz(brutas.map((l) => dividir(l, sep)))
 }
 
@@ -94,7 +97,7 @@ function cpf(base: string): string {
   const d = base.split('').map(Number)
   const dv = (n: number) => {
     let s = 0
-    for (let i = 0; i < n; i++) s += d[i] * (n + 1 - i)
+    for (let i = 0; i < n; i++) s += d[i]! * (n + 1 - i)
     const r = (s * 10) % 11
     return r === 10 ? 0 : r
   }

@@ -73,7 +73,7 @@ export async function montarExportacaoJsonl(i: EntradaExportacao): Promise<Pacot
   const ancora = primeiro
     ? { seq: primeiro.seq - 1, hash: primeiro.hash_anterior }
     : { seq: 0, hash: g }
-  const consecutivos = evs.every((e, k) => k === 0 || e.seq === evs[k - 1].seq + 1)
+  const consecutivos = evs.every((e, k) => k === 0 || e.seq === evs[k - 1]!.seq + 1)
   const manifesto = {
     tipo: 'manifesto',
     formato: 'gestao-acesso/trilha-jsonl',

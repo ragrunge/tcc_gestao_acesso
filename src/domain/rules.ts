@@ -366,10 +366,10 @@ export function descreverJanela(
   const d = ap.diasSemana
   if (d && d.length > 0 && d.length < 7) {
     const ord = [...d].sort((a, b) => a - b)
-    const contiguo = ord.every((x, i) => i === 0 || x === ord[i - 1] + 1)
+    const contiguo = ord.every((x, i) => i === 0 || x === ord[i - 1]! + 1)
     dias =
       contiguo && ord.length > 2
-        ? `${DIAS_SEMANA_ABREV[ord[0]]} a ${DIAS_SEMANA_ABREV[ord[ord.length - 1]]}`
+        ? `${DIAS_SEMANA_ABREV[ord[0]!]} a ${DIAS_SEMANA_ABREV[ord[ord.length - 1]!]}`
         : ord.map((x) => DIAS_SEMANA_ABREV[x]).join(', ')
   }
   const horas =
