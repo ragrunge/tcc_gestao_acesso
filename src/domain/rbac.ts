@@ -7,7 +7,7 @@ export type Acao =
   | 'vinculo.ver' | 'vinculo.criar' | 'vinculo.decidir'
   | 'importacao.executar'
   | 'autorizacao.criar' | 'restricao.criar' | 'restricao.aprovar'
-  | 'evento.registrar' | 'evento.retroativo' | 'evento.corrigir' | 'evento.ver'
+  | 'evento.registrar' | 'evento.retroativo' | 'evento.retroativo_antigo' | 'evento.corrigir' | 'evento.ver'
   | 'encomenda.ver' | 'encomenda.operar'
   | 'ocorrencia.ver' | 'ocorrencia.operar'
   | 'relatorio.ver' | 'turno.ver'
@@ -38,6 +38,7 @@ export const MATRIZ: Record<Acao, Papel[]> = {
   'restricao.aprovar': [SI], // RN-06: só o síndico
   'evento.registrar': [SI, AD, PO],
   'evento.retroativo': [SI, AD, PO],
+  'evento.retroativo_antigo': [SI, AD], // retroativo com mais de 72 h (0045): o porteiro fica na janela
   'evento.corrigir': [SI, AD],
   'evento.ver': [SI, AD, PO, AU],
   'encomenda.ver': [SI, AD, PO, AU],

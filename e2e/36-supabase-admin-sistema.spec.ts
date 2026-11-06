@@ -65,7 +65,7 @@ test('admin_sistema: entra em Usuários, só vê Usuários, gerencia porteiro e 
 
   // Porteiro: edita, e o select de papel não oferece síndico nem administrador do sistema.
   await page.getByLabel('Buscar por nome ou login').fill(alvo);
-  await page.getByRole('button', { name: 'Editar Porteiro do Técnico' }).click();
+  await page.getByRole('row').filter({ hasText: alvo }).getByRole('button', { name: 'Editar Porteiro do Técnico' }).click();
   const dialogo = page.getByRole('dialog', { name: 'Editar Porteiro do Técnico' });
   const opcoes = await dialogo.getByLabel('Papel').locator('option').allTextContents();
   expect(opcoes).not.toContain('Síndico');

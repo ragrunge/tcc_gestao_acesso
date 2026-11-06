@@ -356,6 +356,8 @@ export interface UnidadeDetalhe {
   autorizacoes: AutorizacaoView[] | null;
   restricoes: RestricaoView[] | null;
   eventos: EventoView[] | null;
+  /** Encomendas aguardando retirada na unidade (as 20 mais antigas). `null`: o papel não vê encomendas. */
+  encomendas?: { aguardando: number; atrasadas: number; itens: EncomendaView[] } | null;
 }
 export interface Autorizador { pessoa: Pessoa; vinculo: VinculoUnidade }
 

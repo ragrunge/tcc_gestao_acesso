@@ -20,6 +20,14 @@ import type {
 export type Rpc = <T>(nome: string, args?: Record<string, unknown>) => Promise<T>;
 
 export const respostaInvalida = () => new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.');
+
+// O adaptador monta o detalhe campo a campo: sem repassar `encomendas`, a seção da ficha nunca aparece.
+function encomendasDaUnidade(e: UnidadeDetalhe['encomendas']): UnidadeDetalhe['encomendas'] {
+  if (e == null) return null;
+  if (typeof e.aguardando !== 'number' || typeof e.atrasadas !== 'number' || !Array.isArray(e.itens)) throw respostaInvalida();
+  if (e.itens.some((x) => typeof x?.id !== 'string' || typeof x.recebidaEm !== 'number')) throw respostaInvalida();
+  return { aguardando: e.aguardando, atrasadas: e.atrasadas, itens: e.itens };
+}
 export const naoMigrado = (op: string) => () => Promise.reject(new ApiError(501, 'NAO_MIGRADO', `Função ainda não disponível nesta versão (${op}).`));
 
 /** Limite de páginas por listagem completa (como o cliente HTTP antigo): só impede laço infinito. */
@@ -203,6 +211,7 @@ export function criarPortaria(rpc: Rpc): Portaria {
         return {
           unidade: unidadeDe(d.unidade), veiculos: d.veiculos.map(veiculoDe), vinculos: lista(d.vinculos),
           autorizacoes: lista(d.autorizacoes), restricoes: lista(d.restricoes), eventos: lista(d.eventos, eventoDe),
+          encomendas: encomendasDaUnidade(d.encomendas),
         };
       },
       async criar(i) { return unidadeDe(await rpc<Unidade>('unidade_criar', { p: { bloco: i.bloco, numero: i.numero } })); },

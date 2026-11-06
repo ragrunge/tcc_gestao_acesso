@@ -201,6 +201,31 @@ export function UnidadeDetalhe({ id }: { id: string }) {
             </section>
           </div>
 
+          {d.encomendas && (
+            <section className="rounded-[10px] border border-[#DCE1E5] bg-white" aria-labelledby="enc-unidade">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E6EAED] px-5 py-[10px]">
+                <h2 id="enc-unidade" className="text-[16px] font-semibold">Encomendas aguardando retirada ({d.encomendas.aguardando})</h2>
+                <div className="flex items-center gap-3">
+                  {d.encomendas.atrasadas > 0 && <Badge tom="ambar" tamanho="xs">{d.encomendas.atrasadas} há mais de 7 dias</Badge>}
+                  <Link className={link} to={`/encomendas?un=${codigoUnidade(d.unidade)}`}>Ver todas da unidade</Link>
+                </div>
+              </div>
+              {d.encomendas.itens.map((e) => (
+                <div key={e.id} className="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-[#E6EAED] px-5 py-[10px] last:border-b-0">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="font-medium">{e.destinatario}</span>
+                    <span className="text-[13px] text-[#56616B]">{e.codigo}{e.transportadora ? ` · ${e.transportadora}` : ''}{e.codigoRastreio ? ` · ${e.codigoRastreio}` : ''}</span>
+                  </div>
+                  <span className="text-[13px] text-[#56616B]">Recebida em {fmtData(e.recebidaEm)}</span>
+                </div>
+              ))}
+              {d.encomendas.aguardando === 0 && <div className={`px-5 py-4 ${vazio}`}>Nenhuma encomenda aguardando.</div>}
+              {d.encomendas.aguardando > d.encomendas.itens.length && (
+                <div className={`px-5 py-3 ${vazio}`}>Mostrando as {d.encomendas.itens.length} mais antigas.</div>
+              )}
+            </section>
+          )}
+
           <section className="rounded-[10px] border border-[#DCE1E5] bg-white">
             <h2 className="border-b border-[#E6EAED] px-5 py-[14px] text-[16px] font-semibold">Histórico recente de acessos</h2>
             {d.eventos === null && <div className="px-5 py-4"><SecaoEmBreve titulo="Histórico recente de acessos" /></div>}

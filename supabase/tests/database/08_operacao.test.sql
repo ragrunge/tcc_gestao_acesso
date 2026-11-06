@@ -5,12 +5,12 @@
 -- Fixtures próprias (bloco W8, CPFs gerados aqui). Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(121);
+SELECT plan(144);
 
 -- ===== Fixtures ===================================================================================================
 CREATE TEMP TABLE ids (k text PRIMARY KEY, v uuid DEFAULT gen_random_uuid()) ON COMMIT DROP;
 INSERT INTO ids (k) SELECT unnest(ARRAY['u_si', 'u_ad', 'u_po', 'u_po2', 'u_au', 'a_si', 'a_ad', 'a_po', 'a_po2', 'a_au',
-  'un', 'un2', 'un3', 'mor', 'vis', 'sem', 'aut', 'leg', 'vis3', 'des']);
+  'un', 'un2', 'un3', 'un4', 'mor', 'vis', 'sem', 'aut', 'leg', 'vis3', 'des', 'ret']);
 CREATE FUNCTION pg_temp.id(p text) RETURNS uuid LANGUAGE sql AS $$ SELECT v FROM ids WHERE k = p $$;
 CREATE FUNCTION pg_temp.email() RETURNS text LANGUAGE sql AS $$ SELECT 'u-' || gen_random_uuid() || '@usuarios.portaria.invalid' $$;
 -- CPF com dígito verificador a partir de 9 dígitos (só teste).
@@ -38,7 +38,8 @@ INSERT INTO sess (k, sub) VALUES ('si', pg_temp.id('a_si')), ('ad', pg_temp.id('
 INSERT INTO public.sessao (id, usuario_id, auth_session_id, criada_em, ultimo_uso_em, expira_em)
 SELECT s.sid, u.id, s.gid, now(), now(), now() + interval '10 hours' FROM sess s JOIN public.usuario_sistema u ON u.auth_user_id = s.sub;
 
-INSERT INTO public.unidade (id, bloco, numero) VALUES (pg_temp.id('un'), 'W8', '11'), (pg_temp.id('un2'), 'W8', '12'), (pg_temp.id('un3'), 'W8', '13');
+INSERT INTO public.unidade (id, bloco, numero) VALUES (pg_temp.id('un'), 'W8', '11'), (pg_temp.id('un2'), 'W8', '12'), (pg_temp.id('un3'), 'W8', '13'),
+  (pg_temp.id('un4'), 'W8', '14');
 INSERT INTO public.pessoa (id, nome, categoria, documento_mascarado, documento_busca, telefone, sem_cpf) VALUES
   (pg_temp.id('mor'), 'Marta Moradora', 'morador', '908.07*.***-**', public.cpf_hmac(pg_temp.cpf('908070601')), '11977770001', false),
   (pg_temp.id('vis'), 'Vicente Visitante', 'visitante', '908.07*.***-**', public.cpf_hmac(pg_temp.cpf('908070602')), '11977770002', false),
@@ -46,7 +47,8 @@ INSERT INTO public.pessoa (id, nome, categoria, documento_mascarado, documento_b
   (pg_temp.id('aut'), 'Aurora Autorizada', 'visitante', '908.07*.***-**', public.cpf_hmac(pg_temp.cpf('908070604')), '11977770004', false),
   (pg_temp.id('leg'), 'Lauro Legado', 'morador', '908.07*.***-**', public.cpf_hmac(pg_temp.cpf('908070605')), '11977770005', false),
   (pg_temp.id('vis3'), 'Vânia Visitante', 'visitante', '908.07*.***-**', public.cpf_hmac(pg_temp.cpf('908070606')), '11977770006', false),
-  (pg_temp.id('des'), 'Débora Desativada', 'visitante', '908.07*.***-**', public.cpf_hmac(pg_temp.cpf('908070607')), '11977770007', false);
+  (pg_temp.id('des'), 'Débora Desativada', 'visitante', '908.07*.***-**', public.cpf_hmac(pg_temp.cpf('908070607')), '11977770007', false),
+  (pg_temp.id('ret'), 'Rita Retirante', 'visitante', '908.07*.***-**', public.cpf_hmac(pg_temp.cpf('908070608')), '11977770008', false);
 UPDATE public.pessoa SET desativada_em = now(), desativada_por_id = pg_temp.id('u_ad'), desativacao_motivo = 'Saiu do condomínio de vez' WHERE id = pg_temp.id('des');
 -- Marta: vínculo aprovado na W8-11 (pendente -> aprovado, a única transição de entrada).
 INSERT INTO public.vinculo_unidade (pessoa_id, unidade_id, tipo, status, vigencia_inicio, registrado_por_id)
@@ -182,10 +184,18 @@ SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_receber(jsonb_build
   'UNIDADE_NAO_CONFIRMADA', 'sem conferir a unidade (RF-23)');
 SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''  '', ''unidadeConfirmada'', true))', pg_temp.u('un'))),
   'DESTINATARIO_OBRIGATORIO', 'destinatário obrigatório');
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''X'', ''unidadeConfirmada'', true))', pg_temp.u('un'))),
+  'TRANSPORTADORA_OBRIGATORIA', 'TC-ENC-BUG3: sem transportadora, o servidor recusa');
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''X'', ''transportadora'', ''  '', ''unidadeConfirmada'', true))', pg_temp.u('un'))),
+  'TRANSPORTADORA_OBRIGATORIA', 'TC-ENC-BUG3: transportadora só com espaços também');
 INSERT INTO guardado SELECT 'e1', pg_temp.val('po', pg_temp.q('api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''Marta Moradora'', ''transportadora'', ''Correios'', ''unidadeConfirmada'', true))', pg_temp.u('un')));
 SELECT ok(pg_temp.g('e1') ->> 'codigo' ~ '^K[0-9]+$' AND pg_temp.g('e1') ->> 'unidadeCodigo' = 'W8-11' AND pg_temp.g('e1') ->> 'recebidaPorNome' = 'Paulo Porteiro'
   AND pg_temp.g('e1') ->> 'codigoRastreio' = '' AND pg_temp.g('e1') -> 'autorizacoes' = '[]'::jsonb AND pg_temp.trilha('encomenda.receber', (pg_temp.g('e1') ->> 'id')::uuid),
   'porteiro recebe: código K, unidade, quem recebeu, trilha');
+SELECT ok((pg_temp.val('po', pg_temp.q('api.unidade_detalhe($1)', pg_temp.u('un'))) #>> '{encomendas,aguardando}')::int >= 1
+  AND pg_temp.val('po', pg_temp.q('api.unidade_detalhe($1)', pg_temp.u('un'))) #> '{encomendas,itens}' @> jsonb_build_array(jsonb_build_object('id', pg_temp.g('e1') ->> 'id'))
+  AND pg_temp.val('au', pg_temp.q('api.unidade_detalhe($1)', pg_temp.u('un'))) #> '{encomendas,itens}' @> jsonb_build_array(jsonb_build_object('id', pg_temp.g('e1') ->> 'id')),
+  'ficha da unidade lista a encomenda aguardando (porteiro e auditor)');
 SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_entregar($1, $2)', pg_temp.g('e1') ->> 'id', pg_temp.u('aut'))), 'PESSOA_SEM_VINCULO',
   'sem vínculo e sem autorização não retira (RN-08)');
 SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_autorizar_retirada($1, jsonb_build_object(''pessoaId'', $2, ''solicitadaPorPessoaId'', $3))',
@@ -205,17 +215,65 @@ SELECT ok(pg_temp.g('e1r') ->> 'retiradaEm' IS NOT NULL AND pg_temp.g('e1r') ->>
 SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_entregar($1, $2)', pg_temp.g('e1') ->> 'id', pg_temp.u('mor'))), 'ENCOMENDA_JA_ENTREGUE', 'retirar duas vezes: 409');
 SELECT is(pg_temp.como_app_rw(pg_temp.q('UPDATE public.encomenda SET destinatario = ''Outro'' WHERE id = $1', pg_temp.g('e1') ->> 'id')), '23514',
   'trigger congela a encomenda retirada mesmo sem a RPC');
-INSERT INTO guardado SELECT 'e2', pg_temp.val('po', pg_temp.q('api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''Marta'', ''unidadeConfirmada'', true))', pg_temp.u('un')));
+INSERT INTO guardado SELECT 'e2', pg_temp.val('po', pg_temp.q('api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''Marta'', ''transportadora'', ''Correios'', ''unidadeConfirmada'', true))', pg_temp.u('un')));
 UPDATE public.encomenda SET recebida_em = now() - interval '9 days' WHERE id = (pg_temp.g('e2') ->> 'id')::uuid;
 SELECT is(pg_temp.val('po', pg_temp.q('api.encomenda_entregar($1, $2)', pg_temp.g('e2') ->> 'id', pg_temp.u('mor'))) ->> 'retiradaPorNome', 'Marta Moradora (morador)',
   'moradora com vínculo retira direto');
-INSERT INTO guardado SELECT 'e3', pg_temp.val('po', pg_temp.q('api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''Marta'', ''unidadeConfirmada'', true))', pg_temp.u('un')));
+INSERT INTO guardado SELECT 'e3', pg_temp.val('po', pg_temp.q('api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''Marta'', ''transportadora'', ''Correios'', ''unidadeConfirmada'', true))', pg_temp.u('un')));
 UPDATE public.encomenda SET recebida_em = now() - interval '8 days' WHERE id = (pg_temp.g('e3') ->> 'id')::uuid;
 SELECT ok(EXISTS (SELECT 1 FROM jsonb_array_elements(pg_temp.val('au', pg_temp.q('api.encomendas_listar(jsonb_build_object(''atrasadasDias'', 7, ''unidadeId'', $1))', pg_temp.u('un'))) -> 'itens') x
                    WHERE x ->> 'id' = pg_temp.g('e3') ->> 'id'), 'aguardando há 8 dias aparece em atrasadas (diasDesde > 7)');
 SELECT is(jsonb_array_length(pg_temp.val('au', pg_temp.q('api.encomendas_listar(jsonb_build_object(''status'', ''entregue'', ''unidadeId'', $1))', pg_temp.u('un'))) -> 'itens'), 2,
   'filtro entregue');
 SELECT ok((pg_temp.val('po', 'api.encomendas_resumo(7)') ->> 'atrasadas')::int >= 1, 'resumo conta as atrasadas');
+-- Regressão (0044): cadastro desativado não retira, nem por autorização de retirada (RF-02). Na 0026 os dois davam 'ok'.
+INSERT INTO guardado SELECT 'e4', pg_temp.val('po', pg_temp.q('api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''Marta'', ''transportadora'', ''Correios'', ''unidadeConfirmada'', true))', pg_temp.u('un')));
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_autorizar_retirada($1, jsonb_build_object(''pessoaId'', $2, ''solicitadaPorPessoaId'', $3))',
+  pg_temp.g('e4') ->> 'id', pg_temp.u('des'), pg_temp.u('mor'))), 'PESSOA_DESATIVADA', 'cadastro desativado não é autorizado a retirar (RF-02)');
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_autorizar_retirada($1, jsonb_build_object(''pessoaId'', $2, ''solicitadaPorPessoaId'', $3))',
+  pg_temp.g('e4') ->> 'id', pg_temp.u('ret'), pg_temp.u('mor'))), 'ok', 'autorizada enquanto ativa');
+SELECT ok(pg_temp.val('ad', pg_temp.q('api.pessoa_desativar($1, ''Mudou-se e pediu a desativação'')', pg_temp.u('ret'))) ->> 'desativadaEm' IS NOT NULL,
+  'desativada depois de autorizada');
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_entregar($1, $2)', pg_temp.g('e4') ->> 'id', pg_temp.u('ret'))), 'PESSOA_DESATIVADA',
+  'autorização de retirada não vale para cadastro desativado (RF-02)');
+-- RF-26 no limite: atrasada só com mais de 7 dias inteiros.
+SELECT is(app.encomenda_atrasada('2026-01-01 00:00+00', '2026-01-08 23:59+00'), false, '7 dias e 23h59: ainda não atrasada');
+SELECT is(app.encomenda_atrasada('2026-01-01 00:00+00', '2026-01-09 00:00+00'), true, '8 dias: atrasada');
+-- Tamanhos (app.j_texto -> 400 VALIDACAO)
+INSERT INTO guardado SELECT 'lim', pg_temp.val('po', pg_temp.q('api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', repeat(''d'', 120), ''transportadora'', repeat(''t'', 60), ''codigoRastreio'', repeat(''r'', 60), ''unidadeConfirmada'', true))', pg_temp.u('un2')));
+SELECT ok(length(pg_temp.g('lim') ->> 'destinatario') = 120 AND length(pg_temp.g('lim') ->> 'transportadora') = 60 AND length(pg_temp.g('lim') ->> 'codigoRastreio') = 60,
+  'destinatário com 120, transportadora e rastreio com 60: aceitos inteiros');
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', repeat(''d'', 121), ''unidadeConfirmada'', true))', pg_temp.u('un2'))),
+  'VALIDACAO', 'destinatário com 121 caracteres');
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''X'', ''transportadora'', repeat(''t'', 61), ''unidadeConfirmada'', true))', pg_temp.u('un2'))),
+  'VALIDACAO', 'transportadora com 61 caracteres');
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''X'', ''codigoRastreio'', repeat(''r'', 61), ''unidadeConfirmada'', true))', pg_temp.u('un2'))),
+  'VALIDACAO', 'código de rastreio com 61 caracteres');
+-- Permissão (0041): auditor só vê; administração opera.
+SELECT is(pg_temp.como('au', 'SELECT api.encomenda_entregar(gen_random_uuid(), gen_random_uuid())'), 'SEM_PERMISSAO', 'auditor não registra retirada');
+SELECT is(pg_temp.como('au', 'SELECT api.encomenda_autorizar_retirada(gen_random_uuid(), ''{}'')'), 'SEM_PERMISSAO', 'auditor não autoriza retirada');
+INSERT INTO guardado SELECT 'ead', pg_temp.val('ad', pg_temp.q('api.encomenda_receber(jsonb_build_object(''unidadeId'', $1, ''destinatario'', ''Marta'', ''transportadora'', ''Correios'', ''unidadeConfirmada'', true))', pg_temp.u('un')));
+SELECT is(pg_temp.g('ead') ->> 'recebidaPorNome', 'Ari Admin', 'administração recebe encomenda (encomenda.operar)');
+SELECT is(pg_temp.val('ad', pg_temp.q('api.encomenda_entregar($1, $2)', pg_temp.g('ead') ->> 'id', pg_temp.u('mor'))) ->> 'retiradaPorNome', 'Marta Moradora (morador)',
+  'administração registra a retirada (encomenda.operar)');
+SELECT is(pg_temp.como('po', pg_temp.q('SELECT api.encomenda_autorizar_retirada($1, jsonb_build_object(''pessoaId'', $2, ''solicitadaPorPessoaId'', $3))',
+  pg_temp.g('e1') ->> 'id', pg_temp.u('vis3'), pg_temp.u('mor'))), 'ENCOMENDA_JA_ENTREGUE', 'encomenda já retirada não recebe autorização: 409');
+-- Ficha da unidade (0043)
+SELECT is_empty($$
+  SELECT k FROM unnest(ARRAY['si', 'ad', 'po', 'au']) k
+   WHERE jsonb_typeof(pg_temp.val(k, pg_temp.q('api.unidade_detalhe($1)', pg_temp.u('un'))) -> 'encomendas') IS DISTINCT FROM 'object'
+$$, 'os 4 papéis com unidade.ver recebem a seção de encomendas (todos têm encomenda.ver; o ramo null não é alcançável pela matriz)');
+INSERT INTO public.encomenda (unidade_id, destinatario, unidade_confirmada, recebida_por_id, recebida_em)
+SELECT pg_temp.id('un4'), 'Lote ' || i, true, pg_temp.id('u_po'), now() - make_interval(hours => i) FROM generate_series(1, 21) i;
+INSERT INTO guardado SELECT 'u4', pg_temp.val('po', pg_temp.q('api.unidade_detalhe($1)', pg_temp.u('un4')));
+SELECT ok((pg_temp.g('u4') #>> '{encomendas,aguardando}')::int = 21 AND jsonb_array_length(pg_temp.g('u4') #> '{encomendas,itens}') = 20,
+  'mais de 20 aguardando: contagem real e só 20 itens');
+SELECT is(ARRAY(SELECT x ->> 'destinatario' FROM jsonb_array_elements(pg_temp.g('u4') #> '{encomendas,itens}') WITH ORDINALITY AS t(x, n) ORDER BY n),
+  ARRAY(SELECT 'Lote ' || i FROM generate_series(21, 2, -1) i), 'itens: as 20 mais antigas, da mais antiga para a mais nova');
+SELECT is(pg_temp.como('ad', pg_temp.q('SELECT api.unidade_desativar($1)', pg_temp.u('un4'))), 'ok', 'desativa a unidade com encomendas aguardando');
+SELECT ok(pg_temp.val('po', pg_temp.q('api.unidade_detalhe($1)', pg_temp.u('un4'))) #>> '{unidade,ativo}' = 'false'
+  AND (pg_temp.val('po', pg_temp.q('api.unidade_detalhe($1)', pg_temp.u('un4'))) #>> '{encomendas,aguardando}')::int = 21,
+  'unidade desativada continua listando as encomendas aguardando');
 
 -- ===== Ocorrências ===============================================================================================
 INSERT INTO guardado SELECT 'ev', pg_temp.val('po', pg_temp.q(

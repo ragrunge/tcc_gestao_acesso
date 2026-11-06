@@ -4,12 +4,12 @@
 -- ponto de acesso "Portaria social", criado aqui se faltar). Rodar: `supabase test db`.
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(73);
+SELECT plan(92);
 
 -- ===== Fixtures ===================================================================================================
 CREATE TEMP TABLE ids (k text PRIMARY KEY, v uuid DEFAULT gen_random_uuid()) ON COMMIT DROP;
 INSERT INTO ids (k) SELECT unnest(ARRAY['u_si', 'u_ad', 'u_po', 'u_au', 'u_tr', 'a_si', 'a_ad', 'a_po', 'a_au', 'a_tr',
-  'un', 'un2', 'mor', 'vis', 'res', 'sem', 'pre', 'des', 'vis2', 'res2', 'fun']);
+  'un', 'un2', 'mor', 'vis', 'res', 'sem', 'pre', 'des', 'vis2', 'res2', 'fun', 'b5a', 'b5b', 'b6a', 'b6b', 'b7', 'b8a', 'b8b', 'b8c']);
 CREATE FUNCTION pg_temp.id(p text) RETURNS uuid LANGUAGE sql AS $$ SELECT v FROM ids WHERE k = p $$;
 CREATE FUNCTION pg_temp.email() RETURNS text LANGUAGE sql AS $$ SELECT 'u-' || gen_random_uuid() || '@usuarios.portaria.invalid' $$;
 
@@ -39,6 +39,10 @@ INSERT INTO public.pessoa (id, nome, categoria, documento_mascarado, documento_b
   (pg_temp.id('vis2'), 'Vera Visitante', 'visitante', '617.24*.***-**', public.cpf_hmac('61724738020'), '11987650007', false, NULL, NULL),
   (pg_temp.id('res2'), 'Renan Condomínio', 'visitante', '867.33*.***-**', public.cpf_hmac('86733128092'), '11987650008', false, NULL, NULL),
   (pg_temp.id('fun'), 'Fábio Funcionário', 'funcionario', '935.41*.***-**', public.cpf_hmac('93541134780'), '11987650009', false, NULL, NULL);
+-- Uma pessoa por cenário da 0045 (sem CPF: entram por exceção), para as entradas abertas de um caso não contaminarem outro.
+INSERT INTO public.pessoa (id, nome, categoria, telefone, sem_cpf)
+SELECT pg_temp.id(k), 'Cenário ' || k, 'visitante', '119876502' || lpad(i::text, 2, '0'), true
+  FROM unnest(ARRAY['b5a', 'b5b', 'b6a', 'b6b', 'b7', 'b8a', 'b8b', 'b8c']) WITH ORDINALITY AS t(k, i);
 UPDATE public.pessoa SET desativada_em = now(), desativada_por_id = pg_temp.id('u_ad'), desativacao_motivo = 'Motivo de teste com texto livre'
  WHERE id = pg_temp.id('des');
 INSERT INTO public.vinculo_unidade (pessoa_id, unidade_id, tipo, status, vigencia_inicio, registrado_por_id)
@@ -274,6 +278,69 @@ SELECT is(pg_temp.como('si', pg_temp.q('SELECT api.restricao_aprovar($1)', pg_te
 SELECT is(pg_temp.como('si', pg_temp.q('SELECT api.restricao_aprovar($1)', pg_temp.g('rc') ->> 'id')), 'RESTRICAO_JA_APROVADA', 'aprovar duas vezes: 409');
 SELECT is(pg_temp.val('po', pg_temp.q('api.evento_entrada(jsonb_build_object(''pessoaId'', $1, ''unidadeDestinoId'', $2, ''autorizadoPorTipo'', ''interfone'', ''autorizadoPorPessoaId'', $3))',
   pg_temp.u('res2'), pg_temp.u('un2'), pg_temp.u('mor'))) ->> 'resultado', 'negado', 'aprovada, a restrição de condomínio barra a entrada em qualquer unidade');
+
+-- ===== 0045: consistência do retroativo e da correção (plano de teste, rodada 2) ===================================
+-- Entrada por exceção na unidade 'un'; com p_atras, retroativa com formulário e ocorridoEm = now() - p_atras.
+CREATE FUNCTION pg_temp.ms(p_atras interval) RETURNS bigint LANGUAGE sql AS $$ SELECT (extract(epoch FROM now() - p_atras) * 1000)::bigint $$;
+CREATE FUNCTION pg_temp.retro(p_atras interval) RETURNS jsonb LANGUAGE sql AS $$
+  SELECT jsonb_build_object('retroativo', true, 'formularioContingencia', 'F-0045', 'ocorridoEm', pg_temp.ms(p_atras)) $$;
+CREATE FUNCTION pg_temp.ent(p_pessoa text, p_atras interval DEFAULT NULL) RETURNS text LANGUAGE sql AS $$
+  SELECT format('api.evento_entrada(%L::jsonb)', jsonb_build_object('pessoaId', pg_temp.id(p_pessoa), 'unidadeDestinoId', pg_temp.id('un'),
+    'autorizadoPorTipo', 'excecao_porteiro', 'justificativa', 'Queda do sistema, anotado no formulário')
+    || CASE WHEN p_atras IS NULL THEN '{}'::jsonb ELSE pg_temp.retro(p_atras) END) $$;
+CREATE FUNCTION pg_temp.sai(p_entrada text, p_atras interval) RETURNS text LANGUAGE sql AS $$
+  SELECT format('api.evento_saida(%L::uuid, %L::jsonb)', p_entrada, pg_temp.retro(p_atras)) $$;
+CREATE FUNCTION pg_temp.corr(p_evento text, p_valores jsonb) RETURNS text LANGUAGE sql AS $$
+  SELECT format('api.evento_corrigir(%L::uuid, %L::jsonb)', p_evento,
+    jsonb_build_object('justificativa', 'Valor anotado errado no formulário', 'valores', p_valores)) $$;
+
+-- BUG-5: retroativo de quem já estava dentro NAQUELE instante.
+INSERT INTO guardado SELECT 'b5a', pg_temp.val('po', pg_temp.ent('b5a', interval '5 hours'));
+SELECT is(pg_temp.g('b5a') ->> 'resultado', 'entrada', '0045 (preparo): entrada retroativa aberta de 5 h atrás');
+SELECT is(pg_temp.como('po', 'SELECT ' || pg_temp.ent('b5a', interval '1 hour')), 'JA_ESTA_DENTRO',
+  'BUG-5: retroativo de 1 h com entrada aberta de 5 h: JA_ESTA_DENTRO');
+INSERT INTO guardado SELECT 'b5b', pg_temp.val('po', pg_temp.ent('b5b'));
+SELECT is(pg_temp.g('b5b') ->> 'resultado', 'entrada', '0045 (preparo): entrada aberta agora');
+SELECT is(pg_temp.como('po', 'SELECT ' || pg_temp.ent('b5b', interval '1 hour')), 'ok',
+  'BUG-5: retroativo anterior a uma entrada aberta mais nova continua aceito (contingência fora de ordem)');
+
+-- BUG-6: janela de 72 h para o porteiro; acima, só com evento.retroativo_antigo.
+SELECT is(pg_temp.como('po', 'SELECT ' || pg_temp.ent('b6a', interval '71 hours')), 'ok', 'BUG-6: porteiro lança entrada retroativa de 71 h');
+SELECT is(pg_temp.como('po', 'SELECT ' || pg_temp.ent('b6b', interval '73 hours')), 'RETROATIVO_FORA_DA_JANELA',
+  'BUG-6: porteiro não lança entrada retroativa de 73 h');
+INSERT INTO guardado SELECT 'b6b', pg_temp.val('si', pg_temp.ent('b6b', interval '73 hours'));
+SELECT is(pg_temp.g('b6b') ->> 'resultado', 'entrada', 'BUG-6: síndico lança entrada retroativa de 73 h');
+SELECT is(pg_temp.como('po', 'SELECT ' || pg_temp.sai(pg_temp.g('b6b') #>> '{evento,id}', interval '72 hours 30 minutes')), 'RETROATIVO_FORA_DA_JANELA',
+  'BUG-6: porteiro não lança saída retroativa de 72 h 30 (a janela conta do instante informado)');
+SELECT is(pg_temp.como('po', 'SELECT ' || pg_temp.sai(pg_temp.g('b6b') #>> '{evento,id}', interval '71 hours')), 'ok',
+  'BUG-6: porteiro lança saída retroativa de 71 h de uma entrada mais antiga');
+SELECT is(pg_temp.como('po', format('SELECT api.evento_recusa(%L::jsonb)', jsonb_build_object('pessoaId', pg_temp.id('b6a'), 'unidadeDestinoId', pg_temp.id('un'),
+    'meio', 'celular', 'moradorPessoaId', pg_temp.id('mor')) || pg_temp.retro(interval '73 hours'))), 'RETROATIVO_FORA_DA_JANELA',
+  'BUG-6: porteiro não lança recusa retroativa de 73 h');
+
+-- BUG-7: a correção de horário respeita o par entrada/saída (valores efetivos).
+INSERT INTO guardado SELECT 'b7e', pg_temp.val('po', pg_temp.ent('b7', interval '3 hours'));
+INSERT INTO guardado SELECT 'b7s', pg_temp.val('po', pg_temp.sai(pg_temp.g('b7e') #>> '{evento,id}', interval '2 hours'));
+SELECT ok(pg_temp.g('b7e') ->> 'resultado' = 'entrada' AND pg_temp.g('b7s') ->> 'tipo' = 'saida', '0045 (preparo): entrada de 3 h e saída de 2 h atrás');
+SELECT is(pg_temp.como('si', 'SELECT ' || pg_temp.corr(pg_temp.g('b7e') #>> '{evento,id}', jsonb_build_object('ocorridoEm', pg_temp.ms(interval '1 hour')))),
+  'DATA_INCONSISTENTE', 'BUG-7: corrigir a entrada para depois da saída');
+SELECT is(pg_temp.como('si', 'SELECT ' || pg_temp.corr(pg_temp.g('b7e') #>> '{evento,id}', jsonb_build_object('ocorridoEm', pg_temp.ms(interval '150 minutes')))),
+  'ok', 'BUG-7: corrigir a entrada para antes da saída é aceito');
+SELECT is(pg_temp.como('si', 'SELECT ' || pg_temp.corr(pg_temp.g('b7s') ->> 'id', jsonb_build_object('ocorridoEm', pg_temp.ms(interval '160 minutes')))),
+  'DATA_INCONSISTENTE', 'BUG-7: corrigir a saída para antes da entrada EFETIVA (já corrigida para 150 min)');
+
+-- BUG-8: a correção de pessoa de uma entrada aberta não põe "dentro" quem já está dentro.
+INSERT INTO guardado SELECT 'b8a', pg_temp.val('po', pg_temp.ent('b8a'));
+INSERT INTO guardado SELECT 'b8b', pg_temp.val('po', pg_temp.ent('b8b'));
+SELECT ok(pg_temp.g('b8a') ->> 'resultado' = 'entrada' AND pg_temp.g('b8b') ->> 'resultado' = 'entrada', '0045 (preparo): duas entradas abertas');
+SELECT is(pg_temp.como('si', 'SELECT ' || pg_temp.corr(pg_temp.g('b8b') #>> '{evento,id}', jsonb_build_object('pessoaId', pg_temp.id('b8a')))),
+  'JA_ESTA_DENTRO', 'BUG-8: corrigir a pessoa de entrada aberta para quem já está dentro');
+SELECT is(pg_temp.como('si', 'SELECT ' || pg_temp.corr(pg_temp.g('b8b') #>> '{evento,id}', jsonb_build_object('pessoaId', pg_temp.id('b8c')))),
+  'ok', 'BUG-8: corrigir para quem não está dentro é aceito');
+SELECT is(pg_temp.como('si', 'SELECT ' || pg_temp.corr(pg_temp.g('b7e') #>> '{evento,id}', jsonb_build_object('pessoaId', pg_temp.id('b8a')))),
+  'ok', 'BUG-8: entrada já fechada não é conferida');
+SELECT is(pg_temp.como('si', 'SELECT ' || pg_temp.corr(pg_temp.g('b8a') #>> '{evento,id}', jsonb_build_object('pessoaId', pg_temp.id('b8a')))),
+  'ok', 'BUG-8: a própria entrada não conta como "outra entrada aberta"');
 
 SELECT * FROM finish();
 ROLLBACK;

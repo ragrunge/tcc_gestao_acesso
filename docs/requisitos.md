@@ -135,7 +135,7 @@ Requisitos que melhoram a produtividade, mas cuja falta não impede nenhum dos i
 | RF-19 | Consultar o histórico de acessos por pessoa, unidade, período e porteiro. | M | P3 |
 | RF-20 | Exibir quem está dentro do condomínio no momento (entradas sem saída correspondente), com o tempo de permanência. Para visitante e prestador, mostrar o prazo definido pelo tipo de visita na entrada (visita, entregador, motorista de aplicativo, serviço), avisar quando estiver para vencer ou vencido e permitir à portaria prorrogá-lo (RN-12). | S | P3 |
 | RF-21 | *Removido em 2026-10-17: fora do escopo, porque o morador não opera o sistema.* | — | — |
-| RF-35 | Lançar registro retroativo de acesso feito durante contingência, com data e hora reais da ocorrência, marcado como retroativo e com identificação de quem lançou. | M | RNF-05 |
+| RF-35 | Lançar registro retroativo de acesso feito durante contingência, com data e hora reais da ocorrência, marcado como retroativo e com identificação de quem lançou. O porteiro lança até 72 h antes do momento atual; acima disso, só a administração ou o síndico. | M | RNF-05 |
 | RF-36 | Registrar o acesso de prestador com empresa, serviço e unidade ou área atendida. | M | P5 |
 
 ### M3 — Encomendas
@@ -147,6 +147,8 @@ Requisitos que melhoram a produtividade, mas cuja falta não impede nenhum dos i
 | RF-24 | Notificar a unidade sobre encomenda pendente (interfone no MVP; mensagem automática na fase posterior). | S | P4 |
 | RF-25 | Registrar a retirada com identificação de quem retirou, vínculo com a unidade e data e hora. | M | P4 |
 | RF-26 | Listar encomendas pendentes há mais de N dias. | S | P4 |
+| RF-39 | Mostrar na ficha da unidade as encomendas aguardando retirada: quantidade, quantas há mais de 7 dias e as 20 mais antigas, com atalho para a lista completa da unidade. | S | P4 |
+| RF-40 | Anexar foto da embalagem no recebimento da encomenda (opcional), para conferir o estado na retirada. **Fase futura:** ainda não implementado. A foto é só da embalagem, com aviso para não enquadrar a etiqueta; fica criptografada em repouso como os anexos de ocorrência (RNF-03) e é apagada na retirada ou, se a encomenda não for retirada, 30 dias após o recebimento. | C | P4 |
 
 ### M4 — Ocorrências e relatórios
 
@@ -167,9 +169,9 @@ Requisitos que melhoram a produtividade, mas cuja falta não impede nenhum dos i
 | --- | --- | --- | --- |
 | M1 — Cadastro e vínculo | RF-01 a RF-06, RF-08, RF-09, RF-11, RF-33, RF-34 | RF-07 | RF-10 |
 | M2 — Controle de acesso | RF-12 a RF-17, RF-19, RF-35, RF-36 | RF-18, RF-20 | — |
-| M3 — Encomendas | RF-22, RF-23, RF-25 | RF-24, RF-26 | — |
+| M3 — Encomendas | RF-22, RF-23, RF-25 | RF-24, RF-26, RF-39 | RF-40 |
 | M4 — Ocorrências e relatórios | RF-27, RF-30, RF-31, RF-32, RF-37 | RF-28, RF-29, RF-38 | — |
-| **Total** | **28** | **8** | **1** |
+| **Total** | **28** | **9** | **2** |
 
 Requisitos não funcionais no MVP: RNF-01 a RNF-11 (seção 6). Regras de negócio no MVP: todas (RN-01 a RN-11).
 
@@ -229,6 +231,7 @@ O condomínio é o **controlador** (Lei 13.709/2018, art. 5º, VI), representado
 | Nome, CPF (mascarado e HMAC) e telefone; empresa e serviço, no caso do prestador | Visitante, prestador | Registro de acesso. O telefone serve para contato em caso de ocorrência ou de pendência do acesso | Legítimo interesse (art. 7º, IX) | 3 anos após o último acesso |
 | Registro da conferência do comprovante (tipo, data, responsável) | Morador | Prevenção de fraude na ocupação da unidade (P2) | Legítimo interesse (art. 7º, IX); exercício regular de direitos (art. 7º, VI) | Enquanto houver vínculo + 3 anos |
 | Foto (opcional) | Morador, prestador | Identificação visual pelo porteiro | Consentimento (art. 7º, I) — por ser opcional | Até a revogação ou o fim do vínculo |
+| Foto da embalagem da encomenda (opcional; **fase futura**, RF-40) | Destinatário (terceiro, quando a etiqueta aparece) | Conferir o estado da encomenda entre o recebimento e a retirada | Legítimo interesse (art. 7º, IX), com minimização: sem enquadrar a etiqueta | Apagada na retirada, ou 30 dias após o recebimento se não retirada; não entra na anonimização por texto, por isso a retenção curta |
 | Veículo (placa, modelo, cor), vinculado à unidade | Morador | Identificação do veículo na portaria | Legítimo interesse (art. 7º, IX) | Enquanto houver vínculo + 3 anos, contados da desativação do veículo pela administração (o veículo é da unidade) |
 | Veículo com que a pessoa chegou (placa; modelo e cor opcionais), gravado no evento de entrada | Visitante, prestador, entregador, motorista de aplicativo | Segurança patrimonial: saber com que veículo cada pessoa entrou e está dentro | Legítimo interesse (art. 7º, IX) | A do evento: 3 anos a partir da data da entrada. Faz parte do selo de integridade do evento, então não é apagado pela anonimização do titular e sai junto com o evento |
 | Operador, usuário do sistema (nome, login, papel, registros de ação) | Porteiro, administração, síndico, auditor | Rastreabilidade das decisões e ações (RN-11) | Exercício regular de direitos (art. 7º, VI) | Enquanto ativo + 3 anos |

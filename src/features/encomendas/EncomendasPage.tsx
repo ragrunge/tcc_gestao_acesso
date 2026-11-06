@@ -171,6 +171,8 @@ function ReceberModal({ onClose, onFeito }: { onClose: () => void; onFeito: (e: 
   const [etapa, setEtapa] = useState<'form' | 'confirmar'>('form');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  // `salvando` só vale depois do re-render: dois Enter no mesmo tick criariam duas encomendas.
+  const emVoo = useRef(false);
   const destRef = useRef<HTMLInputElement>(null);
   const unidade = bloco && numero ? catalogo.porBlocoNumero(bloco, numero)?.id ?? null : null;
 
@@ -193,10 +195,11 @@ function ReceberModal({ onClose, onFeito }: { onClose: () => void; onFeito: (e: 
     setErro(''); setEtapa('confirmar');
   }
   async function salvar() {
-    if (!unidade) return;
+    if (!unidade || emVoo.current) return;
+    emVoo.current = true;
     setSalvando(true);
     try { onFeito(await api.encomendas.receber({ ...f, unidadeId: unidade, unidadeConfirmada: true })); }
-    catch (e) { setErro(mensagemErro(e)); setEtapa('form'); setSalvando(false); }
+    catch (e) { setErro(mensagemErro(e)); setEtapa('form'); setSalvando(false); emVoo.current = false; }
   }
 
   // Enter confirma na etapa de conferência mesmo se o foco não estiver no botão
