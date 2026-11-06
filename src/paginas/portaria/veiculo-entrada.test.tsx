@@ -9,12 +9,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiProvider } from '@/api'
 import type { Api, PessoaBusca } from '@/api/types'
 import { ToastProvider } from '@/componentes/Toast'
+import { EntradaPage } from '@/paginas/portaria/EntradaPage'
 import {
   BlocoVeiculo,
-  EntradaPage,
   VEICULO_VAZIO,
   type VeiculoForm,
-} from '@/paginas/portaria/EntradaPage'
+} from '@/paginas/portaria/entrada/BlocoVeiculo'
 import type { VeiculoAcesso } from '@/domain/types'
 
 const { PID, UID, UNID } = vi.hoisted(() => {

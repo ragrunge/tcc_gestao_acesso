@@ -1,15 +1,6 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type FormEvent,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, Car, Check, Clock, History, Plus, Search } from 'lucide-react'
 import {
   useApi,
   ehApiError,
@@ -21,86 +12,47 @@ import {
   type RestricaoView,
 } from '@/api'
 import { useAuth } from '@/auth/AuthContext'
-import { Alert } from '@/componentes/Alert'
-import { InputMascara } from '@/componentes/InputMascara'
-import { SeloVinculo } from '@/componentes/Badge'
-import { Button } from '@/componentes/Button'
 import { CartaoPasso } from '@/componentes/Card'
-import { Field } from '@/componentes/Field'
-import { Modal, temModalAberto } from '@/componentes/Modal'
+import { temModalAberto } from '@/componentes/Modal'
 import { PageHeader } from '@/componentes/PageHeader'
-import { TowerUnitPicker, type TowerUnitPickerHandle } from '@/componentes/TowerUnitPicker'
+import { type TowerUnitPickerHandle } from '@/componentes/TowerUnitPicker'
 import { useToast } from '@/componentes/Toast'
-import { Avatar } from '@/componentes/UnitTag'
 import {
   ROTULO_CATEGORIA,
-  ROTULO_MEIO,
   ROTULO_PAPEL,
-  type CategoriaPessoa,
   type Funcionario,
   type MeioAutorizacao,
+  type TipoVisita,
+  type VeiculoAcesso,
 } from '@/domain/types'
 import {
-  PRAZO_PADRAO_MIN,
   meioComMorador,
   prazoInicial,
   temPrazoPermanencia,
   tipoVisitaPadrao,
-} from '@/domain/rules'
-import { ROTULO_TIPO_VISITA, TIPOS_VISITA, type TipoVisita } from '@/domain/types'
-import {
-  descreverHorario,
-  descreverJanela,
-  escalaVigente,
   estadoAutorizacaoPrevia,
-  justificativaValida,
   meiosAceitos,
-  MIN_JUSTIFICATIVA,
   podeConfirmarEntrada,
   type DadosAutorizacao,
 } from '@/domain/rules'
-import { fmtData, fmtHora, fromInput, toInputDate, toInputTime } from '@/domain/time'
-import { dicaBuscaCpf, mascaraPlaca, normalizarPlaca } from '@/domain/cpf'
-import type { VeiculoAcesso } from '@/domain/types'
+import { fmtData, fmtHora, fromInput, toInputDate } from '@/domain/time'
+import { dicaBuscaCpf, normalizarPlaca } from '@/domain/cpf'
 import { mensagemErro, useAgora } from '@/app/useAsync'
 import { useCatalogo } from '@/app/catalogo'
 import { APOS_EVENTO, CHAVES, useInvalidar } from '@/app/consultas'
 import { ANTECEDENCIA_ENTRADA_MS, HORAS_PREVISTOS } from './previstos'
 import { garantirNegado } from './negado'
-import { descreverVeiculo } from '@/paginas/common/evento'
-
-const SUGESTOES_EXCECAO = [
-  'Morador não atende o interfone',
-  'Emergência médica',
-  'Serviço público (luz, água, gás)',
-]
-
-const NP_VAZIA = {
-  nome: '',
-  documento: '',
-  telefone: '',
-  semCpf: false,
-  categoria: 'visitante' as CategoriaPessoa,
-  empresa: '',
-  servico: '',
-  tipoVisita: 'visita' as TipoVisita,
-}
-
-/** Tipo do cadastro rápido: entregador e motorista de app são visitantes com outro tipo de visita (prazo menor). */
-const TIPOS_CADASTRO_RAPIDO: { valor: TipoVisita; rotulo: string; categoria: CategoriaPessoa }[] = [
-  { valor: 'visita', rotulo: 'Visitante', categoria: 'visitante' },
-  { valor: 'entrega', rotulo: 'Entregador', categoria: 'visitante' },
-  { valor: 'transporte_app', rotulo: 'Motorista de app', categoria: 'visitante' },
-  { valor: 'servico', rotulo: 'Prestador de serviço', categoria: 'prestador' },
-]
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const LIMITE_SUGESTOES = 8
-/** Quem tem vínculo válido aparece na busca com o rótulo "Morador da D-32" (pode visitar outra unidade). */
-const rotuloPessoa = (p: PessoaBusca) =>
-  p.unidadesVinculadasCodigos.length > 0
-    ? `Morador da ${p.unidadesVinculadasCodigos[0]}${p.unidadesVinculadasCodigos.length > 1 ? ` +${p.unidadesVinculadasCodigos.length - 1}` : ''}`
-    : ROTULO_CATEGORIA[p.categoria]
+import { BlocoRetroativo } from './entrada/BlocoRetroativo'
+import { VEICULO_VAZIO, type VeiculoForm } from './entrada/BlocoVeiculo'
+import { BuscaPessoa } from './entrada/BuscaPessoa'
+import { LIMITE_SUGESTOES, NP_VAZIA, UUID } from './entrada/constantes'
+import { ModalRestricao } from './entrada/ModalRestricao'
+import { NovaPessoaForm } from './entrada/NovaPessoaForm'
+import { PassoAutorizacao } from './entrada/PassoAutorizacao'
+import { PassoUnidade } from './entrada/PassoUnidade'
+import { PessoaEscolhida } from './entrada/PessoaEscolhida'
+import { listarFaltas, textoAutorizadoPor } from './entrada/regras'
+import { ResumoRegistro } from './entrada/ResumoRegistro'
 
 export function EntradaPage() {
   const api = useApi()
@@ -783,71 +735,33 @@ export function EntradaPage() {
 
   const pr = restricao?.[0]
 
-  // Resumo do registro (coluna direita)
   const residente = autorizadores.find((a) => a.pessoa.id === residenteId)?.pessoa.nome
-  const autorizadoPor = !meio
-    ? '—'
-    : meio === 'excecao_porteiro'
-      ? `${usuario!.nome} (exceção do porteiro)`
-      : meio === 'escala'
-        ? 'Escala do condomínio'
-        : meio === 'autorizacao_previa'
-          ? previaValida
-            ? ((previaValida.areaComumId
-                ? `Área comum — cadastrada por ${previaValida.cadastradaPorNome}`
-                : previaValida.semSolicitante
-                  ? `Sem solicitante — cadastrada por ${previaValida.cadastradaPorNome}`
-                  : previaValida.solicitadaPorNome) ?? '—')
-            : '—'
-          : (residente ?? '—')
-  const faltas: string[] = []
-  if (!pessoa) faltas.push('pessoa')
-  else {
-    if (propriaUnidade)
-      faltas.push('outra unidade de destino (morador não registra entrada na própria)')
-    else if (emArea && !areaAtual) faltas.push('área comum')
-    else if (!emArea && !unidadeAtual && pessoa.categoria !== 'funcionario') faltas.push('unidade')
-    else if (carregandoUnidade) faltas.push('verificação da unidade')
-    if (
-      !meio &&
-      !carregandoUnidade &&
-      (unidadeAtual || areaAtual || pessoa.categoria === 'funcionario')
-    )
-      faltas.push('quem autorizou')
-    else if (meioComMorador(meio) && !residenteId) faltas.push('morador que autorizou')
-    else if (meio === 'excecao_porteiro' && !justificativaValida(justificativa))
-      faltas.push(`justificativa (mín. ${MIN_JUSTIFICATIVA} caracteres)`)
-  }
-  if (retroativo) {
-    if (!horaReal) faltas.push('hora real do acesso')
-    else if (!retroValido) faltas.push('hora real anterior ao momento atual')
-    if (!formulario.trim()) faltas.push('nº do formulário de papel')
-  }
-  if (pessoa && !veiculoOk)
-    faltas.push('placa do veículo (padrão antigo ou Mercosul), ou marque “A pé”')
-  if (faltas.length === 0 && !pronto && !enviando && !restricao)
-    faltas.push('autorização válida para este momento')
+  const autorizadoPor = textoAutorizadoPor({
+    meio,
+    nomeUsuario: usuario!.nome,
+    previaValida,
+    residente,
+  })
+  const faltas = listarFaltas({
+    pessoa,
+    propriaUnidade,
+    emArea,
+    areaAtual,
+    unidadeAtual,
+    carregandoUnidade,
+    meio,
+    residenteId,
+    justificativa,
+    retroativo,
+    horaReal,
+    retroValido,
+    formulario,
+    veiculoOk,
+    pronto,
+    enviando,
+    restricao,
+  })
 
-  const LABEL_MEIO: Record<MeioAutorizacao, [string, string]> = {
-    interfone: ['Interfone', 'Morador confirma pelo interfone'],
-    celular: ['Celular', 'Morador confirma por WhatsApp ou ligação'],
-    morador_presente: ['Morador presente', 'Morador está na portaria'],
-    autorizacao_previa: [
-      'Autorização prévia',
-      emArea ? 'Cadastrada pela administração' : 'Cadastrada antes pelo morador',
-    ],
-    excecao_porteiro: ['Exceção do porteiro', 'Sem morador; exige justificativa'],
-    escala: ['Escala', 'Funcionário em horário de escala'],
-  }
-  // Todos os meios aparecem; os que não valem para esta pessoa ou destino ficam desabilitados com o motivo
-  const meiosVisiveis = [
-    'interfone',
-    'celular',
-    'morador_presente',
-    'autorizacao_previa',
-    'excecao_porteiro',
-    'escala',
-  ] as MeioAutorizacao[]
   /** Motivo de um meio não valer para a pessoa ou o destino escolhidos (null = vale). */
   const motivoMeioBloqueado = (m: MeioAutorizacao): string | null => {
     if (!pessoa || meiosPermitidos.includes(m)) return null
@@ -855,7 +769,6 @@ export function EntradaPage() {
     if (emArea) return 'Não vale para área comum'
     return 'Não vale para esta pessoa'
   }
-  const rotuloResumo = 'text-[13px] text-[#56616B]'
   // Prazo de permanência pela MESMA regra do servidor (prazoInicial): tipo escolhido ou padrão da categoria efetiva
   // ("morador" em outra unidade entra como visitante) e, no serviço com autorização prévia, o fim da janela
   const tipoResumo =
@@ -871,6 +784,41 @@ export function EntradaPage() {
         )
       : null
 
+  const trocarDestino = (d: 'unidade' | 'area_comum') => {
+    setDestino(d)
+    setBloco(null)
+    setNumero(null)
+    setAreaId('')
+    setPrevias([])
+    setAutorizadores([])
+    setMeio(null)
+    setResidenteId(null)
+    setRestricao(null)
+  }
+  const escolherArea = (id: string) => {
+    setAreaId(id)
+    setRestricao(null)
+  }
+  const mudarUnidade = (b: string | null, n: string | null) => {
+    setBloco(b)
+    setNumero(n)
+    if (!n) {
+      setPrevias([])
+      setAutorizadores([])
+      setMeio(null)
+      setResidenteId(null)
+    }
+  }
+  const escolherMeio = (m: MeioAutorizacao) => {
+    setMeio(m)
+    setResidenteId(null)
+  }
+  const cancelar = () => (algoPreenchido ? limpar() : nav('/painel'))
+  const autorizacaoBloqueada =
+    !pessoa ||
+    (!unidadeAtual && !areaAtual && pessoa.categoria !== 'funcionario') ||
+    carregandoUnidade
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -885,1082 +833,153 @@ export function EntradaPage() {
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-4">
           {retroativo && (
-            <section className="rounded-[10px] border border-[#A9D2D8] bg-[#F0F8F9] p-5">
-              <h2 className="mb-[14px] flex items-center gap-2 text-[17px] font-semibold">
-                <History className="h-5 w-5 text-[#0B5563]" aria-hidden />
-                Data e hora reais do acesso
-              </h2>
-              <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-3">
-                <Field label="Data real do acesso">
-                  <input
-                    type="date"
-                    className="input"
-                    value={dataReal}
-                    max={toInputDate(agora)}
-                    onChange={(e) => setDataReal(e.target.value)}
-                  />
-                </Field>
-                <Field
-                  label="Hora real do acesso"
-                  erro={
-                    horaReal && !retroValido ? 'Deve ser anterior ao momento atual.' : undefined
-                  }
-                >
-                  <input
-                    type="time"
-                    className="input"
-                    value={horaReal}
-                    max={dataReal === toInputDate(agora) ? toInputTime(agora) : undefined}
-                    onChange={(e) => setHoraReal(e.target.value)}
-                  />
-                </Field>
-                <Field
-                  label="Nº do formulário de papel"
-                  dica="Obrigatório. Fica registrado no próprio evento (entra no hash)."
-                >
-                  <input
-                    className="input"
-                    value={formulario}
-                    onChange={(e) => setFormulario(e.target.value)}
-                  />
-                </Field>
-              </div>
-              <p className="mt-3 flex items-center gap-1.5 text-[14px] text-[#0B4450]">
-                <Clock className="h-4 w-4" aria-hidden />A hora do lançamento ({fmtHora(agora)}) é
-                definida pelo sistema e gravada junto, com a etiqueta Retroativo.
-              </p>
-            </section>
+            <BlocoRetroativo
+              agora={agora}
+              dataReal={dataReal}
+              setDataReal={setDataReal}
+              horaReal={horaReal}
+              setHoraReal={setHoraReal}
+              formulario={formulario}
+              setFormulario={setFormulario}
+              retroValido={retroValido}
+            />
           )}
 
           <CartaoPasso n={1} titulo="Pessoa">
             {!pessoa && !novoModo && (
-              <>
-                <div className="relative">
-                  <Search
-                    className="pointer-events-none absolute left-[14px] top-[14px] h-5 w-5 text-[#56616B]"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                  <label htmlFor="busca-pessoa" className="sr-only">
-                    Buscar por nome, documento ou placa
-                  </label>
-                  <input
-                    id="busca-pessoa"
-                    ref={buscaRef}
-                    autoComplete="off"
-                    role="combobox"
-                    aria-expanded={sugestoes.length > 0}
-                    aria-describedby="busca-pessoa-dica"
-                    aria-controls={
-                      !query.trim() && previstosAgora.length > 0
-                        ? 'lista-previstos'
-                        : 'lista-sugestoes'
-                    }
-                    aria-activedescendant={
-                      !query.trim() && previstosAgora[idxPrevisto]
-                        ? `prev-${previstosAgora[idxPrevisto].autorizacaoId}`
-                        : sugestoes[idx]
-                          ? `sug-${sugestoes[idx].id}`
-                          : undefined
-                    }
-                    className="h-12 w-full rounded-lg border border-[#9AA7B0] bg-white pl-11 pr-[14px] text-[16px] text-ink placeholder:text-[#56616B]/70"
-                    value={query}
-                    onChange={(e) => {
-                      enterPendente.current = false
-                      setQuery(e.target.value)
-                    }}
-                    placeholder="Nome, início do CPF ou placa da pessoa"
-                    onKeyDown={(e) => {
-                      // Busca vazia: as setas e o Enter andam pelos previstos para agora
-                      const naLista = !query.trim() && previstosAgora.length > 0
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault()
-                        if (naLista)
-                          setIdxPrevisto((i) => Math.min(i + 1, previstosAgora.length - 1))
-                        else setIdx((i) => Math.min(i + 1, sugestoes.length - 1))
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault()
-                        if (naLista) setIdxPrevisto((i) => Math.max(i - 1, 0))
-                        else setIdx((i) => Math.max(i - 1, 0))
-                      } else if (e.key === 'Enter') {
-                        e.preventDefault()
-                        if (naLista) {
-                          if (previstosAgora[idxPrevisto])
-                            escolherPrevisto(previstosAgora[idxPrevisto])
-                        } else if (sugestoes[idx]) void escolherPessoa(sugestoes[idx])
-                        else if (query.trim()) enterPendente.current = true
-                      }
-                    }}
-                  />
-                </div>
-                <div className="mt-2 flex flex-col gap-1">
-                  <p
-                    id="busca-pessoa-dica"
-                    role="status"
-                    className={dicaCpf ? 'px-0.5 text-[13px] text-[#56616B]' : 'sr-only'}
-                  >
-                    {dicaCpf ?? ''}
-                  </p>
-                  <ul
-                    id="lista-sugestoes"
-                    role="listbox"
-                    aria-label="Pessoas encontradas"
-                    className="flex flex-col gap-1 empty:hidden"
-                  >
-                    {sugestoes.map((p, i) => (
-                      <li key={p.id} id={`sug-${p.id}`} role="option" aria-selected={i === idx}>
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          onClick={() => void escolherPessoa(p)}
-                          onMouseEnter={() => setIdx(i)}
-                          className={`grid min-h-[56px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-3 gap-y-0.5 rounded-lg border px-[10px] py-[6px] text-left hover:bg-[#EEF5F6] md:grid-cols-[44px_minmax(0,1fr)_150px_110px_190px] ${
-                            i === idx
-                              ? 'border-[#0B5563] bg-[#F0F8F9]'
-                              : 'border-[#E1E6EA] bg-white'
-                          }`}
-                        >
-                          <Avatar nome={p.nome} />
-                          <span className="truncate font-semibold">{p.nome}</span>
-                          <span className="col-start-2 font-mono text-[14px] text-[#33424B] md:col-start-auto">
-                            {p.documentoMascarado}
-                          </span>
-                          <span className="col-start-2 truncate text-[14px] md:col-start-auto">
-                            {rotuloPessoa(p)}
-                          </span>
-                          <span className="col-start-2 truncate text-[13px] text-[#56616B] md:col-start-auto">
-                            Último: {p.ultimoAcesso}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {mais && (
-                    <p className="px-0.5 py-1 text-[13px] text-[#56616B]">
-                      Mais resultados — refine a busca
-                    </p>
-                  )}
-                  {query.trim() && !buscando && sugestoes.length === 0 && (
-                    <p className="px-0.5 py-1 text-[#56616B]">
-                      Nenhuma pessoa encontrada com “{query}”.
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNovoModo(true)
-                      setNp({ ...NP_VAZIA, nome: query })
-                    }}
-                    className="flex min-h-[48px] items-center gap-[10px] rounded-lg border border-dashed border-[#9AA7B0] bg-white px-3 text-left font-semibold text-[#0B5563] hover:bg-[#EEF5F6]"
-                  >
-                    <Plus className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
-                    Pessoa sem cadastro
-                  </button>
-                  {!query.trim() && previstosAgora.length > 0 && (
-                    <div className="mt-1 flex flex-col gap-1">
-                      <span
-                        id="rot-previstos"
-                        className="px-0.5 text-[13px] font-medium text-[#56616B]"
-                      >
-                        Previstos para agora · autorização prévia
-                      </span>
-                      <ul
-                        id="lista-previstos"
-                        role="listbox"
-                        aria-labelledby="rot-previstos"
-                        className="flex flex-col gap-1"
-                      >
-                        {previstosAgora.map((p, i) => (
-                          <li
-                            key={p.autorizacaoId}
-                            id={`prev-${p.autorizacaoId}`}
-                            role="option"
-                            aria-selected={i === idxPrevisto}
-                          >
-                            <button
-                              type="button"
-                              tabIndex={-1}
-                              onClick={() => escolherPrevisto(p)}
-                              onMouseEnter={() => setIdxPrevisto(i)}
-                              className={`grid min-h-[52px] w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-3 rounded-lg border px-[10px] py-[6px] text-left hover:bg-[#EEF5F6] md:grid-cols-[44px_minmax(0,1fr)_minmax(0,1fr)_170px] ${
-                                i === idxPrevisto
-                                  ? 'border-[#0B5563] bg-[#F0F8F9]'
-                                  : 'border-[#E1E6EA] bg-white'
-                              }`}
-                            >
-                              <Avatar nome={p.nome} />
-                              <span className="flex min-w-0 flex-col">
-                                <span className="truncate font-semibold">{p.nome}</span>
-                                <span className="text-[13px] text-[#56616B]">
-                                  {ROTULO_CATEGORIA[p.categoria]}
-                                </span>
-                              </span>
-                              <span className="col-start-2 truncate text-[14px] md:col-start-auto">
-                                <span className="text-[#56616B]">
-                                  {p.destino.tipo === 'unidade' ? 'Unidade ' : 'Área comum: '}
-                                </span>
-                                <span className="font-mono font-semibold">{p.destino.rotulo}</span>
-                              </span>
-                              <span className="col-start-2 font-mono text-[13px] text-[#56616B] md:col-start-auto">
-                                {p.inicio <= agora
-                                  ? `até ${fmtHora(p.fim)}`
-                                  : `a partir de ${fmtHora(p.inicio)}`}
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {sugestoes.length === 0 && !query.trim() && (
-                    <div className="px-0.5 py-1 text-[13px] text-[#56616B]">
-                      Digite o nome ou o documento. Use ↑ ↓ para escolher e Enter para selecionar.
-                    </div>
-                  )}
-                </div>
-              </>
+              <BuscaPessoa
+                buscaRef={buscaRef}
+                enterPendente={enterPendente}
+                query={query}
+                setQuery={setQuery}
+                sugestoes={sugestoes}
+                idx={idx}
+                setIdx={setIdx}
+                mais={mais}
+                buscando={buscando}
+                dicaCpf={dicaCpf}
+                previstosAgora={previstosAgora}
+                idxPrevisto={idxPrevisto}
+                setIdxPrevisto={setIdxPrevisto}
+                escolherPrevisto={escolherPrevisto}
+                escolherPessoa={escolherPessoa}
+                agora={agora}
+                iniciarCadastro={() => {
+                  setNovoModo(true)
+                  setNp({ ...NP_VAZIA, nome: query })
+                }}
+              />
             )}
-
             {novoModo && !pessoa && (
-              <form onSubmit={cadastrarNova} className="grid grid-cols-1 gap-[14px] sm:grid-cols-2">
-                <Field label="Nome completo" className="sm:col-span-2">
-                  <input
-                    className="input"
-                    autoFocus
-                    required
-                    value={np.nome}
-                    onChange={(e) => setNp({ ...np, nome: e.target.value })}
-                  />
-                </Field>
-                <Field label="CPF" dica="Só CPF. Guardado mascarado, com hash para busca.">
-                  <InputMascara
-                    tipo="cpf"
-                    className="input font-mono"
-                    disabled={np.semCpf}
-                    required={!np.semCpf}
-                    value={np.documento}
-                    onChange={(documento) => setNp({ ...np, documento })}
-                  />
-                </Field>
-                <Field label="Telefone (obrigatório)">
-                  <InputMascara
-                    tipo="telefone"
-                    required
-                    value={np.telefone}
-                    onChange={(telefone) => setNp({ ...np, telefone })}
-                  />
-                </Field>
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#B9C3CA] p-3 sm:col-span-2">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={np.semCpf}
-                    onChange={(e) => setNp({ ...np, semCpf: e.target.checked, documento: '' })}
-                  />
-                  <span>
-                    <span className="font-medium">Pessoa sem CPF</span>
-                    <span className="block text-[13px] text-[#56616B]">
-                      Exceção: nome e telefone continuam obrigatórios e a pessoa só entra por
-                      exceção do porteiro, com justificativa.
-                    </span>
-                  </span>
-                </label>
-                <Field label="Tipo">
-                  <select
-                    className="input"
-                    value={np.tipoVisita}
-                    onChange={(e) => {
-                      const t = TIPOS_CADASTRO_RAPIDO.find((x) => x.valor === e.target.value)!
-                      setNp({ ...np, tipoVisita: t.valor, categoria: t.categoria })
-                    }}
-                  >
-                    {TIPOS_CADASTRO_RAPIDO.map((t) => (
-                      <option key={t.valor} value={t.valor}>
-                        {t.rotulo}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                {np.categoria === 'prestador' && (
-                  <>
-                    <Field label="Empresa">
-                      <input
-                        className="input"
-                        required
-                        value={np.empresa}
-                        onChange={(e) => setNp({ ...np, empresa: e.target.value })}
-                      />
-                    </Field>
-                    <Field label="Serviço">
-                      <input
-                        className="input"
-                        value={np.servico}
-                        onChange={(e) => setNp({ ...np, servico: e.target.value })}
-                      />
-                    </Field>
-                  </>
-                )}
-                {erroNp && (
-                  <Alert tom="vermelho" role="alert" className="sm:col-span-2">
-                    {erroNp}
-                  </Alert>
-                )}
-                <div className="flex flex-wrap gap-[10px] sm:col-span-2">
-                  <Button type="submit" variante="primario">
-                    Usar este cadastro
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setNovoModo(false)
-                      setTimeout(() => buscaRef.current?.focus(), 0)
-                    }}
-                  >
-                    Voltar à busca
-                  </Button>
-                </div>
-              </form>
+              <NovaPessoaForm
+                np={np}
+                setNp={setNp}
+                erroNp={erroNp}
+                cadastrarNova={cadastrarNova}
+                voltar={() => {
+                  setNovoModo(false)
+                  setTimeout(() => buscaRef.current?.focus(), 0)
+                }}
+              />
             )}
-
-            {pessoa && (
-              <div className="flex items-center gap-[14px] rounded-lg border border-[#A9D2D8] bg-[#F0F8F9] px-[14px] py-3">
-                <Avatar nome={pessoa.nome} tamanho={44} />
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-[16px] font-semibold">{pessoa.nome}</span>
-                  <span className="text-[14px] text-[#33424B]">
-                    <span className="font-mono">{pessoa.documentoMascarado}</span> ·{' '}
-                    {rotuloPessoa(pessoa)}
-                    {pessoa.empresa && (
-                      <>
-                        {' '}
-                        · {pessoa.empresa}
-                        {pessoa.servico ? ` (${pessoa.servico})` : ''}
-                      </>
-                    )}{' '}
-                    · último acesso: {pessoa.ultimoAcesso}
-                  </span>
-                </div>
-                <Button pequeno onClick={() => limpar()}>
-                  Trocar
-                </Button>
-              </div>
-            )}
+            {pessoa && <PessoaEscolhida pessoa={pessoa} trocar={() => limpar()} />}
           </CartaoPasso>
 
           <CartaoPasso n={2} titulo="Unidade de destino">
             {!pessoa ? (
               <p className="text-[#56616B]">Escolha a pessoa primeiro.</p>
             ) : (
-              <div className="flex flex-col gap-3">
-                {pessoa.categoria === 'funcionario' && (
-                  <Alert tom="petroleo">
-                    Funcionário do condomínio: a unidade é opcional quando a entrada é por Escala.
-                  </Alert>
-                )}
-                {/* Ordem do protótipo: tipo de visita (define o prazo), destino do prestador, bloco e apartamento, veículo */}
-                {comPrazo && tipoEscolhido && (
-                  <SeletorTipoVisita valor={tipoEscolhido} onChange={setTipoVisita} />
-                )}
-                {pessoa.categoria === 'prestador' && (
-                  <div role="radiogroup" aria-label="Destino do prestador" className="flex gap-2">
-                    {(['unidade', 'area_comum'] as const).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        role="radio"
-                        aria-checked={destino === d}
-                        onClick={() => {
-                          setDestino(d)
-                          setBloco(null)
-                          setNumero(null)
-                          setAreaId('')
-                          setPrevias([])
-                          setAutorizadores([])
-                          setMeio(null)
-                          setResidenteId(null)
-                          setRestricao(null)
-                        }}
-                        className={`h-[44px] rounded-full border px-4 text-[14px] font-medium ${destino === d ? 'border-[#0B5563] bg-[#0B5563] text-white' : 'border-[#B9C3CA] bg-white hover:bg-[#EEF2F4]'}`}
-                      >
-                        {d === 'unidade' ? 'Unidade' : 'Área comum'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {emArea ? (
-                  <div className="flex flex-col gap-2">
-                    <span id="rot-area" className="text-[14px] font-medium">
-                      Área comum
-                    </span>
-                    <div
-                      role="radiogroup"
-                      aria-labelledby="rot-area"
-                      className="flex flex-wrap gap-2"
-                    >
-                      {catalogo.areasComuns
-                        .filter((a) => a.ativo)
-                        .map((a) => (
-                          <button
-                            key={a.id}
-                            type="button"
-                            role="radio"
-                            aria-checked={areaId === a.id}
-                            onClick={() => {
-                              setAreaId(a.id)
-                              setRestricao(null)
-                            }}
-                            className={`h-11 rounded-lg border-2 px-4 font-medium max-lg:h-[44px] ${areaId === a.id ? 'border-[#0B5563] bg-[#F0F8F9]' : 'border-[#DCE1E5] bg-white hover:border-[#9AA7B0]'}`}
-                          >
-                            {a.nome}
-                          </button>
-                        ))}
-                    </div>
-                    <span className="text-[13px] text-[#56616B]">
-                      Na área comum a entrada é por autorização prévia da administração ou por
-                      exceção do porteiro (RF-36).
-                    </span>
-                  </div>
-                ) : (
-                  <TowerUnitPicker
-                    ref={pickerRef}
-                    bloco={bloco}
-                    numero={numero}
-                    onChange={(b, n) => {
-                      setBloco(b)
-                      setNumero(n)
-                      if (!n) {
-                        setPrevias([])
-                        setAutorizadores([])
-                        setMeio(null)
-                        setResidenteId(null)
-                      }
-                    }}
-                    onAlterar={limparUnidade}
-                    onComplete={() => {
-                      /* o efeito de [unidade] consulta restrições e autorizações */
-                    }}
-                  />
-                )}
-                {propriaUnidade && (
-                  <Alert tom="ambar" role="alert">
-                    Morador não registra entrada na própria unidade no MVP.
-                  </Alert>
-                )}
-                <BlocoVeiculo valor={veiculo} onChange={setVeiculo} ultimo={ultimoVeiculo} />
-              </div>
+              <PassoUnidade
+                pessoa={pessoa}
+                comPrazo={comPrazo}
+                tipoEscolhido={tipoEscolhido}
+                setTipoVisita={setTipoVisita}
+                destino={destino}
+                trocarDestino={trocarDestino}
+                emArea={emArea}
+                catalogo={catalogo}
+                areaId={areaId}
+                escolherArea={escolherArea}
+                pickerRef={pickerRef}
+                bloco={bloco}
+                numero={numero}
+                mudarUnidade={mudarUnidade}
+                limparUnidade={limparUnidade}
+                propriaUnidade={propriaUnidade}
+                veiculo={veiculo}
+                setVeiculo={setVeiculo}
+                ultimoVeiculo={ultimoVeiculo}
+              />
             )}
           </CartaoPasso>
 
           <CartaoPasso n={3} titulo="Quem autorizou?">
-            {!pessoa ||
-            (!unidadeAtual && !areaAtual && pessoa.categoria !== 'funcionario') ||
-            carregandoUnidade ? (
-              // Antes de liberar: os meios aparecem desabilitados, cada um com o motivo (o porteiro novo aprende o fluxo)
-              <div className="flex flex-col gap-2">
-                <div
-                  aria-label="Meios de autorização, ainda bloqueados"
-                  role="group"
-                  className="grid grid-cols-1 gap-[10px] sm:grid-cols-2 lg:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]"
-                  style={{ '--n': meiosVisiveis.length } as CSSProperties}
-                >
-                  {meiosVisiveis.map((m) => (
-                    <div
-                      key={m}
-                      aria-disabled="true"
-                      className="flex min-h-[76px] flex-col gap-1 rounded-[10px] border-2 border-[#DCE1E5] bg-white p-3 opacity-60"
-                    >
-                      <span className="font-semibold">{LABEL_MEIO[m][0]}</span>
-                      <span className="text-[13px] text-[#56616B]">
-                        {motivoMeioBloqueado(m) ??
-                          (carregandoUnidade
-                            ? 'Verificando a unidade…'
-                            : !pessoa
-                              ? 'Escolha a pessoa primeiro'
-                              : 'Escolha a unidade primeiro')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[13px] text-[#56616B]">
-                  {carregandoUnidade
-                    ? 'Verificando restrições e autorizações…'
-                    : 'O sistema confere restrições e autorizações prévias da unidade antes de liberar esta etapa.'}
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-[14px]">
-                {previaValida && (
-                  <div
-                    role="status"
-                    className="flex items-start gap-3 rounded-[10px] border border-[#75E0A7] bg-[#DCFAE6] p-4 text-[#05603A]"
-                  >
-                    <Check className="h-[22px] w-[22px] shrink-0" strokeWidth={2.4} aria-hidden />
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[16px] font-semibold">
-                        Autorização prévia{' '}
-                        {previaValida.areaComumId
-                          ? 'da administração'
-                          : previaValida.semSolicitante
-                            ? 'sem solicitante'
-                            : `de ${previaValida.solicitadaPorNome}`}{' '}
-                        ({previaValida.unidadeRotulo}), válida até {fmtData(previaValida.validaAte)}
-                        , {descreverJanela(previaValida)}.
-                      </span>
-                      <span className="text-[14px]">
-                        Autorizador preenchido automaticamente. Sem restrições para esta unidade.
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {previaFora && (
-                  <Alert
-                    tom="ambar"
-                    titulo={`Autorização prévia fora do horário (${descreverHorario(previaFora)})`}
-                    role="status"
-                  >
-                    Válida até {fmtData(previaFora.validaAte)}, {descreverJanela(previaFora)}. Neste
-                    momento ela não vale: escolha outro meio de autorização.
-                  </Alert>
-                )}
-
-                {semCpf && (
-                  <Alert tom="ambar" titulo="Pessoa cadastrada sem CPF">
-                    Só pode entrar por exceção do porteiro, com justificativa. Interfone, celular,
-                    morador presente e autorização prévia ficam desabilitados.
-                  </Alert>
-                )}
-
-                <fieldset
-                  ref={grupoMeioRef}
-                  className="grid grid-cols-1 gap-[10px] sm:grid-cols-2 lg:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]"
-                  style={{ '--n': Math.max(meiosVisiveis.length, 1) } as CSSProperties}
-                >
-                  <legend className="sr-only">Meio de autorização</legend>
-                  {meiosVisiveis.map((m) => {
-                    const bloqueioSemCpf = semCpf && m !== 'excecao_porteiro'
-                    const naoVale = motivoMeioBloqueado(m)
-                    const desabilitado =
-                      !!naoVale || (m === 'autorizacao_previa' && !previaValida) || bloqueioSemCpf
-                    const [titulo, desc] = LABEL_MEIO[m]
-                    return (
-                      <label
-                        key={m}
-                        className={`flex min-h-[76px] flex-col gap-1 rounded-[10px] border-2 p-3 text-left [&:has(:focus-visible)]:outline [&:has(:focus-visible)]:outline-[3px] [&:has(:focus-visible)]:outline-offset-2 [&:has(:focus-visible)]:outline-[#0B5563] ${
-                          meio === m ? 'border-[#0B5563] bg-[#F0F8F9]' : 'border-[#DCE1E5] bg-white'
-                        } ${desabilitado ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-[#9AA7B0]'}`}
-                      >
-                        <input
-                          type="radio"
-                          name="meio"
-                          className="sr-only"
-                          disabled={desabilitado}
-                          checked={meio === m}
-                          onChange={() => {
-                            setMeio(m)
-                            setResidenteId(null)
-                          }}
-                        />
-                        <span className="font-semibold">{titulo}</span>
-                        <span className="text-[13px] text-[#56616B]">
-                          {desabilitado
-                            ? (naoVale ??
-                              (bloqueioSemCpf
-                                ? 'Pessoa sem CPF'
-                                : previaFora
-                                  ? 'Fora da janela de horário'
-                                  : 'Sem autorização válida'))
-                            : desc}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </fieldset>
-
-                {meioComMorador(meio) && (
-                  <div className="flex flex-col gap-2">
-                    <span id="rot-morador" className="text-[14px] font-medium">
-                      Morador que autorizou <span className="text-[#B42318]">*</span>{' '}
-                      <span className="font-normal text-[#56616B]">
-                        · somente vínculo aprovado na {codUnidade}
-                      </span>
-                    </span>
-                    {autorizadores.length === 0 ? (
-                      <Alert tom="ambar">
-                        Nenhum morador com vínculo válido nesta unidade. Vínculo pendente não dá
-                        acesso de morador. Use outro meio.
-                      </Alert>
-                    ) : (
-                      <div
-                        role="radiogroup"
-                        aria-labelledby="rot-morador"
-                        className="flex flex-wrap gap-2"
-                      >
-                        {autorizadores.map((a) => (
-                          <label
-                            key={a.pessoa.id}
-                            className={`flex h-11 cursor-pointer items-center gap-2 rounded-lg border-2 px-4 max-lg:h-[44px] [&:has(:focus-visible)]:outline [&:has(:focus-visible)]:outline-[3px] [&:has(:focus-visible)]:outline-offset-2 [&:has(:focus-visible)]:outline-[#0B5563] ${
-                              residenteId === a.pessoa.id
-                                ? 'border-[#0B5563] bg-[#F0F8F9]'
-                                : 'border-[#DCE1E5] bg-white hover:border-[#9AA7B0]'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="morador"
-                              className="sr-only"
-                              checked={residenteId === a.pessoa.id}
-                              onChange={() => setResidenteId(a.pessoa.id)}
-                            />
-                            <span className="font-medium">{a.pessoa.nome}</span>
-                            <span className="text-[13px] text-[#56616B]">
-                              {a.vinculo.tipo === 'proprietario'
-                                ? 'Proprietário(a)'
-                                : a.vinculo.tipo === 'inquilino'
-                                  ? 'Inquilino(a)'
-                                  : 'Dependente'}
-                            </span>
-                            {a.vinculo.status === 'legado' && (
-                              <SeloVinculo status="legado" tamanho="xs" />
-                            )}
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {meioComMorador(meio) && residenteId && (
-                  <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-dashed border-[#C5CDD3] px-4 py-3">
-                    <Button
-                      disabled={!podeRecusar}
-                      carregando={recusando}
-                      onClick={() => void registrarRecusa()}
-                    >
-                      Morador recusou
-                    </Button>
-                    <span className="text-[13px] text-[#56616B]">
-                      O morador não autorizou a visita: grava o evento “Recusado” na trilha, sem
-                      registrar entrada, e limpa a tela.
-                    </span>
-                  </div>
-                )}
-
-                {meio === 'excecao_porteiro' && (
-                  <div className="flex flex-col gap-3 rounded-[10px] border border-[#FEC84B] bg-[#FEF0C7] p-4 text-[#93370D]">
-                    <div className="flex items-start gap-[10px]">
-                      <AlertTriangle
-                        className="h-[22px] w-[22px] shrink-0"
-                        strokeWidth={2.2}
-                        aria-hidden
-                      />
-                      <div>
-                        <div className="text-[16px] font-semibold">Liberação por exceção</div>
-                        <div className="text-[14px] text-[#7A2E0E]">
-                          Esta entrada ficará marcada como exceção, com {usuario!.nome} como
-                          responsável, e aparecerá no relatório de exceções.
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {SUGESTOES_EXCECAO.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setJustificativa(s)}
-                          className="h-[44px] rounded-full border border-[#F5B54A] bg-white px-3 text-[14px] text-[#7A2E0E] hover:bg-[#FFF8E6] lg:mouse:h-9"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                    <label
-                      htmlFor="just"
-                      className="flex flex-col gap-1.5 text-[14px] font-medium text-[#7A2E0E]"
-                    >
-                      Justificativa (obrigatória, mínimo {MIN_JUSTIFICATIVA} caracteres)
-                      <textarea
-                        id="just"
-                        rows={3}
-                        className="input !border-[#F5B54A] font-normal"
-                        value={justificativa}
-                        onChange={(e) => setJustificativa(e.target.value)}
-                      />
-                    </label>
-                    <span className="text-[13px] text-[#7A2E0E]">
-                      {justificativa.trim().length} de {MIN_JUSTIFICATIVA} caracteres
-                      {justificativaValida(justificativa) ? ' — suficiente' : ''}
-                    </span>
-                  </div>
-                )}
-
-                {meio === 'escala' &&
-                  (funcionario && escalaVigente(funcionario, quando ?? agora) ? (
-                    <Alert tom="verde" role="status">
-                      {funcionario.funcao} em horário de escala ({funcionario.escala.horaInicio}–
-                      {funcionario.escala.horaFim},{' '}
-                      {descreverJanela({
-                        diasSemana: funcionario.escala.diasSemana,
-                        horaInicio: null,
-                        horaFim: null,
-                      })}
-                      ).
-                    </Alert>
-                  ) : (
-                    <Alert tom="ambar">
-                      O funcionário não está em horário de escala neste momento.
-                    </Alert>
-                  ))}
-
-                {erro && (
-                  <Alert tom="vermelho" role="alert">
-                    {erro}
-                  </Alert>
-                )}
-              </div>
-            )}
+            <PassoAutorizacao
+              pessoa={pessoa}
+              bloqueado={autorizacaoBloqueada}
+              carregandoUnidade={carregandoUnidade}
+              emArea={emArea}
+              semCpf={semCpf}
+              previaValida={previaValida}
+              previaFora={previaFora}
+              grupoMeioRef={grupoMeioRef}
+              motivoMeioBloqueado={motivoMeioBloqueado}
+              meio={meio}
+              escolherMeio={escolherMeio}
+              residenteId={residenteId}
+              setResidenteId={setResidenteId}
+              autorizadores={autorizadores}
+              codUnidade={codUnidade}
+              podeRecusar={podeRecusar}
+              recusando={recusando}
+              registrarRecusa={registrarRecusa}
+              nomeUsuario={usuario!.nome}
+              justificativa={justificativa}
+              setJustificativa={setJustificativa}
+              funcionario={funcionario}
+              instante={quando ?? agora}
+              erro={erro}
+            />
           </CartaoPasso>
         </div>
 
-        <aside
-          aria-label="Resumo do registro"
-          className="flex flex-col gap-[14px] rounded-[10px] border border-[#DCE1E5] bg-white p-5 xl:sticky xl:top-0 xl:self-start"
-        >
-          <h2 className="text-[17px] font-semibold">Resumo do registro</h2>
-          <div className="flex flex-col gap-0.5">
-            <span className={rotuloResumo}>Pessoa</span>
-            <span className="font-semibold">{pessoa?.nome ?? '—'}</span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className={rotuloResumo}>{emArea ? 'Área comum' : 'Unidade'}</span>
-            <span className="font-mono text-[24px] font-semibold text-[#0B3F49]">
-              {unidadeAtual
-                ? catalogo.rotulo(unidadeAtual)
-                : areaAtual
-                  ? catalogo.areaNome(areaAtual)
-                  : '—'}
-            </span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className={rotuloResumo}>Autorizado por</span>
-            <span className="font-semibold">{autorizadoPor}</span>
-            <span className="text-[14px] text-[#33424B]">{meio ? ROTULO_MEIO[meio] : ''}</span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className={rotuloResumo}>Veículo</span>
-            <span className="font-semibold">
-              {!veiculo.comVeiculo
-                ? 'A pé'
-                : placaNormalizada
-                  ? [mascaraPlaca(placaNormalizada), veiculo.modelo.trim(), veiculo.cor.trim()]
-                      .filter(Boolean)
-                      .join(' · ')
-                  : '—'}
-            </span>
-          </div>
-          {tipoResumo && (
-            <div className="flex flex-col gap-0.5">
-              <span className={rotuloResumo}>Tipo de visita</span>
-              <span className="font-semibold">
-                {ROTULO_TIPO_VISITA[tipoResumo]} · prazo {fmtPrazo(PRAZO_PADRAO_MIN[tipoResumo])}
-              </span>
-              {saiAte !== null && (
-                <span className="flex items-center gap-1.5 font-mono text-[14px] text-[#33424B]">
-                  <Clock className="h-4 w-4" aria-hidden />
-                  Sai até {fmtHora(saiAte)}
-                  {fmtData(saiAte) !== fmtData(quando ?? agora) ? ` de ${fmtData(saiAte)}` : ''}
-                </span>
-              )}
-            </div>
-          )}
-          {retroativo && (
-            <div className="flex flex-col gap-0.5">
-              <span className={rotuloResumo}>Data e hora reais</span>
-              <span className="font-semibold">
-                {quando !== null && horaReal ? `${fmtData(quando)} ${fmtHora(quando)}` : '—'}
-              </span>
-            </div>
-          )}
-          <div className="flex flex-col gap-0.5">
-            <span className={rotuloResumo}>Registrado por</span>
-            <span className="font-semibold">
-              {ROTULO_PAPEL[usuario!.papel]} {usuario!.nome} · {fmtHora(agora)}
-            </span>
-          </div>
-          <div className="h-px bg-[#E6EAED]" />
-          {pronto ? (
-            <button
-              type="button"
-              onClick={() => void confirmar()}
-              className="flex h-[52px] items-center justify-center gap-[10px] rounded-lg bg-[#0B5563] text-[16px] font-semibold text-white hover:bg-[#08434E]"
-            >
-              {retroativo ? 'Confirmar lançamento' : 'Confirmar entrada'}{' '}
-              <kbd className="rounded-[5px] border border-white/50 px-[7px] py-0.5 font-mono text-[13px]">
-                Enter
-              </kbd>
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                disabled
-                className="h-[52px] cursor-not-allowed rounded-lg border border-[#D5DDE2] bg-[#EEF2F4] text-[16px] font-semibold text-[#6B7780]"
-              >
-                {enviando
-                  ? 'Registrando…'
-                  : retroativo
-                    ? 'Confirmar lançamento'
-                    : 'Confirmar entrada'}
-                {!enviando && (
-                  <kbd
-                    aria-hidden
-                    className="ml-[10px] rounded-[5px] border border-[#B9C3CA] px-[7px] py-0.5 font-mono text-[13px]"
-                  >
-                    Enter
-                  </kbd>
-                )}
-              </button>
-              {faltas.length > 0 && (
-                <span className="text-[13px] text-[#56616B]">Falta: {faltas.join(', ')}</span>
-              )}
-            </>
-          )}
-          <Button atalho="Esc" onClick={() => (algoPreenchido ? limpar() : nav('/painel'))}>
-            Cancelar
-          </Button>
-        </aside>
+        <ResumoRegistro
+          usuario={usuario!}
+          agora={agora}
+          pessoa={pessoa}
+          emArea={emArea}
+          rotuloDestino={
+            unidadeAtual
+              ? catalogo.rotulo(unidadeAtual)
+              : areaAtual
+                ? catalogo.areaNome(areaAtual)
+                : '—'
+          }
+          autorizadoPor={autorizadoPor}
+          meio={meio}
+          veiculo={veiculo}
+          placaNormalizada={placaNormalizada}
+          tipoResumo={tipoResumo}
+          saiAte={saiAte}
+          quando={quando}
+          retroativo={retroativo}
+          horaReal={horaReal}
+          pronto={pronto}
+          enviando={enviando}
+          faltas={faltas}
+          confirmar={confirmar}
+          cancelar={cancelar}
+        />
       </div>
 
       {restricao && pr && pessoa && (
-        <Modal
-          titulo={
-            codUnidade
-              ? `Entrada não permitida para ${codUnidade}`
-              : 'Entrada não permitida no condomínio'
-          }
-          tom="vermelho"
-          tituloId="titulo-restricao"
-          onClose={() => void resolverRestricao(false)}
-          rodape={
-            <>
-              <Button
-                variante="perigo"
-                grande
-                className="flex-1"
-                onClick={() => void resolverRestricao(true)}
-              >
-                Registrar ocorrência
-              </Button>
-              <Button
-                grande
-                atalho="Esc"
-                data-autofocus
-                onClick={() => void resolverRestricao(false)}
-              >
-                Cancelar
-              </Button>
-            </>
-          }
-        >
-          <div className="text-[18px] font-semibold">{pessoa.nome}</div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[13px] text-[#56616B]">Motivo registrado pelo morador</span>
-            <span className="text-[17px] font-semibold text-[#912018]">“{pr.motivo}”</span>
-          </div>
-          <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[13px] text-[#56616B]">Restrição solicitada por</span>
-              <span className="font-medium">{pr.solicitadaPorNome ?? 'Administração'}</span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[13px] text-[#56616B]">Cadastrada no sistema por</span>
-              <span className="font-medium">
-                {pr.cadastradaPorNome} · {fmtData(pr.cadastradaEm)} {fmtHora(pr.cadastradaEm)}
-              </span>
-            </div>
-          </div>
-          {pr.escopo === 'condominio' && (
-            <div className="text-[14px] font-medium text-[#912018]">
-              Restrição para todo o condomínio (aprovada pelo síndico).
-            </div>
-          )}
-          <div className="rounded-lg bg-[#F3F5F6] px-3 py-[10px] text-[14px] text-[#33424B]">
-            A tentativa será gravada na trilha de auditoria com seu nome e horário. Não há opção de
-            liberar: os dois caminhos gravam a tentativa negada.
-          </div>
-        </Modal>
+        <ModalRestricao
+          pr={pr}
+          pessoa={pessoa}
+          codUnidade={codUnidade}
+          resolverRestricao={resolverRestricao}
+        />
       )}
     </div>
-  )
-}
-
-const fmtPrazo = (min: number) => (min >= 60 ? `${min / 60} h` : `${min} min`)
-
-export interface VeiculoForm {
-  comVeiculo: boolean
-  placa: string
-  modelo: string
-  cor: string
-}
-export const VEICULO_VAZIO: VeiculoForm = { comVeiculo: false, placa: '', modelo: '', cor: '' }
-
-/**
- * Veículo da entrada (opcional). Rádios nativos "A pé" / "Com veículo" (Tab entra no grupo, setas trocam); com veículo,
- * placa (obrigatória, com máscara), modelo e cor. "Mesmo veículo da última visita" preenche tudo de uma vez.
- */
-export function BlocoVeiculo({
-  valor,
-  onChange,
-  ultimo,
-}: {
-  valor: VeiculoForm
-  onChange: (v: VeiculoForm) => void
-  ultimo: VeiculoAcesso | null
-}) {
-  // O primeiro campo (placa) do bloco recebe o foco ao marcar "Com veículo"
-  const camposRef = useRef<HTMLDivElement>(null)
-  const focarPlaca = useRef(false)
-  useEffect(() => {
-    if (valor.comVeiculo && focarPlaca.current) {
-      focarPlaca.current = false
-      camposRef.current?.querySelector('input')?.focus()
-    }
-  }, [valor.comVeiculo])
-  const placaInvalida =
-    valor.comVeiculo &&
-    valor.placa.replace(/[^A-Za-z0-9]/g, '').length === 7 &&
-    !normalizarPlaca(valor.placa)
-  const opcao = (com: boolean, rotulo: string) => (
-    <label
-      className={`flex h-11 cursor-pointer items-center gap-2 rounded-lg border-2 px-4 max-lg:h-[44px] [&:has(:focus-visible)]:outline [&:has(:focus-visible)]:outline-[3px] [&:has(:focus-visible)]:outline-offset-2 [&:has(:focus-visible)]:outline-[#0B5563] ${
-        valor.comVeiculo === com
-          ? 'border-[#0B5563] bg-[#F0F8F9]'
-          : 'border-[#DCE1E5] bg-white hover:border-[#9AA7B0]'
-      }`}
-    >
-      <input
-        type="radio"
-        name="veiculo"
-        className="sr-only"
-        checked={valor.comVeiculo === com}
-        onChange={() => {
-          focarPlaca.current = com
-          onChange({ ...valor, comVeiculo: com })
-        }}
-      />
-      <span className="font-medium">{rotulo}</span>
-    </label>
-  )
-  return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 flex items-center gap-1.5 text-[14px] font-medium">
-        <Car className="h-4 w-4 text-[#56616B]" aria-hidden />
-        Veículo{' '}
-        <span className="font-normal text-[#56616B]">· opcional, fica registrado na entrada</span>
-      </legend>
-      <div className="flex flex-wrap items-center gap-2">
-        {opcao(false, 'A pé')}
-        {opcao(true, 'Com veículo')}
-        {ultimo && !(valor.comVeiculo && normalizarPlaca(valor.placa) === ultimo.placa) && (
-          <Button
-            pequeno
-            onClick={() => {
-              focarPlaca.current = false
-              onChange({
-                comVeiculo: true,
-                placa: mascaraPlaca(ultimo.placa),
-                modelo: ultimo.modelo ?? '',
-                cor: ultimo.cor ?? '',
-              })
-            }}
-          >
-            Mesmo da última visita: {descreverVeiculo(ultimo)}
-          </Button>
-        )}
-      </div>
-      {valor.comVeiculo && (
-        <div ref={camposRef} className="grid grid-cols-1 gap-[14px] sm:grid-cols-3">
-          <Field
-            label={
-              <>
-                Placa <span className="text-[#B42318]">*</span>
-              </>
-            }
-            erro={
-              placaInvalida
-                ? 'Placa fora do padrão antigo (ABC-1234) ou Mercosul (ABC1D23).'
-                : undefined
-            }
-          >
-            <InputMascara
-              tipo="placa"
-              className="input font-mono"
-              aria-required
-              value={valor.placa}
-              onChange={(placa) => onChange({ ...valor, placa })}
-            />
-          </Field>
-          <Field label="Modelo">
-            <input
-              className="input"
-              maxLength={60}
-              value={valor.modelo}
-              onChange={(e) => onChange({ ...valor, modelo: e.target.value })}
-            />
-          </Field>
-          <Field label="Cor">
-            <input
-              className="input"
-              maxLength={30}
-              value={valor.cor}
-              onChange={(e) => onChange({ ...valor, cor: e.target.value })}
-            />
-          </Field>
-        </div>
-      )}
-    </fieldset>
-  )
-}
-
-/**
- * Tipo de visita (define o prazo de permanência). Rádios nativos: Tab entra no grupo e as setas trocam a opção.
- * O prazo de serviço com autorização prévia de horário vai até o fim da janela (regra do servidor).
- */
-export function SeletorTipoVisita({
-  valor,
-  onChange,
-}: {
-  valor: TipoVisita
-  onChange: (t: TipoVisita) => void
-}) {
-  return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 text-[14px] font-medium">
-        Tipo de visita{' '}
-        <span className="font-normal text-[#56616B]">· define o prazo de permanência</span>
-      </legend>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {TIPOS_VISITA.map((t) => (
-          <label
-            key={t}
-            className={`flex min-h-[56px] cursor-pointer flex-col justify-center rounded-lg border-2 px-4 py-2 [&:has(:focus-visible)]:outline [&:has(:focus-visible)]:outline-[3px] [&:has(:focus-visible)]:outline-offset-2 [&:has(:focus-visible)]:outline-[#0B5563] ${
-              valor === t
-                ? 'border-[#0B5563] bg-[#F0F8F9]'
-                : 'border-[#DCE1E5] bg-white hover:border-[#9AA7B0]'
-            }`}
-          >
-            <input
-              type="radio"
-              name="tipo-visita"
-              className="sr-only"
-              checked={valor === t}
-              onChange={() => onChange(t)}
-            />
-            <span className="font-medium">{ROTULO_TIPO_VISITA[t]}</span>
-            <span className="text-[13px] text-[#56616B]">
-              Prazo {fmtPrazo(PRAZO_PADRAO_MIN[t])}
-            </span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
   )
 }
