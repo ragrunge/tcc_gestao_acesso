@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import {
   useApi,
   ehApiError,
@@ -36,16 +35,19 @@ import {
   type DadosAutorizacao,
 } from '@/domain/rules'
 import { fmtData, fmtHora, fromInput, toInputDate } from '@/domain/time'
-import { dicaBuscaCpf, normalizarPlaca } from '@/domain/cpf'
+import { normalizarPlaca } from '@/domain/cpf'
 import { mensagemErro, useAgora } from '@/app/useAsync'
 import { useCatalogo } from '@/app/catalogo'
-import { APOS_EVENTO, CHAVES, useInvalidar } from '@/app/consultas'
-import { ANTECEDENCIA_ENTRADA_MS, HORAS_PREVISTOS } from './previstos'
+import { APOS_EVENTO, useInvalidar } from '@/app/consultas'
 import { garantirNegado } from './negado'
 import { BlocoRetroativo } from './entrada/BlocoRetroativo'
 import { VEICULO_VAZIO, type VeiculoForm } from './entrada/BlocoVeiculo'
 import { BuscaPessoa } from './entrada/BuscaPessoa'
-import { LIMITE_SUGESTOES, NP_VAZIA, UUID } from './entrada/constantes'
+import { NP_VAZIA } from './entrada/constantes'
+import { useBuscaPessoa } from './entrada/useBuscaPessoa'
+import { useConsultaDestino } from './entrada/useConsultaDestino'
+import { usePreenchimento } from './entrada/usePreenchimento'
+import { usePrevistosAgora } from './entrada/usePrevistosAgora'
 import { ModalRestricao } from './entrada/ModalRestricao'
 import { NovaPessoaForm } from './entrada/NovaPessoaForm'
 import { PassoAutorizacao } from './entrada/PassoAutorizacao'
@@ -57,7 +59,7 @@ import { ResumoRegistro } from './entrada/ResumoRegistro'
 export function EntradaPage() {
   const api = useApi()
   const nav = useNavigate()
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
   const retroativo = params.get('retroativo') === '1'
   const { usuario } = useAuth()
   const { avisar } = useToast()
@@ -69,11 +71,6 @@ export function EntradaPage() {
   const invalidar = useInvalidar()
 
   // --- Passo 1: pessoa
-  const [query, setQuery] = useState('')
-  const [sugestoes, setSugestoes] = useState<PessoaBusca[]>([])
-  const [idx, setIdx] = useState(0)
-  const [buscando, setBuscando] = useState(false)
-  const [mais, setMais] = useState(false) // havia mais resultados que o limite da lista
   const [pessoa, setPessoa] = useState<PessoaBusca | null>(null)
   const [funcionario, setFuncionario] = useState<Funcionario | null>(null)
   const [novoModo, setNovoModo] = useState(false)
@@ -115,126 +112,45 @@ export function EntradaPage() {
   const buscaRef = useRef<HTMLInputElement>(null)
   const pickerRef = useRef<TowerUnitPickerHandle>(null)
   const grupoMeioRef = useRef<HTMLFieldSetElement>(null)
-  const focarMeio = useRef(false)
-  /** Onde estava o foco quando a consulta da unidade começou: se o operador já foi para outro campo, não roubamos o foco. */
-  const focoAntesDaConsulta = useRef<Element | null>(null)
-  const enterPendente = useRef(false)
+  const escolherPessoaRef = useRef<(p: PessoaBusca) => Promise<void>>(async () => undefined)
 
   useEffect(() => {
     buscaRef.current?.focus()
   }, [])
 
-  // Pré-preenchimento vindo do painel ("Registrar entrada" em Previstos): ?pessoa=<uuid>&unidade=<uuid> ou &area=<uuid>.
-  // Usa os mesmos caminhos da seleção manual (escolherPessoa + bloco/número ou área); qualquer falha é ignorada e a
-  // tela fica vazia. Os parâmetros são consumidos (replace, mantendo `retroativo`) para um reload não repetir.
-  const prefillFeito = useRef(false)
-  useEffect(() => {
-    if (prefillFeito.current || !catalogo.pronto) return
-    const pid = params.get('pessoa'),
-      uid = params.get('unidade'),
-      aid = params.get('area')
-    if (!pid && !uid && !aid) return
-    prefillFeito.current = true
-    const prox = new URLSearchParams(params)
-    ;['pessoa', 'unidade', 'area'].forEach((k) => prox.delete(k))
-    setParams(prox, { replace: true })
-    void preencherRef.current(pid, uid, aid)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogo.pronto, params])
-
-  /** Pessoa + unidade (ou área comum) de um previsto: vem do painel (URL) ou da lista de previstos desta tela. */
-  const preencherRef = useRef<
-    (pid: string | null, uid: string | null, aid: string | null) => Promise<void>
-  >(async () => undefined)
-  preencherRef.current = async (pid, uid, aid) => {
-    if (
-      !pid ||
-      !UUID.test(pid) ||
-      (uid ? !UUID.test(uid) : false) ||
-      (aid ? !UUID.test(aid) : false) ||
-      !!uid === !!aid
-    )
-      return
-    {
-      try {
-        const ficha = await api.pessoas.ficha(pid)
-        if (ficha.pessoa.desativadaEm) return
-        // A busca devolve o PessoaBusca completo (vínculos, último acesso) que a seleção manual usa; ela já exclui desativadas
-        const achada = (await api.pessoas.buscar(ficha.pessoa.nome, { limite: 50 })).find(
-          (x) => x.id === pid,
-        )
-        if (!achada) return
-        const un = uid ? catalogo.porId(uid) : undefined
-        const area = aid ? catalogo.areasComuns.find((a) => a.id === aid) : undefined
-        if (uid && !un?.ativo) return
-        if (aid && (!area?.ativo || achada.categoria !== 'prestador')) return // área comum é só do prestador (RF-36)
-        await escolherPessoaRef.current(achada)
-        if (un) {
-          setBloco(un.bloco)
-          setNumero(un.numero)
-        } else if (area) {
-          setDestino('area_comum')
-          setAreaId(area.id)
-        }
-      } catch {
-        /* pré-preenchimento é conveniência: falha vira tela vazia */
+  const { previstosAgora, idxPrevisto, setIdxPrevisto } = usePrevistosAgora({ retroativo, agora })
+  const preencher = usePreenchimento({
+    escolherPessoaRef,
+    aplicarDestino: (destinoPreenchido) => {
+      if ('unidade' in destinoPreenchido) {
+        setBloco(destinoPreenchido.unidade.bloco)
+        setNumero(destinoPreenchido.unidade.numero)
+      } else {
+        setDestino('area_comum')
+        setAreaId(destinoPreenchido.areaId)
       }
-    }
-  }
-
-  // Previstos para agora (os mesmos do Painel): com a busca vazia, escolhe-se com um clique ou com as setas e Enter
-  const previstos = useQuery({
-    queryKey: CHAVES.autorizacoesPrevistas(HORAS_PREVISTOS),
-    queryFn: () => api.autorizacoes.previstas(HORAS_PREVISTOS),
-    staleTime: 0,
-    enabled: !retroativo,
+    },
   })
-  const previstosAgora = (previstos.data ?? [])
-    .filter((p) => p.inicio - agora <= ANTECEDENCIA_ENTRADA_MS)
-    .slice(0, 5)
-  const [idxPrevisto, setIdxPrevisto] = useState(0)
   const escolherPrevisto = (p: PrevistoView) =>
-    void preencherRef.current(
+    void preencher(
       p.pessoaId,
       p.destino.tipo === 'unidade' ? p.destino.id : null,
       p.destino.tipo === 'area_comum' ? p.destino.id : null,
     )
 
-  const dicaCpf = dicaBuscaCpf(query)
+  const {
+    query,
+    setQuery,
+    sugestoes,
+    setSugestoes,
+    idx,
+    setIdx,
+    buscando,
+    mais,
+    enterPendente,
+    dicaCpf,
+  } = useBuscaPessoa({ ativa: !pessoa && !novoModo, escolherPessoaRef, setErro })
 
-  // Busca incremental
-  useEffect(() => {
-    if (pessoa || novoModo || query.trim().length < 1) {
-      setSugestoes([])
-      setMais(false)
-      return
-    }
-    let vivo = true
-    setBuscando(true)
-    const t = setTimeout(() => {
-      api.pessoas
-        .buscar(query, { limite: LIMITE_SUGESTOES + 1 })
-        .then((r) => {
-          if (!vivo) return
-          setMais(r.length > LIMITE_SUGESTOES)
-          setSugestoes(r.slice(0, LIMITE_SUGESTOES))
-          setIdx(0)
-          // Enter digitado antes de a lista chegar: escolhe o primeiro resultado
-          if (enterPendente.current && r[0]) {
-            enterPendente.current = false
-            void escolherPessoaRef.current(r[0])
-          }
-        })
-        .catch((e) => vivo && setErro(mensagemErro(e)))
-        .finally(() => vivo && setBuscando(false))
-    }, 120)
-    return () => {
-      vivo = false
-      clearTimeout(t)
-    }
-  }, [query, pessoa, novoModo, api])
-
-  const escolherPessoaRef = useRef<(p: PessoaBusca) => Promise<void>>(async () => undefined)
   const escolherPessoa = useCallback(
     async (p: PessoaBusca) => {
       setPessoa(p)
@@ -259,7 +175,7 @@ export function EntradaPage() {
       // Correção 12: após escolher a pessoa, o foco vai para a seleção de bloco
       setTimeout(() => pickerRef.current?.focusBloco(), 0)
     },
-    [api],
+    [api, setQuery, setSugestoes],
   )
 
   escolherPessoaRef.current = escolherPessoa
@@ -312,121 +228,23 @@ export function EntradaPage() {
   const areaAtual = emArea && areaId ? areaId : null
   const codUnidade = unidadeAtual ? catalogo.codigo(unidadeAtual) : null
 
-  // RF-36: prestador em área comum — só restrição de condomínio e autorizações prévias da área (sem morador para autorizar)
-  useEffect(() => {
-    if (!pessoa || !areaAtual) return
-    let vivo = true
-    setCarregandoUnidade(true)
-    setMeio(null)
-    setResidenteId(null)
-    setErro('')
-    focoAntesDaConsulta.current = document.activeElement
-    ;(async () => {
-      try {
-        const rest = await api.restricoes.verificar(pessoa.id, null)
-        if (!vivo) return
-        if (rest.restrita) {
-          setNegadoGravado(null)
-          setRestricao(rest.alertas)
-          setCarregandoUnidade(false)
-          return
-        }
-        const aps = await api.autorizacoes.vigentes(pessoa.id, areaAtual, { areaComum: true })
-        if (!vivo) return
-        setPrevias(aps)
-        setAutorizadores([])
-        if (
-          aps.some((a) => estadoAutorizacaoPrevia(a, agoraRef.current) === 'valida') &&
-          !pessoa.semCpf
-        )
-          setMeio('autorizacao_previa')
-        focarMeio.current = true
-      } catch (e) {
-        if (vivo) setErro(mensagemErro(e))
-      } finally {
-        if (vivo) setCarregandoUnidade(false)
-      }
-    })()
-    return () => {
-      vivo = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pessoa?.id, areaAtual, api])
-
-  useEffect(() => {
-    if (!pessoa || emArea) return
-    // Funcionário sem unidade (entrada por escala): só vale restrição do condomínio, verificada logo ao escolher a pessoa
-    if (!unidadeAtual) {
-      if (pessoa.categoria !== 'funcionario') return
-      let vivo = true
-      api.restricoes
-        .verificar(pessoa.id, null)
-        .then((rest) => {
-          if (vivo && rest.restrita) {
-            setNegadoGravado(null)
-            setRestricao(rest.alertas)
-          }
-        })
-        .catch((e) => vivo && setErro(mensagemErro(e)))
-      return () => {
-        vivo = false
-      }
-    }
-    let vivo = true
-    setCarregandoUnidade(true)
-    setMeio(null)
-    setResidenteId(null)
-    setErro('')
-    focoAntesDaConsulta.current = document.activeElement
-    ;(async () => {
-      try {
-        const rest = await api.restricoes.verificar(pessoa.id, unidadeAtual)
-        if (!vivo) return
-        if (rest.restrita) {
-          setNegadoGravado(null)
-          setRestricao(rest.alertas)
-          setCarregandoUnidade(false)
-          return
-        }
-        const [aps, auts] = await Promise.all([
-          api.autorizacoes.vigentes(pessoa.id, unidadeAtual),
-          api.vinculos.autorizadores(unidadeAtual),
-        ])
-        if (!vivo) return
-        setPrevias(aps)
-        setAutorizadores(auts)
-        const valida = aps.find((a) => estadoAutorizacaoPrevia(a, agoraRef.current) === 'valida')
-        if (valida && !pessoa.semCpf) setMeio('autorizacao_previa')
-        focarMeio.current = true
-      } catch (e) {
-        if (vivo) setErro(mensagemErro(e))
-      } finally {
-        if (vivo) setCarregandoUnidade(false)
-      }
-    })()
-    return () => {
-      vivo = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pessoa?.id, unidadeAtual, api])
-
-  // Correção 12: após a unidade, o foco vai para "Quem autorizou?"
-  useEffect(() => {
-    if (!carregandoUnidade && focarMeio.current && (unidadeAtual || areaAtual)) {
-      focarMeio.current = false
-      const atual = document.activeElement
-      const antes = focoAntesDaConsulta.current
-      focoAntesDaConsulta.current = null
-      // O operador mexeu em outro campo enquanto a unidade carregava (ex.: tipo de visita): não roubar o foco.
-      if (antes && atual && atual !== antes && atual !== document.body) return
-      const alvo =
-        grupoMeioRef.current?.querySelector<HTMLInputElement>(
-          'input[type=radio]:checked:not(:disabled)',
-        ) ??
-        grupoMeioRef.current?.querySelector<HTMLInputElement>('input[type=radio]:not(:disabled)')
-      alvo?.focus()
-    }
-  }, [carregandoUnidade, unidadeAtual, areaAtual])
+  useConsultaDestino({
+    pessoa,
+    unidadeAtual,
+    areaAtual,
+    emArea,
+    agoraRef,
+    grupoMeioRef,
+    carregandoUnidade,
+    setCarregandoUnidade,
+    setMeio,
+    setResidenteId,
+    setErro,
+    setNegadoGravado,
+    setRestricao,
+    setPrevias,
+    setAutorizadores,
+  })
 
   // --- instante do acesso (retroativo usa a hora real informada)
   const quando = retroativo ? fromInput(dataReal, horaReal || '00:00') : agora
