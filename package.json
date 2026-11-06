@@ -6,12 +6,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run type-check && npm run lint && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "type-check": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check": "npm run lint && npm run format:check",
     "format": "prettier --write src e2e scripts",
     "format:check": "prettier --check src e2e scripts",
     "test:supabase": "vitest run --config vitest.supabase.config.ts",
@@ -28,7 +30,8 @@
     "db:start": "supabase start",
     "gen:types": "supabase gen types typescript --local --schema api > src/supabase/type.ts",
     "db:mig:new": "supabase migration new",
-    "db:diff": "supabase db diff --local"
+    "db:diff": "supabase db diff --local",
+    "check:migrations": "node scripts/checar-migrations.mjs"
   },
   "engines": {
     "node": ">=22"
