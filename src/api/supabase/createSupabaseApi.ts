@@ -15,7 +15,7 @@ import { segundosRetryAfter, tempoLegivel } from '../../lib/espera';
 import type { ArmazenamentoSessao } from './armazenamento';
 import { criarAnexos } from './anexos';
 import { criarOperacao, ocorrenciaDe } from './operacao';
-import { contagem, criarPortaria, paginaDe, posicao, ROTAS_MIGRADAS, semIndefinidos } from './portaria';
+import { type ArgsRpc, type NomeRpc, contagem, criarPortaria, paginaDe, posicao, ROTAS_MIGRADAS, semIndefinidos } from './portaria';
 
 const respostaInvalida = () => new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.');
 
@@ -148,7 +148,7 @@ export function createSupabaseApi(sb: SupabaseClient, opcoes: OpcoesSupabaseApi)
     }
   });
 
-  async function rpc<T>(nome: string, args: Record<string, unknown> = {}, avisar = true): Promise<T> {
+  async function rpc<T, K extends NomeRpc = NomeRpc>(nome: K, args: ArgsRpc<K> = {}, avisar = true): Promise<T> {
     let r;
     // 40001/40P01 (serialização, deadlock): a transação inteira da RPC foi desfeita; repete até 3 vezes (desenho §6,
     // como transacao.ts do legado). Só se repete o que falhou: o "negado" gravado num sucesso nunca duplica.

@@ -4,6 +4,7 @@
 // conversões que o contrato do cliente HTTP antigo fazia: placa com hífen no veículo da unidade, datas de calendário
 // ('AAAA-MM-DD') na ida, o "negado" vindo como sucesso virando o 422 de sempre e a paginação percorrida.
 // Texto livre que pode identificar alguém (termo de busca, nome, placa) vai sempre no CORPO do POST da RPC.
+import type { Database } from '../../supabase/type';
 import type {
   AutorizacaoPrevia, EventoView, Funcionario, Pessoa, Restricao, Unidade, Veiculo, VinculoUnidade,
 } from '@domain/types';
@@ -17,7 +18,11 @@ import type {
   UnidadeDetalhe, UnidadeResumo, VinculoView,
 } from '../types';
 
-export type Rpc = <T>(nome: string, args?: Record<string, unknown>) => Promise<T>;
+type FuncoesApi = Database['api']['Functions'];
+export type NomeRpc = keyof FuncoesApi;
+// As chaves dos argumentos vêm do banco (parâmetro renomeado numa migração quebra o tsc); os valores seguem livres: quase toda RPC recebe um jsonb.
+export type ArgsRpc<K extends NomeRpc> = { [A in keyof FuncoesApi[K]['Args']]?: unknown };
+export type Rpc = <T, K extends NomeRpc = NomeRpc>(nome: K, args?: ArgsRpc<K>) => Promise<T>;
 
 export const respostaInvalida = () => new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.');
 

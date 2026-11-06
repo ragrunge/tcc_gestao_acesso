@@ -30,7 +30,7 @@ function mock() {
     },
   };
   const armazenamento = { ...criarArmazenamentoSessao(undefined, undefined), usar: vi.fn(), limpar: vi.fn() };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const api = createSupabaseApi(cliente as any, { chaveAnon: 'chave-anon', armazenamento });
   const eventos: EventoSessao[] = [];
   api.aoEventoSessao!((e) => eventos.push(e));

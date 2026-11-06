@@ -76,10 +76,9 @@ export function SaidaPage() {
   });
   const docPorPessoa = useMemo(() => new Map((cpf && porCpf.data ? porCpf.data : []).map((p) => [p.id, p.documentoMascarado])), [cpf, porCpf.data]);
 
-  const dados = lista.data ?? [];
   const achados = useMemo(
-    () => ordenarParaSaida(dados.filter((e) => casaPresente(e, q) || docPorPessoa.has(e.pessoaId)), agora),
-    [dados, q, docPorPessoa, agora],
+    () => ordenarParaSaida((lista.data ?? []).filter((e) => casaPresente(e, q) || docPorPessoa.has(e.pessoaId)), agora),
+    [lista.data, q, docPorPessoa, agora],
   );
   const buscandoCpf = !!cpf && (cpfDebounce !== cpf || porCpf.isFetching);
 
@@ -114,7 +113,7 @@ export function SaidaPage() {
 
   function aposSaida() { setSelecionada(null); setRetro(null); setQ(''); }
 
-  const total = dados.length;
+  const total = (lista.data ?? []).length;
   const dicaCpf = dicaBuscaCpf(q);
   const contagem = lista.isPending ? 'Carregando quem está dentro…'
     : buscandoCpf ? 'Buscando pelo CPF…'

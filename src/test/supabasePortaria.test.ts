@@ -13,7 +13,7 @@ function mock() {
     schema, functions: { invoke: vi.fn() },
     auth: { setSession: vi.fn(), getSession: vi.fn(), signOut: vi.fn(async () => ({ error: null })), onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe() {} } } })) },
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const api = createSupabaseApi(cliente as any, { chaveAnon: 'chave-anon' });
   const responder = (data: unknown) => rpc.mockResolvedValueOnce({ data, error: null, status: 200 });
   return { api, rpc, schema, responder, cliente };

@@ -11,6 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write src e2e scripts",
+    "format:check": "prettier --check src e2e scripts",
     "test:supabase": "vitest run --config vitest.supabase.config.ts",
     "test:supabase:sindico": "supabase db reset --no-seed && vitest run --config vitest.sindico.config.ts",
     "sb:login": "dotenv -- sh -c 'supabase login --token $SUPABASE_ACCESS_TOKEN'",
@@ -22,7 +25,10 @@
     "popular": "dotenv -- node --disable-warning=ExperimentalWarning scripts/popular/main.ts",
     "popular:sindico-local": "node --disable-warning=ExperimentalWarning scripts/popular/sindico-local.ts",
     "fn:deploy:all": "dotenv -- supabase functions deploy",
-    "db:start": "supabase start"
+    "db:start": "supabase start",
+    "gen:types": "supabase gen types typescript --local --schema api > src/supabase/type.ts",
+    "db:mig:new": "supabase migration new",
+    "db:diff": "supabase db diff --local"
   },
   "engines": {
     "node": ">=22"
@@ -45,6 +51,7 @@
     "tailwind-merge": "2.6.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.64.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
@@ -54,10 +61,16 @@
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.6.1",
     "dotenv-cli": "^8.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.14.0",
     "jsdom": "^30.1.2",
     "postcss": "^8.5.29",
+    "prettier": "^3.9.10",
     "tailwindcss": "3.4",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
     "vite": "^5.4.21",
     "vite-plugin-pwa": "1.3.0",
     "vitest": "^2.1.9",

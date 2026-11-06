@@ -101,7 +101,7 @@ describe('ocorrência, funcionário e relatório pelo adaptador', () => {
     expect((await auditor.funcionarios.listar()).some((x) => x.pessoaId === f.pessoaId)).toBe(true);
     expect(await codigo(porteiro.funcionarios.listar())).toBe('SEM_PERMISSAO');
     const csv = await auditor.relatorios.exportarCsv({ unidadeId: unidade });
-    expect(csv.conteudo).toMatch(/^﻿Seção;Item;Total\r\n/);
+    expect(csv.conteudo).toMatch(/^\uFEFFSeção;Item;Total\r\n/);
     expect(csv.conteudo).toMatch(/Filtro;Unidade;[A-Z0-9]+-[0-9]+/);
   });
 });
