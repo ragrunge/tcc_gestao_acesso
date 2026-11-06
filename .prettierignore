@@ -2,8 +2,8 @@ dist
 node_modules
 package-lock.json
 src/integrations/supabase/type.ts
-supabase
-docs
-diagramas
-public
+/supabase
+/docs
+/diagramas
+/public
 .claude
