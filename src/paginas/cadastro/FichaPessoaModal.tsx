@@ -1,22 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Info } from 'lucide-react'
 import { useApi, type ResultadoAnonimizacao } from '@/api'
-import type { VinculoUnidade } from '@/domain/types'
 import { useCan } from '@/auth/AuthContext'
 import { Alert } from '@/componentes/Alert'
-import { InputMascara } from '@/componentes/InputMascara'
-import { Badge, SeloVinculo } from '@/componentes/Badge'
 import { Button } from '@/componentes/Button'
-import { ConfirmarModal } from '@/componentes/ConfirmarModal'
-import { Field } from '@/componentes/Field'
 import { Modal } from '@/componentes/Modal'
 import { useToast } from '@/componentes/Toast'
-import { Avatar } from '@/componentes/UnitTag'
-import { ROTULO_CATEGORIA, ROTULO_VINCULO, type Pessoa } from '@/domain/types'
-import { agora, fmtData, fmtDataHora } from '@/domain/time'
-import { MIN_JUSTIFICATIVA, justificativaValida } from '@/domain/rules'
 import { mensagemErro } from '@/app/useAsync'
 import {
   APOS_DESATIVACAO,
@@ -31,9 +20,14 @@ import {
   NovoVinculoModalLazy,
   precarregarNovoVinculo,
 } from '@/paginas/vinculos/NovoVinculoLazy'
-import { chipDoEvento, quandoCurto, textoAutorizacao } from '@/paginas/common/evento'
 import { baixarArquivo } from '@/paginas/historico/download'
 import { ErroCarregar } from '@/componentes/Carregando'
+import { AlertaRetido, ConfirmarAnonimizacao } from './ficha/Anonimizacao'
+import { CabecalhoFicha } from './ficha/CabecalhoFicha'
+import { DesativarCadastroModal } from './ficha/DesativarCadastroModal'
+import { EditarCadastro } from './ficha/EditarCadastro'
+import { SecaoAcessos } from './ficha/SecaoAcessos'
+import { SecaoVinculos, type VinculoFeito } from './ficha/SecaoVinculos'
 
 /**
  * Ficha da pessoa. Para síndico e administração: correção do cadastro (LGPD art. 18 e RN-09), exportação dos dados do
@@ -52,7 +46,7 @@ export function FichaPessoaModal({ id, onClose }: { id: string; onClose: () => v
   const podeDesativar = useCan('pessoa.desativar')
   const podeVincular = useCan('vinculo.criar')
   const [vinculando, setVinculando] = useState(false)
-  const [vinculado, setVinculado] = useState<{ v: VinculoUnidade; resumo: string } | null>(null)
+  const [vinculado, setVinculado] = useState<VinculoFeito | null>(null)
   useEffect(() => {
     if (podeVincular) precarregarNovoVinculo()
   }, [podeVincular])
@@ -147,31 +141,16 @@ export function FichaPessoaModal({ id, onClose }: { id: string; onClose: () => v
   // Confirmação no lugar da ficha (um modal só: dois empilhados quebrariam o foco); Cancelar volta para a ficha.
   if (desativando && f) {
     return (
-      <ConfirmarModal
-        titulo="Desativar cadastro"
-        rotulo="Desativar cadastro"
-        desabilitado={!justificativaValida(motivo)}
+      <DesativarCadastroModal
+        nome={f.pessoa.nome}
+        motivo={motivo}
+        setMotivo={setMotivo}
         onConfirmar={desativar}
         onClose={() => {
           setDesativando(false)
           setMotivo('')
         }}
-      >
-        <p>
-          Desativar o cadastro de <strong>{f.pessoa.nome}</strong>? Não é exclusão: o histórico
-          continua, a pessoa some das buscas e não pode entrar até ser reativada. Autorizações
-          prévias vigentes para ela são revogadas.
-        </p>
-        <Field label={`Motivo (obrigatório, mínimo ${MIN_JUSTIFICATIVA} caracteres)`}>
-          <textarea
-            className="input"
-            rows={2}
-            autoFocus
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-          />
-        </Field>
-      </ConfirmarModal>
+      />
     )
   }
 
@@ -224,91 +203,15 @@ export function FichaPessoaModal({ id, onClose }: { id: string; onClose: () => v
       )}
       {f && (
         <div className="flex flex-col gap-5">
-          <div className="flex flex-wrap items-center gap-[14px]">
-            <Avatar nome={f.pessoa.nome} tamanho={44} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[18px] font-semibold">{f.pessoa.nome}</p>
-              <p className="text-[14px] text-[#33424B]">
-                <span className="font-mono">{f.pessoa.documentoMascarado}</span>
-                {f.pessoa.telefoneMascarado ? <> · {f.pessoa.telefoneMascarado}</> : null}
-                {f.pessoa.empresa && (
-                  <>
-                    {' '}
-                    · {f.pessoa.empresa}
-                    {f.pessoa.servico ? ` (${f.pessoa.servico})` : ''}
-                  </>
-                )}
-              </p>
-            </div>
-            {desativada && <Badge tom="ambar">Desativado</Badge>}
-            <Badge tom="neutro">{ROTULO_CATEGORIA[f.pessoa.categoria]}</Badge>
-          </div>
-          {desativada && !anonimizada && (
-            <Alert tom="ambar" role="status">
-              Cadastro desativado em {fmtDataHora(f.pessoa.desativadaEm!)}
-              {f.pessoa.desativacaoMotivo ? <>: {f.pessoa.desativacaoMotivo}</> : null}. Não aparece
-              nas buscas e não pode entrar; o histórico continua.
-            </Alert>
-          )}
-          {anonimizada && (
-            <Alert tom="neutro" role="status">
-              Cadastro anonimizado em {fmtDataHora(f.pessoa.anonimizadaEm!)}. Os eventos de acesso
-              continuam na trilha só pelo id, até o fim do prazo de retenção.
-            </Alert>
-          )}
-          {resultado && (
-            <Alert tom="ambar" titulo="O que fica retido" role="status">
-              {resultado.eventosRetidos !== undefined && (
-                <p className="mb-1">
-                  {resultado.eventosRetidos === 0 ? (
-                    'Nenhum evento de acesso desta pessoa fica retido.'
-                  ) : (
-                    <>
-                      {resultado.eventosRetidos} evento(s) de acesso ficam retidos só pelo id
-                      {resultado.retidoAte ? <> até {fmtData(resultado.retidoAte)}</> : null}.
-                    </>
-                  )}
-                  {resultado.documentosEliminados ? (
-                    <>
-                      {' '}
-                      {resultado.documentosEliminados} arquivo(s) da pessoa eliminado(s) do
-                      armazenamento.
-                    </>
-                  ) : null}
-                </p>
-              )}
-              <ul className="list-disc pl-5">
-                {resultado.retido.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            </Alert>
-          )}
+          <CabecalhoFicha pessoa={f.pessoa} desativada={desativada} anonimizada={anonimizada} />
+          {resultado && <AlertaRetido resultado={resultado} />}
           {anonimizando && (
-            <div className="flex flex-col gap-3 rounded-[10px] border-2 border-[#B42318] bg-[#FEF3F2] p-4 text-[#912018]">
-              <p className="font-semibold">
-                Anonimizar {f.pessoa.nome}? Nome, CPF, telefone, empresa e serviço serão removidos,
-                e a trilha de alterações dessa pessoa será redigida. Não há como desfazer.
-              </p>
-              <p className="text-[14px]">
-                O texto livre ligado a ela é substituído e o nome completo é trocado por
-                “[anonimizado]” em encomendas, ocorrências e na trilha. Ficam retidos os eventos de
-                acesso até completar 3 anos, por exercício regular de direitos, inclusive o texto
-                livre deles (que faz parte do selo de integridade). Pessoa com vínculo válido não
-                pode ser anonimizada.
-              </p>
-              {erro && (
-                <Alert tom="vermelho" role="alert">
-                  {erro}
-                </Alert>
-              )}
-              <div className="flex flex-wrap gap-[10px]">
-                <Button variante="perigo" onClick={() => void anonimizar()}>
-                  Confirmar anonimização
-                </Button>
-                <Button onClick={() => setAnonimizando(false)}>Cancelar</Button>
-              </div>
-            </div>
+            <ConfirmarAnonimizacao
+              nome={f.pessoa.nome}
+              erro={erro}
+              onConfirmar={() => void anonimizar()}
+              onCancelar={() => setAnonimizando(false)}
+            />
           )}
           {editando && (
             <EditarCadastro
@@ -329,216 +232,21 @@ export function FichaPessoaModal({ id, onClose }: { id: string; onClose: () => v
               {f.funcionario.escala.horaInicio}–{f.funcionario.escala.horaFim}.
             </Alert>
           )}
-          <section>
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-[15px] font-semibold">Vínculos com unidades</h3>
-              {podeVincular && !anonimizada && (
-                <Button
-                  pequeno
-                  variante="contorno"
-                  disabled={desativada}
-                  aria-describedby={desativada ? 'ficha-vincular-motivo' : undefined}
-                  onClick={() => {
-                    setVinculado(null)
-                    setVinculando(true)
-                  }}
-                >
-                  Vincular a uma unidade
-                </Button>
-              )}
-            </div>
-            {podeVincular && !anonimizada && desativada && (
-              <p id="ficha-vincular-motivo" className="mb-2 text-[13px] text-[#56616B]">
-                Cadastro desativado não recebe vínculo: reative o cadastro para vincular a uma
-                unidade.
-              </p>
-            )}
-            {vinculado && (
-              <Alert
-                tom={vinculado.v.status === 'pendente' ? 'ambar' : 'verde'}
-                role="status"
-                className="mb-2"
-              >
-                {vinculado.resumo}:{' '}
-                {vinculado.v.status === 'pendente' ? (
-                  <>
-                    solicitado e <strong>pendente</strong>. Falta registrar a conferência do
-                    comprovante e aprovar em{' '}
-                    <Link className="font-semibold underline" to="/vinculos" onClick={onClose}>
-                      Vínculos
-                    </Link>
-                    ; enquanto pendente, não dá acesso de morador.
-                  </>
-                ) : (
-                  <>registrado ({vinculado.v.status}).</>
-                )}
-              </Alert>
-            )}
-            {f.vinculos.length === 0 ? (
-              <p className="text-[#56616B]">Sem vínculos.</p>
-            ) : (
-              <div className="rounded-[10px] border border-[#DCE1E5]">
-                {f.vinculos.map((v) => (
-                  <div
-                    key={v.id}
-                    className="grid min-h-12 grid-cols-1 gap-1 border-b border-[#EEF1F3] px-4 py-2 last:border-b-0 sm:grid-cols-[100px_minmax(0,1fr)_120px] sm:items-center sm:gap-3"
-                  >
-                    <span className="font-mono font-semibold">{v.unidadeCodigo}</span>
-                    <span className="text-[14px]">{ROTULO_VINCULO[v.tipo]}</span>
-                    <SeloVinculo status={v.status} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-          <section>
-            <h3 className="mb-2 text-[15px] font-semibold">Últimos acessos</h3>
-            {f.eventos === null ? (
-              <p
-                className="flex items-start gap-2 text-[14px] text-[#56616B]"
-                role="note"
-                aria-label="Últimos acessos: disponível em breve"
-              >
-                <Info className="mt-[2px] h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-                Disponível em breve na API real.
-              </p>
-            ) : f.eventos.length === 0 ? (
-              <p className="text-[#56616B]">Sem acessos registrados.</p>
-            ) : (
-              <div
-                className="rounded-[10px] border border-[#DCE1E5]"
-                title={`Atualizado em ${fmtDataHora(agora())}`}
-              >
-                {f.eventos.map((e) => (
-                  <div
-                    key={e.id}
-                    className="grid min-h-12 grid-cols-1 gap-1 border-b border-[#EEF1F3] px-4 py-2 last:border-b-0 sm:grid-cols-[110px_120px_minmax(0,1fr)] sm:items-center sm:gap-3"
-                  >
-                    <span className="font-mono text-[14px]">
-                      {quandoCurto(e.ocorridoEm, agora())}
-                    </span>
-                    <span className="truncate font-mono font-semibold">
-                      {e.unidadeRotulo ?? '—'}
-                    </span>
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Badge tom={chipDoEvento(e).tom} icone={chipDoEvento(e).icone}>
-                        {chipDoEvento(e).texto}
-                      </Badge>
-                      <span className="truncate text-[14px]">{textoAutorizacao(e)}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          <SecaoVinculos
+            vinculos={f.vinculos}
+            podeVincular={podeVincular}
+            anonimizada={anonimizada}
+            desativada={desativada}
+            vinculado={vinculado}
+            onVincular={() => {
+              setVinculado(null)
+              setVinculando(true)
+            }}
+            onClose={onClose}
+          />
+          <SecaoAcessos eventos={f.eventos} />
         </div>
       )}
     </Modal>
-  )
-}
-
-/** Correção do cadastro (pessoa.editar): nome, telefone, CPF (tira de "sem CPF"), empresa e serviço. */
-function EditarCadastro({
-  pessoa,
-  onCancelar,
-  onSalvo,
-}: {
-  pessoa: Pessoa
-  onCancelar: () => void
-  onSalvo: () => void
-}) {
-  const api = useApi()
-  const [nome, setNome] = useState(pessoa.nome)
-  const [telefone, setTelefone] = useState('') // em branco: o número atual só aparece mascarado (LGPD)
-  const [cpf, setCpf] = useState('')
-  const [empresa, setEmpresa] = useState(pessoa.empresa ?? '')
-  const [servico, setServico] = useState(pessoa.servico ?? '')
-  const [deixouDeSerMenor, setDeixouDeSerMenor] = useState(false)
-  const [erro, setErro] = useState('')
-  async function salvar(e: FormEvent) {
-    e.preventDefault()
-    setErro('')
-    try {
-      await api.pessoas.editar({
-        // Telefone em branco não é enviado (importado sem telefone pode corrigir só o nome)
-        id: pessoa.id,
-        nome,
-        ...(telefone.trim() ? { telefone } : {}),
-        ...(cpf.trim() ? { documento: cpf } : {}),
-        ...(pessoa.categoria === 'prestador' ? { empresa, servico } : {}),
-        ...(pessoa.menorIdade && deixouDeSerMenor ? { menorIdade: false } : {}),
-      })
-      onSalvo()
-    } catch (err) {
-      setErro(mensagemErro(err))
-    }
-  }
-  return (
-    <form
-      onSubmit={salvar}
-      aria-label="Editar cadastro"
-      className="grid grid-cols-1 gap-[14px] rounded-[10px] border border-[#DCE1E5] p-4 sm:grid-cols-2"
-    >
-      <Field label="Nome completo" className="sm:col-span-2">
-        <input className="input" autoFocus value={nome} onChange={(e) => setNome(e.target.value)} />
-      </Field>
-      <Field
-        label={
-          pessoa.semCpf
-            ? 'CPF (informar tira a pessoa de “sem CPF”)'
-            : 'Novo CPF (só para corrigir)'
-        }
-        dica={`Atual: ${pessoa.documentoMascarado}. O número não é guardado.`}
-      >
-        <InputMascara tipo="cpf" className="input font-mono" value={cpf} onChange={setCpf} />
-      </Field>
-      <Field
-        label="Novo telefone (só para corrigir)"
-        dica={
-          pessoa.telefoneMascarado
-            ? `Atual: ${pessoa.telefoneMascarado}.`
-            : 'Sem telefone cadastrado.'
-        }
-      >
-        <InputMascara tipo="telefone" value={telefone} onChange={setTelefone} />
-      </Field>
-      {pessoa.menorIdade && (
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#B9C3CA] p-3 sm:col-span-2">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={deixouDeSerMenor}
-            onChange={(e) => setDeixouDeSerMenor(e.target.checked)}
-          />
-          <span>
-            <span className="font-medium">Deixou de ser menor de idade</span>
-            <span className="block text-[13px] text-[#56616B]">
-              A partir daqui CPF e telefone passam a ser obrigatórios.
-            </span>
-          </span>
-        </label>
-      )}
-      {pessoa.categoria === 'prestador' && (
-        <>
-          <Field label="Empresa">
-            <input className="input" value={empresa} onChange={(e) => setEmpresa(e.target.value)} />
-          </Field>
-          <Field label="Serviço">
-            <input className="input" value={servico} onChange={(e) => setServico(e.target.value)} />
-          </Field>
-        </>
-      )}
-      {erro && (
-        <Alert tom="vermelho" role="alert" className="sm:col-span-2">
-          {erro}
-        </Alert>
-      )}
-      <div className="flex flex-wrap gap-[10px] sm:col-span-2">
-        <Button type="submit" variante="primario">
-          Salvar correção
-        </Button>
-        <Button onClick={onCancelar}>Cancelar</Button>
-      </div>
-    </form>
   )
 }

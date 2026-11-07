@@ -8,72 +8,26 @@
 // com 3 a 5 dígitos (máscara nova, 5 visíveis) e pelo meio com 3 a 6 só nos cadastros antigos ("***.456.789-**"); 11
 // dígitos, pelo HMAC. De 6 a 10 a máscara nova não casa (0042) e a linha de status pede os 11 (dicaBuscaCpf).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
-import { Search, TriangleAlert } from 'lucide-react'
-import { useApi } from '@/api'
+import { Search } from 'lucide-react'
 import { Alert } from '@/componentes/Alert'
 import { BotaoLink } from '@/componentes/Button'
 import { PageHeader } from '@/componentes/PageHeader'
-import { Vazio } from '@/componentes/Table'
-import { Badge } from '@/componentes/ui/badge'
-import { Command, CommandItem, CommandList, CommandPrimitive } from '@/componentes/ui/command'
+import { Command, CommandPrimitive } from '@/componentes/ui/command'
 import { dicaBuscaCpf } from '@/domain/cpf'
-import { ROTULO_CATEGORIA, ROTULO_TIPO_VISITA, type EventoView } from '@/domain/types'
+import type { EventoView } from '@/domain/types'
 import { mensagemErro, useAgora } from '@/app/useAsync'
-import { CHAVES, useDebounce } from '@/app/consultas'
-import { descreverVeiculo, quandoCurto, textoAutorizacao } from '@/paginas/common/evento'
-import {
-  CelPermanencia,
-  destaquePresente,
-  estadoDoPresente,
-  ordenarParaSaida,
-  usePresentes,
-} from './presentes'
-import { ConfirmarSaidaModal, destinoDe, SaidaRetroativaModal } from './saida'
-import { ErroCarregar, Osso } from '@/componentes/Carregando'
+import { ordenarParaSaida, usePresentes } from './presentes'
+import { ConfirmarSaidaModal, SaidaRetroativaModal } from './saida'
+import { ErroCarregar } from '@/componentes/Carregando'
+import { useBuscaPorCpf } from './saida/consultas'
+import { ListaPresentes } from './saida/ListaPresentes'
+import { casaPresente } from './saida/regras'
+import { useEntradaParam } from './saida/useEntradaParam'
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const COLUNAS =
-  'md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_90px_80px_minmax(0,1.3fr)_minmax(0,1.2fr)]'
-const MIN_DIGITOS_CPF = 3
-
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-const compacto = (s: string) => norm(s).replace(/[^a-z0-9]/g, '')
-
-/** Termo só de dígitos e separadores de CPF ("123", "123.45", "123.45*.***-**", o antigo "***.456.789-**"). */
-export function digitosCpf(q: string): string | null {
-  if (!/^[\d.\-*\s]+$/.test(q.trim())) return null
-  const d = q.replace(/\D/g, '')
-  return d.length >= MIN_DIGITOS_CPF ? d : null
-}
-
-/** Filtro local: todas as palavras precisam aparecer (nome, categoria, tipo de visita, destino, empresa, serviço). */
-export function casaPresente(e: EventoView, q: string): boolean {
-  const termo = norm(q).trim()
-  if (!termo) return true
-  const destino = destinoDe(e)
-  const texto = norm(
-    [
-      e.pessoaNome,
-      ROTULO_CATEGORIA[e.categoriaPessoa],
-      e.permanencia ? ROTULO_TIPO_VISITA[e.permanencia.tipoVisita] : '',
-      destino,
-      e.areaComumNome ?? '',
-      e.empresa ?? '',
-      e.servico ?? '',
-      // placa como gravada (ABC1D23) e como exibida (ABC-1D23)
-      e.veiculo ? `${e.veiculo.placa} ${descreverVeiculo(e.veiculo)}` : '',
-    ].join(' '),
-  )
-  if (compacto(termo) && compacto(destino) === compacto(termo)) return true // "d32", "D 32"
-  return termo.split(/\s+/).every((t) => texto.includes(t))
-}
+export { casaPresente, digitosCpf } from './saida/regras'
 
 export function SaidaPage() {
-  const api = useApi()
   const agora = useAgora(15000)
-  const [params, setParams] = useSearchParams()
   const lista = usePresentes()
   const [q, setQ] = useState('')
   const [selecionada, setSelecionada] = useState<EventoView | null>(null)
@@ -81,21 +35,7 @@ export function SaidaPage() {
   const [avisoParam, setAvisoParam] = useState('')
   const buscaRef = useRef<HTMLInputElement>(null)
 
-  // CPF parcial ou completo: a busca de pessoas existente, com o termo no corpo (a chave fica só na memória).
-  const cpf = digitosCpf(q)
-  const cpfDebounce = useDebounce(cpf, 200)
-  const porCpf = useQuery({
-    queryKey: CHAVES.pessoasSaida(cpfDebounce ?? ''),
-    queryFn: () => api.pessoas.buscar(cpfDebounce!, { limite: 50 }),
-    enabled: !!cpfDebounce && cpfDebounce === cpf,
-    staleTime: 0,
-    gcTime: 30_000,
-    retry: false,
-  })
-  const docPorPessoa = useMemo(
-    () => new Map((cpf && porCpf.data ? porCpf.data : []).map((p) => [p.id, p.documentoMascarado])),
-    [cpf, porCpf.data],
-  )
+  const { cpf, porCpf, docPorPessoa, buscandoCpf } = useBuscaPorCpf(q)
 
   const achados = useMemo(
     () =>
@@ -105,7 +45,6 @@ export function SaidaPage() {
       ),
     [lista.data, q, docPorPessoa, agora],
   )
-  const buscandoCpf = !!cpf && (cpfDebounce !== cpf || porCpf.isFetching)
 
   useEffect(() => {
     buscaRef.current?.focus()
@@ -123,36 +62,7 @@ export function SaidaPage() {
     anterior.current = selecionada ?? retro
   }, [selecionada, retro])
 
-  // ?entrada=<uuid>: abre a confirmação dessa entrada se ela ainda está entre os presentes. O parâmetro é consumido
-  // (replace) para um reload não reabrir; inválido é ignorado.
-  const paramFeito = useRef(false)
-  useEffect(() => {
-    if (paramFeito.current) return
-    const id = params.get('entrada')
-    if (!id) {
-      paramFeito.current = true
-      return
-    }
-    if (!UUID.test(id)) {
-      paramFeito.current = true
-      limparParam()
-      return
-    }
-    if (!lista.data) return
-    paramFeito.current = true
-    limparParam()
-    const e = lista.data.find((x) => x.id === id)
-    if (e) setSelecionada(e)
-    else
-      setAvisoParam(
-        'Essa entrada não está mais entre os presentes: a saída pode já ter sido registrada.',
-      )
-    function limparParam() {
-      const p = new URLSearchParams(params)
-      p.delete('entrada')
-      setParams(p, { replace: true })
-    }
-  }, [params, setParams, lista.data])
+  useEntradaParam(lista.data, setSelecionada, setAvisoParam)
 
   function aposSaida() {
     setSelecionada(null)
@@ -229,112 +139,17 @@ export function SaidaPage() {
           </p>
         </div>
 
-        {lista.isLoading && (
-          <div aria-hidden className="apos-espera rounded-[10px] border border-[#DCE1E5] bg-white">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className={`grid grid-cols-2 gap-3 border-b border-[#EEF1F3] px-5 py-[18px] last:border-b-0 ${COLUNAS}`}
-              >
-                {[0, 1, 2, 3, 4, 5].map((c) => (
-                  <Osso key={c} className={`h-3 ${c % 2 ? 'w-[45%]' : 'w-[70%]'}`} />
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-        {!lista.isPending && total === 0 && !lista.error && (
-          <div className="rounded-[10px] border border-[#DCE1E5] bg-white">
-            <Vazio>Ninguém dentro agora.</Vazio>
-          </div>
-        )}
-        {total > 0 && (
-          <div className="rounded-[10px] border border-[#DCE1E5] bg-white md:overflow-hidden">
-            <div
-              aria-hidden
-              className={`hidden gap-3 border-b border-[#E6EAED] px-5 py-3 text-[13px] font-semibold text-[#56616B] md:grid ${COLUNAS}`}
-            >
-              <span>Nome</span>
-              <span>Tipo</span>
-              <span>Destino</span>
-              <span>Entrada</span>
-              <span>Permanência</span>
-              <span>Autorizado por</span>
-            </div>
-            <CommandList label="Quem está dentro" className="max-h-none p-2 md:p-0">
-              {achados.length === 0 && !buscandoCpf && (
-                <Vazio>Ninguém dentro com “{q.trim()}”.</Vazio>
-              )}
-              {achados.map((e) => {
-                const estado = estadoDoPresente(e, agora)
-                const fundo = destaquePresente(e, agora)
-                return (
-                  <CommandItem
-                    key={e.id}
-                    value={e.id}
-                    onSelect={() => setSelecionada(e)}
-                    className={`mb-2 grid grid-cols-2 items-start gap-x-3 gap-y-1 rounded-[10px] border border-[#DCE1E5] px-4 py-3 md:mb-0 md:items-center md:rounded-none md:border-0 md:border-b md:border-[#EEF1F3] md:px-5 ${COLUNAS} ${
-                      fundo === 'vermelho'
-                        ? 'bg-[#FEF3F2]'
-                        : fundo === 'ambar'
-                          ? 'bg-[#FFFAEB]'
-                          : 'bg-white'
-                    }`}
-                  >
-                    <span className="col-span-2 flex min-w-0 flex-wrap items-center gap-2 md:col-span-1">
-                      <span className="truncate font-semibold">{e.pessoaNome}</span>
-                      {estado === 'expirado' && (
-                        <Badge variant="vermelho">
-                          <TriangleAlert className="h-3.5 w-3.5" aria-hidden />
-                          Expirado
-                        </Badge>
-                      )}
-                      {docPorPessoa.has(e.pessoaId) && (
-                        <span className="font-mono text-[13px] text-[#56616B]">
-                          {docPorPessoa.get(e.pessoaId)}
-                        </span>
-                      )}
-                      {e.veiculo && (
-                        <span className="font-mono text-[13px] text-[#56616B]">
-                          <span className="sr-only">Veículo </span>
-                          {descreverVeiculo(e.veiculo)}
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-[14px]">
-                      {ROTULO_CATEGORIA[e.categoriaPessoa]}
-                      {e.permanencia && (
-                        <span className="text-[#56616B]">
-                          {' '}
-                          · {ROTULO_TIPO_VISITA[e.permanencia.tipoVisita]}
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-mono font-semibold">
-                      <span className="sr-only">Destino </span>
-                      {destinoDe(e)}
-                    </span>
-                    <span className="font-mono text-[14px]">
-                      <span className="font-sans text-[#56616B] md:sr-only">Entrou </span>
-                      {quandoCurto(e.ocorridoEm, agora)}
-                    </span>
-                    <span className="text-[14px]">
-                      <CelPermanencia
-                        entradaEm={e.ocorridoEm}
-                        permanencia={e.permanencia ?? null}
-                        agora={agora}
-                      />
-                    </span>
-                    <span className="col-span-2 min-w-0 truncate text-[14px] text-[#33424B] md:col-span-1">
-                      <span className="text-[#56616B] md:sr-only">Autorizado por </span>
-                      {textoAutorizacao(e)}
-                    </span>
-                  </CommandItem>
-                )
-              })}
-            </CommandList>
-          </div>
-        )}
+        <ListaPresentes
+          carregando={lista.isLoading}
+          vazio={!lista.isPending && total === 0 && !lista.error}
+          total={total}
+          achados={achados}
+          q={q}
+          agora={agora}
+          buscandoCpf={buscandoCpf}
+          docPorPessoa={docPorPessoa}
+          onSelect={setSelecionada}
+        />
       </Command>
 
       {selecionada && (
