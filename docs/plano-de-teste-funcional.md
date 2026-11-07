@@ -18,7 +18,7 @@
 
 Técnicas: valor limite, partição de equivalência, tabela de decisão (meio de autorização por categoria), transição de estado (permanência), suposição de erro (os bugs 5 a 8 da rodada 2).
 
-**Critério de entrada:** migrações 0043 a 0046 aplicadas no ambiente de teste (hoje o hospedado está na 0042: aplicar antes, com decisão do dono); build publicado do mesmo commit; usuários de teste, um por papel (síndico, administração, porteiro, auditor, admin_sistema); unidades e pessoas fictícias.
+**Critério de entrada:** migrações até a 0046 aplicadas no ambiente de teste (o hospedado está na 0046 desde 07/11/2026); build publicado do mesmo commit; usuários de teste, um por papel (síndico, administração, porteiro, auditor, admin_sistema); unidades e pessoas fictícias.
 **Critério de saída:** 100% dos casos críticos (C) passando; nenhum bug crítico ou alto aberto; risco residual das perguntas ao síndico registrado.
 
 ## Casos
