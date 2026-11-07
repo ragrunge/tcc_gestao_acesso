@@ -30,10 +30,11 @@ participou da pesquisa.
 | `docs/rastreabilidade.md`                                | Ligação de cada requisito funcional ao código que o implementa                                                                                                                                                       |
 | `docs/arquitetura.md`, `docs/anexos.md`, `docs/front.md` | Decisões de segurança do backend, dos anexos cifrados e guia do front                                                                                                                                                |
 | `docs/desenvolvimento-local.md`                          | Seed de desenvolvimento do banco local e carga de dados de teste (nada disso roda no projeto hospedado por padrão)                                                                                                   |
+| `docs/plano-de-teste-*.md`                               | Planos de teste funcional: técnicas, casos, bugs achados e critério de saída                                                                                                                                         |
 | `diagramas/`                                             | Diagramas de casos de uso (portaria, administração e auditoria), em PlantUML, SVG e PNG                                                                                                                              |
 | `src/`, `public/`, `index.html`                          | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração)                                                                                                        |
 | `src/domain`                                             | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco                                                                                                  |
-| `supabase/`                                              | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/`                                                                                                            |
+| `supabase/`                                              | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/` (rodam no CI)                                                                                              |
 | `scripts/`                                               | Geração dos ícones e da marca, do SQL da matriz de permissões (`rbac-sql.mjs`), primeiro síndico (`sindico/`) e carga de dados de teste (`popular/`)                                                                 |
 
 ## O sistema
@@ -77,7 +78,7 @@ está na tag `nestjs-final`.
 
 ## Como rodar localmente
 
-Precisa de Node 22 ou mais novo (`.nvmrc`) e npm, e de um projeto Supabase (hospedado, ou local com a CLI e Docker).
+Precisa de Node 22 ou mais novo (`.nvmrc`) e npm, e de um projeto Supabase hospedado. Banco local (CLI e Docker) é opcional, só para desenvolver.
 
 ```bash
 npm ci
@@ -88,12 +89,11 @@ npm run dev              # http://localhost:5173
 Use apenas a chave **anon/publishable** no `.env`: ela vai para o bundle público. Nunca a `service_role`, nem o token
 de acesso da conta nem a senha do banco.
 
-Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`):
+Banco local, opcional (Supabase CLI e Docker; não precisa de conta nem de `supabase link`):
 
 ```bash
 supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
 supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed.sql
-supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação, anexos, paginação, usuários, edição de usuário e administrador do sistema
 # KEK local dos anexos (32 bytes aleatórios, só desta máquina; o arquivo é ignorado pelo git). Uma vez:
 (umask 077; printf 'PORTARIA_KEK_V1=%s\n' "$(openssl rand -base64 32)" > supabase/functions/.env.local)
 supabase functions serve --env-file supabase/functions/.env.local  # Edge Functions (auth-entrar, auth-trocar-senha, usuarios-admin, anexos)
@@ -144,14 +144,28 @@ Detalhes do login, da autorização no banco, da trilha, da importação e dos a
 
 ## Testes
 
+Os testes não dependem de Docker na máquina de quem desenvolve.
+
 ```bash
-npm run type-check       # front e domain
-npm test                 # Vitest + Testing Library (front) e regras do domain
-npm run test:integracao    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
-npm run test:integracao:sem-seed  # banco local SEM a demonstração, como o hospedado: primeiro síndico e estrutura (rode `supabase db reset` depois, para as outras suítes)
+npm run check            # type-check + lint + format:check
+npm test                 # Vitest: regras do domain, adaptadores da API e componentes
 ```
 
-O CI (`.github/workflows/ci.yml`) roda type-check, lint, checagem de migrations, `npm test` e build; o pgTAP e a integração rodam só na máquina, com o Supabase local aberto.
+- **Unitários (Vitest):** regras puras em `src/domain` (RBAC, hash chain, prazos, autorização, entrada), adaptadores em
+  `src/api/supabase` com a API simulada e telas da portaria e da administração com Testing Library. Ficam ao lado do
+  código (`*.test.ts` e `*.test.tsx`).
+- **Funcionais:** plano e casos por técnica (valor limite, partição, estado, decisão por papel) em
+  [docs/plano-de-teste-funcional.md](docs/plano-de-teste-funcional.md) e
+  [docs/plano-de-teste-encomendas.md](docs/plano-de-teste-encomendas.md), executados à mão contra o projeto
+  hospedado, com resultado e evidência registrados nos próprios planos.
+- **Banco (pgTAP):** `supabase/tests/database` é a especificação das regras que moram no SQL (permissões, trilha
+  imutável, matriz RBAC, portaria, operação). Roda no CI (job `banco`), que sobe o Supabase local no GitHub Actions.
+- **Integração com stack local** (`npm run test:integracao` e `test:integracao:sem-seed`): Edge Functions, paridade
+  TS-SQL e concorrência. Fora do fluxo padrão, só para quem abrir o stack local de propósito (`supabase start`,
+  `functions serve` e banco recém-resetado).
+
+O CI (`.github/workflows/ci.yml`) roda type-check, lint, formato, checagem de migrations, `npm test`, build e, no job
+`banco`, o pgTAP.
 
 ## Versão publicada
 

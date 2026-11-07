@@ -79,5 +79,5 @@ a regularização pela tela).
 ## Tipos do banco e lint
 
 - `npm run gen:types` (banco local no ar) regenera `src/integrations/supabase/type.ts` a partir do schema `api`. O arquivo é versionado: o `rpc()` do adaptador deriva dele o nome da RPC e as chaves dos argumentos, então depois de toda migração que cria ou renomeia função ou parâmetro, rodar o comando e commitar o resultado.
-- O retorno das RPCs é `jsonb` e continua tipado à mão em `src/api/types.ts`; o gerador não cobre o formato do retorno.
+- O retorno das RPCs é `jsonb` e continua tipado à mão em `src/api/types/`; o gerador não cobre o formato do retorno.
 - `npm run lint` (ESLint 9 com `react-hooks`) está limpo. `npm run format:check` ainda aponta 143 arquivos fora do Prettier; não foi aplicado em massa para não poluir o histórico.

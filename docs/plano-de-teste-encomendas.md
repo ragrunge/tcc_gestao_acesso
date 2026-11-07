@@ -44,7 +44,7 @@ Regressão do BUG-1: reaplicando as funções da 0026, falham exatamente os test
 
 **BUG-3 — baixa — corrigido (0046).** A tela exigia transportadora e o servidor aceitava vazio. Decisão: obrigatória nos dois (`TRANSPORTADORA_OBRIGATORIA`; a opção "Outra" cobre o resto). Teste TC-ENC-BUG3 em pgTAP 08.
 
-**BUG-4 — alta — corrigido antes da entrega.** O adaptador `detalhe` (`src/api/supabase/portaria.ts`) descartava a chave `encomendas`; a seção da ficha nunca aparecia, e `tsc` e Vitest passavam. Pego pelo E2E que existia na época (removido na padronização); hoje só a verificação manual da ficha da unidade cobre esse caminho.
+**BUG-4 — alta — corrigido antes da entrega.** O adaptador `detalhe` (`src/api/supabase/portaria/`) descartava a chave `encomendas`; a seção da ficha nunca aparecia, e `tsc` e Vitest passavam. Pego pelo E2E que existia na época (removido na padronização); hoje só a verificação manual da ficha da unidade cobre esse caminho.
 
 ## Perguntas ao síndico (passo 0)
 1. Pessoa com restrição vigente, inclusive a de todo o condomínio, pode retirar encomenda? Hoje pode.
