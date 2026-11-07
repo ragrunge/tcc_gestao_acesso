@@ -1,0 +1,29 @@
+name: CI
+
+# Só o que roda sem segredo e sem banco: tipos, lint, testes unitários e build.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npm run format:check
+      - run: node scripts/checar-migrations.mjs
+        env:
+          BASE_REF: ${{ github.base_ref }}
+      - run: npm test
+      - run: npx vite build

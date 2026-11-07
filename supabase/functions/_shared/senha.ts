@@ -36,6 +36,6 @@ const ALFABETO = 'abcdefghijkmnpqrstuvwxyz23456789';
 export function gerarSenhaTemporaria(tamanho = 16): string {
   const bytes = crypto.getRandomValues(new Uint8Array(tamanho));
   let s = '';
-  for (let i = 0; i < tamanho; i++) s += (i && i % 4 === 0 ? '-' : '') + ALFABETO[bytes[i] % ALFABETO.length];
+  for (let i = 0; i < tamanho; i++) s += (i && i % 4 === 0 ? '-' : '') + ALFABETO[bytes[i]! % ALFABETO.length];
   return s;
 }

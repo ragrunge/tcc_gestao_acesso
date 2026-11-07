@@ -7,38 +7,38 @@ trilha vêm do Supabase (Postgres, Auth, Edge Functions e Storage). Backend e te
 ## Rodar
 
 ```bash
-cp .env.example .env     # VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY do stack local (`supabase status`)
-supabase start && supabase db reset
+cp .env.example .env     # VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY do projeto Supabase
 npm run dev              # http://localhost:5173
 ```
 
-Usuários fictícios do `supabase/seed/demo.sql` (só no local): `roberto.faria`, `paula.nogueira`, `joao.lima`, `luiza.campos`.
-O `.env` aponta para o projeto escolhido; nunca coloque nele a `service_role`.
+O `.env` aponta para o projeto Supabase; nunca coloque nele a `service_role`. Usuários: os criados pelo síndico nas telas.
 
 ## Testes
 
-- `npm test`: unitários do front (Vitest, jsdom) e de `src/domain`.
-- `npm run test:supabase`: Edge Functions, paridade TS↔SQL e concorrência, contra o stack local aberto.
-- `supabase test db`: pgTAP (permissões, append-only, RBAC, regras da portaria, paginação e usuários).
-- `npx playwright test`: e2e dos specs `e2e/30` a `34`, contra o stack local (na 1ª vez: `npx playwright install chromium`).
+- `npm test`: unitários do front (Vitest, jsdom) e de `src/domain`, ao lado do código.
+- Funcionais: `docs/plano-de-teste-funcional.md` e `docs/plano-de-teste-encomendas.md` (execução manual, casos por técnica).
 
 ## Estrutura de `src/`
 
-- `api/`: `types.ts` (interface `Api` e `ApiError`, a única que a UI conhece), `supabase/` (adaptadores sobre as RPCs
-  e Edge Functions; `createSupabaseApi.ts` monta tudo) e `index.tsx` (cria e provê a API).
+- `api/`: `types/` (interface `Api` e `ApiError`, a única que a UI conhece, dividida por assunto com `index.ts`), `supabase/`
+  (adaptadores sobre as RPCs e Edge Functions, por assunto em `portaria/` e `operacao/`; `createSupabaseApi.ts` monta tudo)
+  e `index.tsx` (cria e provê a API).
 - `auth/`: contexto de sessão e `RequireRole`. A sessão fica no `sessionStorage` do navegador (ver
   `api/supabase/armazenamento.ts`), não em cookie httpOnly.
 - `app/`: rotas, layout, atalhos F2/F3/F4/F8, `queryClient` (política de retry), `catalogo.tsx` e `paginacao.ts` (`usePaginacao`:
   página na URL, volta à 1 quando o filtro muda, página fora do intervalo corrigida, `ateSeq` nas trilhas).
-- `features/`: uma pasta por área (auth, cadastro, encomendas, funcionarios, historico, importacao, lgpd, ocorrencias,
-  portaria, relatorios, unidades, usuarios, vinculos).
-- `components/`, `lib/`, `pwa/`, `test/`. `components/ui/` tem os componentes do shadcn/ui copiados à mão (sem `init`), entre
-  eles `pagination.tsx`; `components/Paginacao.tsx` monta a barra de páginas e a linha de totais das telas.
+- `paginas/`: uma pasta por área (auth, cadastro, encomendas, funcionarios, historico, importacao, lgpd, ocorrencias,
+  portaria, relatorios, unidades, usuarios, vinculos). Cada tela é uma página enxuta que monta componentes, hooks e
+  `consultas.ts` da própria pasta (ex.: `portaria/entrada/`); meta de ~250 linhas por arquivo.
+- `domain/`: regras puras por assunto (`rules/`, `types/`, `rbac.ts`, `hashChain.ts`, `time.ts`), usadas pelo front e pelos testes.
+- `integrations/supabase/`: `client.ts` e `type.ts` (tipos gerados por `npm run gen:types`, versionados).
+- `componentes/`, `lib/`, `pwa/`. `componentes/ui/` tem os componentes do shadcn/ui copiados à mão (sem `init`), entre
+  eles `pagination.tsx`; `componentes/Paginacao.tsx` monta a barra de páginas e a linha de totais das telas.
 
 Telas cujo backend ainda não foi migrado somem do menu: `suporta()` em `api/` decide o que aparece.
 
 ## Regras compartilhadas
 
-`src/domain` (`@domain`) tem as regras puras usadas pela UI (habilitar botões) e espelhadas em SQL, com
+`src/domain` (`@/domain`) tem as regras puras usadas pela UI (habilitar botões) e espelhadas em SQL, com
 teste de paridade. Mudou a matriz de permissões em `rbac.ts`: gere o SQL com `node scripts/rbac-sql.mjs` e crie a
 migração.

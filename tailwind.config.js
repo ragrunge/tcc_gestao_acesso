@@ -29,4 +29,4 @@ export default {
     // Compacto só com mouse: tablet de toque (iPad retrato ou paisagem) mantém alvos de 44 px.
     ({ addVariant }) => addVariant('mouse', '@media (hover: hover) and (pointer: fine)'),
   ],
-};
+}

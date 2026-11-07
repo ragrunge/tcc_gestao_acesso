@@ -1,10 +1,10 @@
 /// <reference types="vitest" />
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import { fileURLToPath } from 'node:url'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
-// Sem proxy: o front fala direto com o Supabase (VITE_SUPABASE_URL), ver src/lib/supabase.ts.
+// Sem proxy: o front fala direto com o Supabase (VITE_SUPABASE_URL), ver src/integrations/supabase/client.ts.
 
 // PWA: só o SHELL (JS/CSS/HTML/ícones/fontes do build) fica em cache, para o app ser instalável e abrir rápido.
 // REGRA DURA (LGPD + trilha append-only): NADA do Supabase no cache do service worker. Por isso: sem runtimeCaching
@@ -22,17 +22,17 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
         globIgnores: ['og-image.png'],
         navigateFallback: 'index.html',
-        
+
         cleanupOutdatedCaches: true,
       },
     }),
   ],
-  resolve: { alias: { '@domain': fileURLToPath(new URL('./src/domain', import.meta.url)) } },
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: { port: 5173 },
   test: {
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
-    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
+    exclude: ['node_modules/**', 'dist/**'],
   },
-});
+})

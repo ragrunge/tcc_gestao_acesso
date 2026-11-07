@@ -42,26 +42,155 @@
          Ajustes para o sistema real: a CSP não permite onclick inline, então "Tentar de novo" é um link que recarrega;
          os atrasos são variáveis (--cns-atraso, --cns-lento) para o componente React continuar sem piscar. -->
     <style>
-      .cns { position: fixed; inset: 0; z-index: 2147483000; background: #10262C; color: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; font-family: "IBM Plex Sans", system-ui, sans-serif; animation: cnsShow 0s var(--cns-atraso, 0.3s) both; transition: opacity 0.2s ease; }
-      .cns.cns-out { opacity: 0; pointer-events: none; }
-      .cns-mark { width: 64px; height: 64px; display: block; }
-      .cns-arch { stroke-dasharray: 44; animation: cnsDraw 0.7s var(--cns-atraso, 0.3s) cubic-bezier(0.6, 0, 0.2, 1) both; }
-      .cns-dot { animation: cnsDot 0.55s calc(var(--cns-atraso, 0.3s) + 0.55s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-      .cns--continua .cns-arch, .cns--continua .cns-dot { animation: none; }
-      .cns-name { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
-      .cns-bar { width: 140px; height: 3px; border-radius: 2px; background: #1A3840; overflow: hidden; }
-      .cns-bar i { display: block; width: 40%; height: 100%; border-radius: 2px; background: #A9D2D8; animation: cnsBar 1.1s ease-in-out infinite; }
-      .cns-slow { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 340px; text-align: center; font-size: 15px; color: #C9D8DC; animation: cnsShow 0s var(--cns-lento, 8s) both; }
-      .cns-slow p { margin: 0; }
-      .cns-slow a, .cns-slow button { display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border: 1px solid #3B5B63; border-radius: 8px; background: transparent; color: #FFFFFF; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
-      .cns-slow a:hover, .cns-slow button:hover { background: #1A3840; color: #FFFFFF; }
-      .cns-slow a:focus-visible, .cns-slow button:focus-visible { outline: 3px solid #A9D2D8; outline-offset: 2px; }
-      .cns-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-      @keyframes cnsShow { from { visibility: hidden; } to { visibility: visible; } }
-      @keyframes cnsDraw { from { stroke-dashoffset: 44; } to { stroke-dashoffset: 0; } }
-      @keyframes cnsDot { from { transform: translateY(9px); opacity: 0; } to { transform: none; opacity: 1; } }
-      @keyframes cnsBar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
-      @media (prefers-reduced-motion: reduce) { .cns-arch, .cns-dot, .cns-bar i { animation: none; } .cns { transition: none; } }
+      .cns {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        background: #10262c;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 24px;
+        font-family: 'IBM Plex Sans', system-ui, sans-serif;
+        animation: cnsShow 0s var(--cns-atraso, 0.3s) both;
+        transition: opacity 0.2s ease;
+      }
+      .cns.cns-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .cns-mark {
+        width: 64px;
+        height: 64px;
+        display: block;
+      }
+      .cns-arch {
+        stroke-dasharray: 44;
+        animation: cnsDraw 0.7s var(--cns-atraso, 0.3s) cubic-bezier(0.6, 0, 0.2, 1) both;
+      }
+      .cns-dot {
+        animation: cnsDot 0.55s calc(var(--cns-atraso, 0.3s) + 0.55s) cubic-bezier(0.2, 0.8, 0.2, 1)
+          both;
+      }
+      .cns--continua .cns-arch,
+      .cns--continua .cns-dot {
+        animation: none;
+      }
+      .cns-name {
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .cns-bar {
+        width: 140px;
+        height: 3px;
+        border-radius: 2px;
+        background: #1a3840;
+        overflow: hidden;
+      }
+      .cns-bar i {
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: 2px;
+        background: #a9d2d8;
+        animation: cnsBar 1.1s ease-in-out infinite;
+      }
+      .cns-slow {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        max-width: 340px;
+        text-align: center;
+        font-size: 15px;
+        color: #c9d8dc;
+        animation: cnsShow 0s var(--cns-lento, 8s) both;
+      }
+      .cns-slow p {
+        margin: 0;
+      }
+      .cns-slow a,
+      .cns-slow button {
+        display: inline-flex;
+        align-items: center;
+        height: 44px;
+        padding: 0 18px;
+        border: 1px solid #3b5b63;
+        border-radius: 8px;
+        background: transparent;
+        color: #ffffff;
+        font: inherit;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .cns-slow a:hover,
+      .cns-slow button:hover {
+        background: #1a3840;
+        color: #ffffff;
+      }
+      .cns-slow a:focus-visible,
+      .cns-slow button:focus-visible {
+        outline: 3px solid #a9d2d8;
+        outline-offset: 2px;
+      }
+      .cns-sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      @keyframes cnsShow {
+        from {
+          visibility: hidden;
+        }
+        to {
+          visibility: visible;
+        }
+      }
+      @keyframes cnsDraw {
+        from {
+          stroke-dashoffset: 44;
+        }
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes cnsDot {
+        from {
+          transform: translateY(9px);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+      @keyframes cnsBar {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(260%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .cns-arch,
+        .cns-dot,
+        .cns-bar i {
+          animation: none;
+        }
+        .cns {
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -72,11 +201,25 @@
     </noscript>
     <div id="root">
       <div class="cns" role="status" aria-live="polite">
-        <svg class="cns-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B5563"></rect><path class="cns-arch" d="M9.5 24.5V15a6.5 6.5 0 0 1 13 0v9.5" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round"></path><circle class="cns-dot" cx="16" cy="19.5" r="2.8" fill="#A9D2D8"></circle></svg>
+        <svg class="cns-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="#0B5563"></rect>
+          <path
+            class="cns-arch"
+            d="M9.5 24.5V15a6.5 6.5 0 0 1 13 0v9.5"
+            fill="none"
+            stroke="#FFFFFF"
+            stroke-width="3.2"
+            stroke-linecap="round"
+          ></path>
+          <circle class="cns-dot" cx="16" cy="19.5" r="2.8" fill="#A9D2D8"></circle>
+        </svg>
         <div class="cns-name">Gestão de Acesso</div>
         <div class="cns-bar" aria-hidden="true"><i></i></div>
         <span class="cns-sr">Carregando o sistema de Gestão de Acesso</span>
-        <div class="cns-slow"><p>Está demorando mais que o normal. Verifique a conexão.</p><a href="">Tentar de novo</a></div>
+        <div class="cns-slow">
+          <p>Está demorando mais que o normal. Verifique a conexão.</p>
+          <a href="">Tentar de novo</a>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

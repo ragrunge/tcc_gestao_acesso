@@ -22,7 +22,7 @@ A cifra em repouso do Storage é do provedor: protege o disco, mas qualquer um c
 painel lê o arquivo em claro. Com o envelope, o Storage só guarda cifra + tag, e a DEK de cada arquivo fica no banco
 cifrada pela KEK. Para ler um anexo é preciso **juntar três coisas**: o objeto (Storage), a linha (banco) e a KEK
 (secret da Edge). Isso sustenta a afirmação do artigo (RNF-03, "anexos criptografados em repouso") e mantém o formato
-do legado byte a byte (`src/test/anexoCofre.test.ts` cifra com o código antigo e abre com o novo, e vice-versa).
+do legado byte a byte (`src/domain/anexoCofre.test.ts` cifra com o código antigo e abre com o novo, e vice-versa).
 
 Custo: a Edge processa o arquivo em claro na memória (até 4 MiB) e o download não pode ser URL assinada (decisão 3).
 
@@ -84,13 +84,13 @@ varredura (a varredura em si é da F5).
   quando o Storage recusa o upload; `DOCUMENTO_DUPLICADO` (409) para id repetido. O resto mantém os códigos do legado.
 - O corpo do envio é o arquivo cru (`application/octet-stream`), não `multipart/form-data`: sem campo nem nome de arquivo.
 - `ocorrencia_anexo` ganhou `UNIQUE (documento_id)`: um documento pertence a uma ocorrência só.
-- As regras da Edge são cópia das de `src/domain/rules.ts` (a Edge só enxerga `supabase/functions`), com teste
-  de paridade em `src/test/anexoCofre.test.ts`. No banco, os mesmos números estão em `app.anexo_regras()` e nos CHECKs.
+- As regras da Edge são cópia das de `src/domain/rules/` (a Edge só enxerga `supabase/functions`), com teste
+  de paridade em `src/domain/anexoCofre.test.ts`. No banco, os mesmos números estão em `app.anexo_regras()` e nos CHECKs.
 
 ## Para o projeto hospedado (F6)
 
 - A migração 0033 cria o bucket e a política por SQL (`supabase db push`). Conferir depois que o bucket existe, está
-  privado e que não há política permissiva em `storage.objects`; o pgTAP `01_superficie` traz as consultas.
+  privado e que não há política permissiva em `storage.objects`; as consultas estão no `01_superficie` da tag `pgtap-final` (`git show pgtap-final:supabase/tests/database/01_superficie.test.sql`).
 - `supabase secrets set PORTARIA_KEK_V1=...` pelo terminal (`!`), nunca pelo chat nem pelo repo. Guardar a KEK fora do
   Supabase.
 - LGPD: a Edge processa o anexo em claro. Conferir a região de execução da Edge Function e se dá para fixá-la em

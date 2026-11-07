@@ -1,7 +1,7 @@
 # Controle e Gestão de Acesso em Condomínio Residencial
 
-Material do Trabalho de Conclusão de Curso de Sistemas de Informação (EAD) *Controle e Gestão de Acesso em
-Condomínio Residencial: contribuições para a segurança patrimonial, administrativa e jurídica*.
+Material do Trabalho de Conclusão de Curso de Sistemas de Informação (EAD) _Controle e Gestão de Acesso em
+Condomínio Residencial: contribuições para a segurança patrimonial, administrativa e jurídica_.
 
 Autores: Ana Carolina Vilelo Moreira Dias, Rafael Aparecido Vidal e Ruan Abolis de Araújo.
 Orientador: Prof. Me. Gilberto Alves Pereira. Faculdade Impacta, São Paulo, 2026.
@@ -24,18 +24,18 @@ participou da pesquisa.
 
 ## Conteúdo
 
-| Pasta | O que tem |
-|---|---|
-| `docs/requisitos.md` | Documento de requisitos: problemas levantados, escopo, requisitos funcionais e não funcionais, regras de negócio, proteção de dados (LGPD), casos de uso e matriz de rastreabilidade com os indicadores de avaliação |
-| `docs/rastreabilidade.md` | Ligação de cada requisito funcional ao código que o implementa |
-| `docs/arquitetura.md`, `docs/anexos.md`, `docs/front.md` | Decisões de segurança do backend, dos anexos cifrados e guia do front |
-| `docs/desenvolvimento-local.md` | Seed de desenvolvimento do banco local e carga de dados de teste (nada disso roda no projeto hospedado por padrão) |
-| `diagramas/` | Diagramas de casos de uso (portaria, administração e auditoria), em PlantUML, SVG e PNG |
-| `src/`, `public/`, `index.html` | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração) |
-| `src/domain` | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade do banco |
-| `supabase/` | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, testes pgTAP em `tests/` |
-| `e2e/` | Testes de ponta a ponta (Playwright) contra o Supabase local |
-| `scripts/` | Geração dos ícones e da marca, do SQL da matriz de permissões (`rbac-sql.mjs`), primeiro síndico (`sindico/`) e carga de dados de teste (`popular/`) |
+| Pasta                                                    | O que tem                                                                                                                                                                                                            |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/requisitos.md`                                     | Documento de requisitos: problemas levantados, escopo, requisitos funcionais e não funcionais, regras de negócio, proteção de dados (LGPD), casos de uso e matriz de rastreabilidade com os indicadores de avaliação |
+| `docs/rastreabilidade.md`                                | Ligação de cada requisito funcional ao código que o implementa                                                                                                                                                       |
+| `docs/arquitetura.md`, `docs/anexos.md`, `docs/front.md` | Decisões de segurança do backend, dos anexos cifrados e guia do front                                                                                                                                                |
+| `docs/desenvolvimento-local.md`                          | Seed de desenvolvimento do banco local e carga de dados de teste (nada disso roda no projeto hospedado por padrão)                                                                                                   |
+| `docs/plano-de-teste-*.md`                               | Planos de teste funcional: técnicas, casos, bugs achados e critério de saída                                                                                                                                         |
+| `diagramas/`                                             | Diagramas de casos de uso (portaria, administração e auditoria), em PlantUML, SVG e PNG                                                                                                                              |
+| `src/`, `public/`, `index.html`                          | Front-end: SPA React 18 + Vite 5 + TypeScript + Tailwind + React Query (telas da portaria e da administração)                                                                                                        |
+| `src/domain`                                             | Regras de negócio puras (RBAC, hash chain, unidades, prazos), usadas pelo front e pelos testes de paridade com as migrações                                                                                          |
+| `supabase/`                                              | Backend no Supabase: migrações em `migrations/`, Edge Functions em `functions/`, `reversao/` (scripts de reversão, só aviso)                                                                                         |
+| `scripts/`                                               | Geração dos ícones e da marca, do SQL da matriz de permissões (`rbac-sql.mjs`), primeiro síndico (`sindico/`) e carga de dados de teste (`popular/`)                                                                 |
 
 ## O sistema
 
@@ -73,12 +73,12 @@ está na tag `nestjs-final`.
 
 ## Artigo e demonstração
 
-- Artigo: *a definir*.
+- Artigo: _a definir_.
 - Sistema publicado: https://tcc-gestao-acesso.vercel.app (acesso por usuário cadastrado; ver "Versão publicada").
 
 ## Como rodar localmente
 
-Precisa de Node 22 ou mais novo (`.nvmrc`) e npm, e de um projeto Supabase (hospedado, ou local com a CLI e Docker).
+Precisa de Node 22 ou mais novo (`.nvmrc`) e npm, e de um projeto Supabase hospedado. Não há banco local nem Docker no fluxo de trabalho.
 
 ```bash
 npm ci
@@ -89,29 +89,14 @@ npm run dev              # http://localhost:5173
 Use apenas a chave **anon/publishable** no `.env`: ela vai para o bundle público. Nunca a `service_role`, nem o token
 de acesso da conta nem a senha do banco.
 
-Banco local (Supabase CLI e Docker; não precisa de conta nem de `supabase link`):
+A anexos cifrados dependem da chave `PORTARIA_KEK_V1`, que fica como secret das Edge Functions do projeto hospedado.
+Sem ela a Edge `anexos` recusa envio e leitura com `CHAVE_INDISPONIVEL` (falha fechada); trocar a KEK torna ilegíveis
+os anexos já enviados com a anterior.
 
-```bash
-supabase start           # sobe o Postgres, o Auth e a API locais (http://127.0.0.1:54321)
-supabase db reset        # recria o banco, aplica supabase/migrations do zero e roda supabase/seed/demo.sql
-supabase test db         # pgTAP de supabase/tests/database: superfície, imutabilidade, sessão, login, matriz RBAC, cadeia, portaria, operação, anexos, paginação, usuários, edição de usuário e administrador do sistema
-# KEK local dos anexos (32 bytes aleatórios, só desta máquina; o arquivo é ignorado pelo git). Uma vez:
-(umask 077; printf 'PORTARIA_KEK_V1=%s\n' "$(openssl rand -base64 32)" > supabase/functions/.env.local)
-supabase functions serve --env-file supabase/functions/.env.local  # Edge Functions (auth-entrar, auth-trocar-senha, usuarios-admin, anexos)
-```
-
-Sem a KEK, a Edge `anexos` recusa envio e leitura com `CHAVE_INDISPONIVEL` (falha fechada). Trocar a KEK local torna
-ilegíveis os anexos já enviados com a anterior (só dado de teste).
-
-Para o front falar com o stack local, passe a URL e a anon key **locais** por variável de ambiente (elas vencem o
-`.env`): `VITE_SUPABASE_URL=http://127.0.0.1:54321 VITE_SUPABASE_ANON_KEY=<ANON_KEY de supabase status> npm run dev`.
-
-O banco tem duas partes de dados. A **estrutura do condomínio** (configuração com o agrupamento "Bloco", o ponto de acesso
+O banco hospedado recebe a **estrutura do condomínio** (configuração com o agrupamento "Bloco", o ponto de acesso
 "Portaria social", as 7 áreas comuns e as unidades: 9 blocos, A a I, 165 unidades) entra pelas migrações
-`supabase/migrations/…_0035_estrutura_condominio.sql` e `…_0036_estrutura_terreo_02.sql`, no banco local e no hospedado
-(`db push`). Os **dados de teste de desenvolvimento** (`supabase/seed/demo.sql`) rodam **só no banco local**: o arquivo
-recusa um banco que já tenha usuário ou pessoa, e a senha dos usuários de teste é pública, por isso nunca use
-`--include-seed` no `db push`. Credenciais e conteúdo: [docs/desenvolvimento-local.md](docs/desenvolvimento-local.md).
+`supabase/migrations/…_0035_estrutura_condominio.sql` e `…_0036_estrutura_terreo_02.sql`, pelo `db push`.
+Os dados de teste fictícios entram pela carga (`npm run popular`), descrita em [docs/desenvolvimento-local.md](docs/desenvolvimento-local.md).
 
 A estrutura não tem usuário, pessoa nem senha, e só insere: reaplicada num banco já usado, não muda nada (as unidades
 da 0035 só entram com a tabela vazia, e as três da 0036 só se ainda não existirem; depois da carga, unidades se cadastram, editam e desativam nas telas do sistema, com
@@ -138,24 +123,33 @@ no primeiro acesso, porque foi escolhida por quem vai usá-la. O banco recusa se
 execuções simultâneas se enfileiram: a segunda recusa e apaga a conta que tinha criado no Auth. Os demais usuários são
 criados pelo síndico, no sistema.
 
-O bootstrap não depende de seed algum: a demonstração (`supabase/seed/demo.sql`) nunca roda no projeto hospedado, porque a
-senha dela é pública.
+O bootstrap não depende de seed algum: o projeto hospedado nunca recebe usuário de demonstração com senha pública.
 
 Detalhes do login, da autorização no banco, da trilha, da importação e dos anexos: [docs/arquitetura.md](docs/arquitetura.md).
 
 ## Testes
 
+Nada aqui exige Docker nem banco local.
+
 ```bash
-npm run typecheck        # front e domain
-npm test                 # Vitest + Testing Library (front) e regras do domain
-npm run test:supabase    # Edge Functions (auth e anexos), paridade TS-SQL das regras, concorrência e operação (stack local + functions serve)
-npm run test:supabase:sindico  # banco local SEM a demonstração, como o hospedado: primeiro síndico e estrutura (rode `supabase db reset` depois, para as outras suítes)
-npx playwright test e2e/30-supabase-auth.spec.ts e2e/31-supabase-portaria.spec.ts e2e/32-supabase-operacao.spec.ts e2e/33-supabase-anexos.spec.ts e2e/34-supabase-usuarios.spec.ts e2e/35-supabase-usuarios-editar.spec.ts e2e/36-supabase-admin-sistema.spec.ts  # e2e (stack local)
+npm run check            # type-check + lint + format:check
+npm test                 # Vitest: regras do domain, adaptadores da API, scripts e componentes
 ```
 
-Na primeira vez, rode `npx playwright install chromium`.
+- **Unitários (Vitest):** regras puras em `src/domain` (RBAC, hash chain, prazos, autorização, entrada), adaptadores em
+  `src/api/supabase` com a API simulada, scripts de carga e primeiro síndico, e telas da portaria e da administração
+  com Testing Library. Ficam ao lado do código (`*.test.ts` e `*.test.tsx`). A matriz de permissões (`rbac.ts`) e os
+  vetores da cadeia de hash (`cadeia-vetores.json`) têm testes de paridade com as migrações.
+- **Funcionais:** plano e casos por técnica (valor limite, partição, estado, decisão por papel) em
+  [docs/plano-de-teste-funcional.md](docs/plano-de-teste-funcional.md) e
+  [docs/plano-de-teste-encomendas.md](docs/plano-de-teste-encomendas.md), executados à mão contra o projeto
+  hospedado, com resultado e evidência registrados nos próprios planos.
 
-Não há CI: os testes rodam só na máquina, com os comandos acima (o pgTAP e a integração precisam do Supabase local aberto).
+As regras que moram no SQL (permissões, trilha imutável, portaria, operação) eram cobertas por testes pgTAP e por uma
+suíte de integração contra o Supabase local; ambos foram retirados e continuam na tag `pgtap-final`
+(`git show pgtap-final:supabase/tests/database/`). Hoje essas regras só se conferem pelos casos funcionais.
+
+O CI (`.github/workflows/ci.yml`) roda type-check, lint, formato, checagem de migrations, `npm test` e build.
 
 ## Versão publicada
 
