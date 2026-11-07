@@ -1,72 +1,37 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
 import { Info } from 'lucide-react'
-import { useApi, type FiltroVinculos, type VinculoView } from '@/api'
-import { Alert } from '@/componentes/Alert'
-import { Badge, SeloVinculo } from '@/componentes/Badge'
-import { Button } from '@/componentes/Button'
+import type { VinculoView } from '@/api'
 import { PageHeader } from '@/componentes/PageHeader'
-import { Tabs } from '@/componentes/Tabs'
-import { useToast } from '@/componentes/Toast'
-import { ROTULO_VINCULO } from '@/domain/types'
-import { MIN_JUSTIFICATIVA } from '@/domain/rules'
-import { fmtData, fmtDataHora, fromInput } from '@/domain/time'
 import { mensagemErro } from '@/app/useAsync'
-import { useCatalogo } from '@/app/catalogo'
-import { APOS_VINCULO, CHAVES, useContagemPendentes, useInvalidar } from '@/app/consultas'
+import { APOS_VINCULO, useContagemPendentes, useInvalidar } from '@/app/consultas'
 import { useCan } from '@/auth/AuthContext'
 import { FichaPessoaModal } from '@/paginas/cadastro/FichaPessoaModal'
-import { ErroCarregar, Osso } from '@/componentes/Carregando'
+import { ErroCarregar } from '@/componentes/Carregando'
 import { lerOpcao, naUrl, useFiltrosUrl } from '@/componentes/Filtros'
-import { Paginacao, Totais } from '@/componentes/Paginacao'
-import { usePaginacao } from '@/app/paginacao'
-import { ConferenciaComprovanteBloco } from './ConferenciaComprovanteBloco'
-
-type Aba = 'pendentes' | 'decididos' | 'legados'
-
-/** Uma fila por aba, paginada no servidor. Legados por prazo: os vencidos vêm primeiro (RN-09). */
-const FILAS: Record<Aba, Pick<FiltroVinculos, 'status' | 'ordem'>> = {
-  pendentes: { status: ['pendente'], ordem: 'recentes' },
-  legados: { status: ['legado'], ordem: 'prazo' },
-  decididos: { status: ['aprovado', 'rejeitado', 'encerrado'], ordem: 'decisao' },
-}
+import { Totais } from '@/componentes/Paginacao'
+import { useFilaVinculos, useResumoVinculos } from './consultas'
+import type { Aba } from './regras'
+import { useDecisaoVinculo } from './useDecisaoVinculo'
+import { FilaVinculos } from './FilaVinculos'
+import { DetalheVinculo } from './DetalheVinculo'
 
 export function VinculosPage() {
-  const api = useApi()
-  const { avisar } = useToast()
-  const { rotulo } = useCatalogo()
   const invalidar = useInvalidar()
   const podeDecidir = useCan('vinculo.decidir')
   const { params, gravar } = useFiltrosUrl()
   const aba = lerOpcao<Aba>(params.get('aba'), ['pendentes', 'legados', 'decididos'], 'pendentes')
   const [ficha, setFicha] = useState<string | null>(null)
-  const [fimInquilino, setFimInquilino] = useState('')
-  const fila = usePaginacao<VinculoView>({
-    chave: CHAVES.vinculosFila(aba),
-    buscar: (pos) => api.vinculos.listarPagina({ ...FILAS[aba], ...pos }),
-  })
+  const fila = useFilaVinculos(aba)
   const nPend = useContagemPendentes(true).data
-  // Contagens do servidor (nunca da página carregada): legados, vencidos e vínculos válidos por tipo.
-  const resumo = useQuery({
-    queryKey: CHAVES.vinculosResumo,
-    queryFn: () => api.vinculos.resumo(),
-    staleTime: 0,
-  }).data
+  const resumo = useResumoVinculos().data
   const nLeg = resumo?.porStatus.legado
   const [sel, setSel] = useState<string | null>(null)
-  const [rejeitando, setRejeitando] = useState(false)
-  const [encerrando, setEncerrando] = useState(false)
-  const [just, setJust] = useState('')
-  const [motivo, setMotivo] = useState('')
-  const [dataEnc, setDataEnc] = useState('')
-  const [erro, setErro] = useState('')
-  const [salvando, setSalvando] = useState(false)
 
   const lista = fila.itens
   const nVencidos = resumo?.legadosVencidos
   const atual: VinculoView | undefined = lista.find((v) => v.id === sel) ?? lista[0]
   const recarregar = () => invalidar(APOS_VINCULO)
+  const decisao = useDecisaoVinculo(atual, recarregar, () => setSel(null))
   // Abaixo de xl o detalhe fica embaixo da fila inteira: ao escolher um item, leva a pessoa até ele (e o foco, para o teclado)
   const titulo = useRef<HTMLHeadingElement>(null)
   function escolher(id: string) {
@@ -78,69 +43,6 @@ export function VinculosPage() {
       })
     }
   }
-
-  useEffect(() => {
-    setRejeitando(false)
-    setEncerrando(false)
-    setJust('')
-    setMotivo('')
-    setDataEnc('')
-    setErro('')
-    setFimInquilino('')
-  }, [atual?.id])
-
-  async function executar(fn: () => Promise<unknown>, texto: string, tom?: 'verde' | 'ambar') {
-    setSalvando(true)
-    setErro('')
-    try {
-      await fn()
-      avisar({ ...(tom ? { tom } : {}), texto })
-      setRejeitando(false)
-      setEncerrando(false)
-      setJust('')
-      setMotivo('')
-      setSel(null)
-      await recarregar()
-    } catch (e) {
-      setErro(mensagemErro(e))
-    } finally {
-      setSalvando(false)
-    }
-  }
-
-  const regularizar = () =>
-    atual &&
-    executar(
-      () =>
-        api.vinculos.regularizar(
-          atual.id,
-          fimInquilino ? { vigenciaFim: fromInput(fimInquilino) } : undefined,
-        ),
-      `Vínculo legado de ${atual.pessoaNome} (${atual.unidadeCodigo}) regularizado: agora está aprovado.`,
-    )
-  const decidir = (decisao: 'aprovar' | 'rejeitar') =>
-    atual &&
-    executar(
-      () => api.vinculos.decidir({ id: atual.id, decisao, justificativa: just }),
-      `Vínculo de ${atual.pessoaNome} (${atual.unidadeCodigo}) ${decisao === 'aprovar' ? 'aprovado' : 'rejeitado'}. A decisão e a justificativa ficam registradas.`,
-      decisao === 'aprovar' ? 'verde' : 'ambar',
-    )
-  const encerrar = () =>
-    atual &&
-    executar(
-      () =>
-        api.vinculos.encerrar(atual.id, {
-          motivo,
-          ...(dataEnc ? { data: fromInput(dataEnc)! } : {}),
-        }),
-      `Vínculo de ${atual.pessoaNome} (${atual.unidadeCodigo}) encerrado. Deixa de valer para acesso; o histórico é mantido.`,
-      'ambar',
-    )
-
-  const conferido = !!atual?.conferencia
-  const justOk = just.trim().length > 0
-  const motivoOk = motivo.trim().length >= MIN_JUSTIFICATIVA
-  const rot = 'text-[13px] text-[#56616B]'
 
   return (
     <div className="flex flex-col gap-4">
@@ -176,426 +78,32 @@ export function VinculosPage() {
       )}
 
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <div className="flex flex-col gap-2">
-          <Tabs
-            compacta
-            rotulo="Fila de vínculos"
-            ativa={aba}
-            onChange={(a) => {
-              gravar({ aba: naUrl(a, 'pendentes') })
-              setSel(null)
-            }}
-            abas={[
-              { id: 'pendentes', rotulo: `Pendentes${nPend === undefined ? '' : ` (${nPend})`}` },
-              { id: 'legados', rotulo: `Legados${nLeg === undefined ? '' : ` (${nLeg})`}` },
-              { id: 'decididos', rotulo: 'Decididos' },
-            ]}
-          />
-          {aba === 'legados' && (
-            <p className="text-[13px] text-[#56616B]">
-              Importados da planilha (RN-09). Valem até o prazo de regularização; {nVencidos ?? '…'}{' '}
-              com prazo vencido, em destaque (os vencidos vêm primeiro).
-            </p>
-          )}
-          <ul
-            className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto"
-            aria-label="Fila"
-            aria-busy={fila.consulta.isLoading || fila.trocando || undefined}
-          >
-            {fila.consulta.isLoading &&
-              [0, 1, 2, 3].map((i) => (
-                <li
-                  key={i}
-                  aria-hidden
-                  className="apos-espera flex flex-col gap-2.5 rounded-[10px] border-2 border-[#DCE1E5] bg-white px-4 py-[14px]"
-                >
-                  <Osso className="h-3.5 w-[60%]" />
-                  <Osso className="h-3 w-[40%]" />
-                </li>
-              ))}
-            {!fila.consulta.isLoading && !fila.consulta.error && lista.length === 0 && (
-              <li className="rounded-[10px] border border-dashed border-[#C5CDD3] bg-white p-4 text-[#56616B]">
-                Nenhum vínculo nesta lista.
-              </li>
-            )}
-            {lista.map((v) => (
-              <li key={v.id}>
-                <button
-                  type="button"
-                  aria-current={atual?.id === v.id}
-                  onClick={() => escolher(v.id)}
-                  className={`flex w-full flex-col gap-1.5 rounded-[10px] border-2 px-4 py-[14px] text-left ${atual?.id === v.id ? 'border-[#0B5563] bg-[#F0F8F9]' : v.legadoVencido ? 'border-[#FDA29B] bg-[#FEF3F2]' : 'border-[#DCE1E5] bg-white'}`}
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{v.pessoaNome}</span>
-                    <SeloVinculo status={v.status} tamanho="sm" />
-                  </span>
-                  <span className="text-[14px]">
-                    <span className="font-mono font-semibold">{v.unidadeCodigo}</span> ·{' '}
-                    {ROTULO_VINCULO[v.tipo]}
-                  </span>
-                  {v.status === 'legado' && v.prazoRegularizacao ? (
-                    <span
-                      className={`text-[13px] ${v.legadoVencido ? 'font-semibold text-[#B42318]' : 'text-[#56616B]'}`}
-                    >
-                      {v.legadoVencido ? 'Prazo vencido em' : 'Regularizar até'}{' '}
-                      {fmtData(v.prazoRegularizacao)}
-                    </span>
-                  ) : (
-                    <span className="text-[13px] text-[#56616B]">
-                      Solicitado em {fmtData(v.solicitadoEm)}
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <Paginacao
-            pagina={fila.pagina}
-            totalPaginas={fila.totalPaginas}
-            onIr={(n) => {
-              fila.irPara(n)
-              setSel(null)
-            }}
-            rotulo="vínculos"
-            ocupado={fila.trocando}
-          />
-        </div>
-
+        <FilaVinculos
+          aba={aba}
+          onTrocarAba={(a) => {
+            gravar({ aba: naUrl(a, 'pendentes') })
+            setSel(null)
+          }}
+          fila={fila}
+          atualId={atual?.id}
+          onEscolher={escolher}
+          onIrPagina={(n) => {
+            fila.irPara(n)
+            setSel(null)
+          }}
+          nPend={nPend}
+          nLeg={nLeg}
+          nVencidos={nVencidos}
+        />
         {atual && (
-          <div className="flex flex-col gap-[18px] rounded-[10px] border border-[#DCE1E5] bg-white px-4 py-5 sm:px-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2
-                  ref={titulo}
-                  tabIndex={-1}
-                  className="scroll-mt-4 text-[22px] font-semibold outline-none"
-                >
-                  {atual.pessoaNome} · {ROTULO_VINCULO[atual.tipo]}
-                </h2>
-                <Link
-                  to={`/unidades/${atual.unidadeId}`}
-                  className="mt-1 flex min-h-[44px] items-center font-mono text-[22px] font-semibold !text-[#0B3F49] hover:underline lg:mouse:min-h-0"
-                >
-                  {rotulo(atual.unidadeId)}
-                </Link>
-              </div>
-              {(atual.status === 'pendente' || atual.status === 'legado') && (
-                <Badge tom={conferido ? 'verde' : 'ambar'} tamanho="sm">
-                  {conferido ? 'Comprovante conferido' : 'Comprovante não conferido'}
-                </Badge>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-[14px] md:grid-cols-4">
-              <div className="flex flex-col gap-0.5">
-                <span className={rot}>CPF</span>
-                <span className="font-mono">{atual.pessoaDocumento}</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className={rot}>Vigência</span>
-                <span className="font-mono sm:whitespace-nowrap">
-                  {atual.vigenciaFim
-                    ? `${atual.vigenciaInicio ? fmtData(atual.vigenciaInicio) : '—'} a ${fmtData(atual.vigenciaFim)}`
-                    : atual.vigenciaInicio
-                      ? `desde ${fmtData(atual.vigenciaInicio)}`
-                      : 'Indeterminada'}
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className={rot}>Solicitado em</span>
-                <span className="font-mono">{fmtDataHora(atual.solicitadoEm)}</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className={rot}>Solicitado por</span>
-                <span>{atual.solicitadoPor}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-5">
-              <ConferenciaComprovanteBloco
-                key={atual.id}
-                vinculo={atual}
-                podeRegistrar={
-                  podeDecidir && (atual.status === 'pendente' || atual.status === 'legado')
-                }
-                onRegistrado={recarregar}
-              />
-
-              <div className="flex flex-col gap-[14px]">
-                <h3 className="text-[15px] font-semibold">Decisão</h3>
-                {atual.nota && (
-                  <div className="rounded-lg border border-[#FEC84B] bg-[#FEF0C7] px-3 py-[10px] text-[14px] text-[#7A2E0E]">
-                    {atual.nota}
-                  </div>
-                )}
-                <div className="h-px bg-[#E6EAED]" />
-
-                {atual.status === 'pendente' && (
-                  <>
-                    {!atual.pessoaCadastroCompleto && (
-                      <Alert tom="ambar">
-                        Cadastro incompleto: a pessoa precisa ter CPF válido (não “sem CPF”) e
-                        telefone para o vínculo ser aprovado. Complete o cadastro ou rejeite.
-                      </Alert>
-                    )}
-                    {rejeitando ? (
-                      <div className="flex flex-col gap-[10px]">
-                        <label
-                          htmlFor="just-vinc"
-                          className="flex flex-col gap-1.5 text-[14px] font-medium"
-                        >
-                          Justificativa da rejeição (obrigatória)
-                          <textarea
-                            id="just-vinc"
-                            data-autofocus
-                            autoFocus
-                            className="input font-normal"
-                            rows={3}
-                            value={just}
-                            onChange={(e) => setJust(e.target.value)}
-                            placeholder="Ex.: Comprovante apresentado não corresponde à unidade; proprietária não confirmou a locação."
-                          />
-                        </label>
-                        <span className="text-[13px] text-[#56616B]">
-                          {just.trim().length} caracteres
-                        </span>
-                        {erro && (
-                          <Alert tom="vermelho" role="alert">
-                            {erro}
-                          </Alert>
-                        )}
-                        <div className="flex flex-col gap-[10px] sm:flex-row">
-                          <Button
-                            variante="perigo"
-                            grande
-                            className="sm:flex-1"
-                            disabled={!justOk}
-                            carregando={salvando}
-                            onClick={() => void decidir('rejeitar')}
-                          >
-                            Confirmar rejeição
-                          </Button>
-                          <Button
-                            grande
-                            onClick={() => {
-                              setRejeitando(false)
-                              setJust('')
-                              setErro('')
-                            }}
-                          >
-                            Cancelar
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex flex-col gap-[10px] sm:flex-row">
-                          <Button
-                            variante="primario"
-                            grande
-                            className="sm:flex-1"
-                            disabled={!atual.pessoaCadastroCompleto || !conferido}
-                            onClick={() => void decidir('aprovar')}
-                            carregando={salvando}
-                          >
-                            Aprovar
-                          </Button>
-                          <button
-                            type="button"
-                            onClick={() => setRejeitando(true)}
-                            className="h-12 rounded-lg border-2 border-[#B42318] bg-white font-semibold text-[#B42318] hover:bg-[#FEF3F2] sm:flex-1"
-                          >
-                            Rejeitar
-                          </button>
-                        </div>
-                        {/* RN-02: o selo do topo já diz "não conferido"; aqui só o motivo do Aprovar desligado */}
-                        {!conferido && (
-                          <span className="text-[13px] text-[#56616B]">
-                            Para aprovar, registre antes a conferência do comprovante (RN-02).
-                          </span>
-                        )}
-                        {erro && (
-                          <span role="alert" className="text-[14px] font-medium text-[#B42318]">
-                            {erro}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-                {atual.status === 'legado' && !encerrando && (
-                  <div className="flex flex-col gap-[10px]">
-                    <div
-                      className={`rounded-lg border px-3 py-[10px] text-[14px] ${atual.legadoVencido ? 'border-[#FDA29B] bg-[#FEE4E2] text-[#912018]' : 'border-[#D5DDE2] bg-[#EEF2F4] text-[#33424B]'}`}
-                    >
-                      {atual.legadoVencido ? (
-                        <strong>
-                          Prazo de regularização vencido em {fmtData(atual.prazoRegularizacao!)}.
-                        </strong>
-                      ) : (
-                        <>Legado válido até {fmtData(atual.prazoRegularizacao!)}.</>
-                      )}{' '}
-                      Regularizar passa o vínculo a aprovado; exige o comprovante conferido (RF-05)
-                      e cadastro completo (CPF e telefone).
-                    </div>
-                    {!conferido && (
-                      <Alert tom="ambar">
-                        Registre a conferência do comprovante (acima) antes de regularizar.
-                      </Alert>
-                    )}
-                    {!atual.pessoaCadastroCompleto && (
-                      <Alert tom="ambar">
-                        Cadastro incompleto: complete CPF e telefone pela ficha da pessoa antes de
-                        regularizar.
-                      </Alert>
-                    )}
-                    {atual.tipo === 'inquilino' && !atual.vigenciaFim && (
-                      <label className="flex flex-col gap-1.5 text-[14px] font-medium">
-                        Fim da vigência (obrigatório para inquilino)
-                        <input
-                          type="date"
-                          className="input font-normal"
-                          value={fimInquilino}
-                          onChange={(e) => setFimInquilino(e.target.value)}
-                        />
-                      </label>
-                    )}
-                    {erro && (
-                      <Alert tom="vermelho" role="alert">
-                        {erro}
-                      </Alert>
-                    )}
-                    {podeDecidir && (
-                      <div className="flex flex-col gap-[10px] sm:flex-row">
-                        <Button
-                          variante="primario"
-                          grande
-                          className="sm:flex-1"
-                          disabled={!conferido}
-                          carregando={salvando}
-                          onClick={() => void regularizar()}
-                        >
-                          Regularizar
-                        </Button>
-                        <Button grande onClick={() => setFicha(atual.pessoaId)}>
-                          Abrir ficha / completar cadastro
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {atual.decididoEm && (
-                  <div
-                    className={`rounded-lg border px-[14px] py-3 font-medium ${atual.status === 'rejeitado' ? 'border-[#FDA29B] bg-[#FEE4E2] text-[#B42318]' : 'border-[#75E0A7] bg-[#DCFAE6] text-[#05603A]'}`}
-                  >
-                    <Badge tom={atual.status === 'rejeitado' ? 'vermelho' : 'verde'} tamanho="xs">
-                      {atual.status === 'rejeitado' ? 'Rejeitado' : 'Aprovado'}
-                    </Badge>{' '}
-                    por {atual.decididoPorNome} em {fmtDataHora(atual.decididoEm)}
-                    {atual.justificativa && atual.status !== 'encerrado' && (
-                      <>
-                        <br />
-                        Justificativa: {atual.justificativa}
-                      </>
-                    )}
-                  </div>
-                )}
-                {atual.status === 'encerrado' && (
-                  <div className="rounded-lg border border-[#D5DDE2] bg-[#EEF2F4] px-[14px] py-3 font-medium text-[#33424B]">
-                    <Badge tom="neutro" tamanho="xs">
-                      Encerrado
-                    </Badge>{' '}
-                    em {atual.encerradoEm ? fmtDataHora(atual.encerradoEm) : '—'}
-                    {atual.justificativa && (
-                      <>
-                        <br />
-                        Motivo: {atual.justificativa}
-                      </>
-                    )}
-                  </div>
-                )}
-                {/* RF-07: encerramento manual (aprovado ou legado). Pendente se rejeita; rejeitado e encerrado são finais. */}
-                {podeDecidir &&
-                  (atual.status === 'aprovado' || atual.status === 'legado') &&
-                  (encerrando ? (
-                    <div className="flex flex-col gap-[10px] rounded-lg border border-[#D5DDE2] p-3">
-                      <label
-                        htmlFor="motivo-enc"
-                        className="flex flex-col gap-1.5 text-[14px] font-medium"
-                      >
-                        Motivo do encerramento (obrigatório)
-                        <textarea
-                          id="motivo-enc"
-                          autoFocus
-                          className="input font-normal"
-                          rows={3}
-                          value={motivo}
-                          onChange={(e) => setMotivo(e.target.value)}
-                          placeholder="Ex.: Locação encerrada; o inquilino entregou as chaves à administração."
-                        />
-                      </label>
-                      <span className="text-[13px] text-[#56616B]">
-                        {motivo.trim().length} de {MIN_JUSTIFICATIVA} caracteres no mínimo
-                      </span>
-                      <label className="flex flex-col gap-1.5 text-[14px] font-medium">
-                        Data do encerramento (opcional)
-                        <input
-                          type="date"
-                          className="input font-normal"
-                          value={dataEnc}
-                          onChange={(e) => setDataEnc(e.target.value)}
-                        />
-                        <span className="text-[13px] font-normal text-[#56616B]">
-                          Em branco: hoje, ou o fim da vigência se ele já passou. Não pode ser
-                          futura.
-                        </span>
-                      </label>
-                      {erro && (
-                        <Alert tom="vermelho" role="alert">
-                          {erro}
-                        </Alert>
-                      )}
-                      <div className="flex flex-col gap-[10px] sm:flex-row">
-                        <Button
-                          variante="perigo"
-                          className="sm:flex-1"
-                          disabled={!motivoOk}
-                          carregando={salvando}
-                          onClick={() => void encerrar()}
-                        >
-                          Confirmar encerramento
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setEncerrando(false)
-                            setErro('')
-                          }}
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <Button
-                        onClick={() => {
-                          setEncerrando(true)
-                          setErro('')
-                        }}
-                      >
-                        Encerrar vínculo
-                      </Button>
-                    </div>
-                  ))}
-                {erro && atual.status === 'aprovado' && !encerrando && (
-                  <Alert tom="vermelho" role="alert">
-                    {erro}
-                  </Alert>
-                )}
-              </div>
-            </div>
-          </div>
+          <DetalheVinculo
+            atual={atual}
+            d={decisao}
+            podeDecidir={podeDecidir}
+            titulo={titulo}
+            recarregar={recarregar}
+            onAbrirFicha={setFicha}
+          />
         )}
       </div>
       {ficha && (
