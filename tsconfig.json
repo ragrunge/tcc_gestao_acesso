@@ -20,5 +20,5 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["vite/client", "vitest/globals", "node"]
   },
-  "include": ["src", "scripts/sindico", "scripts/popular", "scripts/integracao", "vite.config.ts"]
+  "include": ["src", "scripts/sindico", "scripts/popular", "vite.config.ts"]
 }

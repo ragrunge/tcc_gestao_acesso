@@ -41,28 +41,20 @@ describe('configuração', () => {
     }
   })
 
-  it('alvo: exige POPULAR_CONFIRMAR igual ao host, aceita só local ou *.supabase.co e recusa chave de serviço', () => {
-    const local = {
-      POPULAR_SUPABASE_URL: 'http://127.0.0.1:54321',
-      POPULAR_SUPABASE_ANON_KEY: 'chave-anon-local',
-    }
-    expect(() => resolverAlvo(local)).toThrow(/POPULAR_CONFIRMAR=127\.0\.0\.1:54321/)
-    expect(resolverAlvo({ ...local, POPULAR_CONFIRMAR: '127.0.0.1:54321' })).toMatchObject({
-      host: '127.0.0.1:54321',
-      local: true,
-    })
+  it('alvo: exige POPULAR_CONFIRMAR igual ao host, aceita só *.supabase.co e recusa chave de serviço', () => {
     const hosp = {
       VITE_SUPABASE_URL: 'https://abcdefghijklmnopqrst.supabase.co/',
       VITE_SUPABASE_ANON_KEY: 'sb_publishable_x',
     }
-    expect(() => resolverAlvo({ ...hosp, POPULAR_CONFIRMAR: '127.0.0.1:54321' })).toThrow(
+    expect(() => resolverAlvo(hosp)).toThrow(/POPULAR_CONFIRMAR=abcdefghijklmnopqrst\.supabase\.co/)
+    expect(() => resolverAlvo({ ...hosp, POPULAR_CONFIRMAR: 'outro.supabase.co' })).toThrow(
       /HOSPEDADO/,
     )
     expect(
       resolverAlvo({ ...hosp, POPULAR_CONFIRMAR: 'abcdefghijklmnopqrst.supabase.co' }),
-    ).toMatchObject({ local: false })
-    expect(resolverAlvo({ ...hosp, ...local, POPULAR_CONFIRMAR: '127.0.0.1:54321' }).local).toBe(
-      true,
+    ).toMatchObject({ host: 'abcdefghijklmnopqrst.supabase.co' })
+    expect(() => resolverAlvo({ ...hosp, POPULAR_SUPABASE_URL: 'http://127.0.0.1:54321' })).toThrow(
+      /URL/,
     )
     expect(() => resolverAlvo({ ...hosp, VITE_SUPABASE_URL: 'https://exemplo.com' })).toThrow(/URL/)
     expect(() =>

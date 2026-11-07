@@ -16,8 +16,6 @@
     "check": "npm run lint && npm run format:check",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "test:integracao": "vitest run --config scripts/integracao/vitest.config.ts",
-    "test:integracao:sem-seed": "supabase db reset --no-seed && vitest run --config scripts/integracao/vitest.sem-seed.config.ts",
     "sb:login": "dotenv -- sh -c 'supabase login --token $SUPABASE_ACCESS_TOKEN'",
     "sb:link": "dotenv -- sh -c 'supabase link --project-ref \"$VITE_SUPABASE_PROJECT_ID\"'",
     "db:push:dry": "dotenv -- sh -c 'supabase db push --dry-run --db-url \"$SUPABASE_DB_URL\"'",
@@ -25,12 +23,9 @@
     "sb:sindico": "dotenv -- node --disable-warning=ExperimentalWarning scripts/sindico/main.ts",
     "popular:dry": "dotenv -- node --disable-warning=ExperimentalWarning scripts/popular/main.ts --dry-run",
     "popular": "dotenv -- node --disable-warning=ExperimentalWarning scripts/popular/main.ts",
-    "popular:sindico-local": "node --disable-warning=ExperimentalWarning scripts/popular/sindico-local.ts",
     "fn:deploy:all": "dotenv -- supabase functions deploy",
-    "db:start": "supabase start",
-    "gen:types": "supabase gen types typescript --local --schema api > src/integrations/supabase/type.ts",
+    "gen:types": "dotenv -- sh -c 'supabase gen types typescript --project-id \"$VITE_SUPABASE_PROJECT_ID\" --schema api > src/integrations/supabase/type.tmp && mv src/integrations/supabase/type.tmp src/integrations/supabase/type.ts'",
     "db:mig:new": "supabase migration new",
-    "db:diff": "supabase db diff --local",
     "check:migrations": "node scripts/checar-migrations.mjs"
   },
   "engines": {

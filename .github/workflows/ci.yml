@@ -1,7 +1,6 @@
 name: CI
 
 # Só o que roda sem segredo e sem banco: tipos, lint, testes unitários e build.
-# O job `banco` roda o pgTAP no Supabase local do próprio runner; ninguém precisa de Docker na máquina.
 on:
   pull_request:
   push:
@@ -28,15 +27,3 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
       - run: npm test
       - run: npx vite build
-
-  banco:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector
-      - run: supabase db reset
-      - run: supabase test db

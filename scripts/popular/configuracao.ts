@@ -48,14 +48,12 @@ export interface Alvo {
   url: string
   chaveAnon: string
   host: string
-  local: boolean
 }
 
-const LOCAL = /^http:\/\/(127\.0\.0\.1|localhost):\d+$/
 const HOSPEDADO = /^https:\/\/[a-z0-9]{20}\.supabase\.co$/
 
 /**
- * POPULAR_SUPABASE_URL/POPULAR_SUPABASE_ANON_KEY vencem as VITE_* do .env (para o ensaio local sem tocar no .env). A
+ * POPULAR_SUPABASE_URL/POPULAR_SUPABASE_ANON_KEY vencem as VITE_* do .env. A
  * carga só sai com POPULAR_CONFIRMAR igual ao host do alvo: apontar para produção nunca acontece por omissão.
  */
 export function resolverAlvo(env: Record<string, string | undefined>): Alvo {
@@ -65,11 +63,8 @@ export function resolverAlvo(env: Record<string, string | undefined>): Alvo {
     throw new ErroConfiguracao(
       'Defina a URL e a chave anon (VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env, ou POPULAR_SUPABASE_URL e POPULAR_SUPABASE_ANON_KEY).',
     )
-  const local = LOCAL.test(url)
-  if (!local && !HOSPEDADO.test(url))
-    throw new ErroConfiguracao(
-      'A URL precisa ser o Supabase local (http://127.0.0.1:porta) ou um projeto https://<id>.supabase.co.',
-    )
+  if (!HOSPEDADO.test(url))
+    throw new ErroConfiguracao('A URL precisa ser um projeto https://<id>.supabase.co.')
   if (
     /^(sb_secret_|service_role)/.test(chaveAnon) ||
     /"role"\s*:\s*"service_role"/.test(decodificarPayload(chaveAnon))
@@ -81,10 +76,10 @@ export function resolverAlvo(env: Record<string, string | undefined>): Alvo {
   const host = new URL(url).host
   if ((env.POPULAR_CONFIRMAR ?? '').trim() !== host) {
     throw new ErroConfiguracao(
-      `Alvo: ${host}${local ? ' (local)' : ' (HOSPEDADO)'}. Para confirmar, rode de novo com POPULAR_CONFIRMAR=${host}.`,
+      `Alvo: ${host} (HOSPEDADO). Para confirmar, rode de novo com POPULAR_CONFIRMAR=${host}.`,
     )
   }
-  return { url, chaveAnon, host, local }
+  return { url, chaveAnon, host }
 }
 
 function decodificarPayload(jwt: string): string {

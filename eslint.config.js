@@ -34,7 +34,7 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node } },
   },
   {
-    files: ['**/*.test.ts', '**/*.test.tsx', 'src/test/**', 'scripts/integracao/**'],
+    files: ['**/*.test.ts', '**/*.test.tsx'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
   },
   prettier,

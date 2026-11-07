@@ -1,4 +1,4 @@
-// Gerador e validador do conjunto fictício, sem rede e sem Docker. As regras locais do validador são
+// Gerador e validador do conjunto fictício. As regras locais do validador são
 // conferidas contra as de src/domain/rules.ts (que o Node puro não importa) para não divergirem.
 import {
   cpfValido,

@@ -7,19 +7,16 @@ trilha vêm do Supabase (Postgres, Auth, Edge Functions e Storage). Backend e te
 ## Rodar
 
 ```bash
-cp .env.example .env     # VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY do projeto Supabase (hospedado ou, opcional, o stack local)
+cp .env.example .env     # VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY do projeto Supabase
 npm run dev              # http://localhost:5173
 ```
 
-Usuários fictícios do `supabase/seed.sql` (só no local): `roberto.faria`, `paula.nogueira`, `joao.lima`, `luiza.campos`.
-O `.env` aponta para o projeto escolhido; nunca coloque nele a `service_role`.
+O `.env` aponta para o projeto Supabase; nunca coloque nele a `service_role`. Usuários: os criados pelo síndico nas telas.
 
 ## Testes
 
 - `npm test`: unitários do front (Vitest, jsdom) e de `src/domain`, ao lado do código.
 - Funcionais: `docs/plano-de-teste-funcional.md` e `docs/plano-de-teste-encomendas.md` (execução manual, casos por técnica).
-- pgTAP (permissões, append-only, RBAC, regras da portaria, paginação e usuários): roda no CI, job `banco`.
-- `npm run test:integracao` (Edge Functions, paridade TS↔SQL e concorrência) exige stack local aberto e fica fora do fluxo padrão.
 
 ## Estrutura de `src/`
 

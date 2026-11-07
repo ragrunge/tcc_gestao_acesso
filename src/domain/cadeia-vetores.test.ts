@@ -1,17 +1,13 @@
-// Vetores de ouro da cadeia de hash (desenho §3.4, item 5): os mesmos eventos serializados pelo @domain
-// (hashChain.ts, o verificador independente) e pelo banco (evento_acesso_canonico + sha256, migrações 0001/0013).
-// Este teste GERA supabase/tests/database/06_cadeia_vetores.test.sql e confere que o arquivo commitado é o gerado de
-// agora. Mudou a serialização no TS sem mudar o banco (ou o contrário)? Um dos dois lados fica vermelho:
-//   * TS mudou -> este teste falha (o .sql commitado tem os valores antigos);
-//   * SQL mudou -> `supabase test db` falha (o canônico/hash do banco não bate com o do TS).
-// Regenerar depois de uma mudança DELIBERADA: ATUALIZAR_VETORES=1 npx vitest run src/test/cadeia-vetores.test.ts
+// Vetores de ouro da cadeia de hash (desenho §3.4, item 5): eventos serializados pelo hashChain.ts (o verificador
+// independente) com canônico e hash fixados em cadeia-vetores.json. Os valores vieram do banco (evento_acesso_canonico
+// + sha256, migrações 0001/0013) quando o pgTAP ainda rodava; hoje guardam o formato contra mudança acidental no TS.
+// Mudança DELIBERADA da serialização exige nova migração e: ATUALIZAR_VETORES=1 npx vitest run src/domain/cadeia-vetores.test.ts
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { calcularHash, jsonCanonico, paraExportado } from '@/domain/hashChain'
 import type { EventoAcesso } from '@/domain/types'
 
-const ARQUIVO = resolve(__dirname, '../../supabase/tests/database/06_cadeia_vetores.test.sql')
-const iso = (ms: number) => new Date(ms).toISOString()
+const ARQUIVO = resolve(__dirname, 'cadeia-vetores.json')
 const H0 = 'a'.repeat(64)
 
 const base: EventoAcesso = {
@@ -141,75 +137,19 @@ export const VETORES: { nome: string; e: EventoAcesso }[] = [
 ]
 
 /** Linha do banco (snake_case) para jsonb_populate_record: só os campos de evento_acesso. */
-function linhaBanco(e: EventoAcesso) {
-  const x = paraExportado(e)
-  return {
-    id: x.id,
-    seq: x.seq,
-    formato_hash: x.v,
-    tipo: x.tipo,
-    categoria_pessoa: x.categoria_pessoa,
-    pessoa_id: x.pessoa_id,
-    unidade_destino_id: x.unidade_destino_id,
-    area_comum_id: x.area_comum_id,
-    ponto_acesso_id: x.ponto_acesso_id,
-    autorizado_por_tipo: x.autorizado_por_tipo,
-    autorizado_por_pessoa_id: x.autorizado_por_pessoa_id,
-    autorizacao_previa_id: x.autorizacao_previa_id,
-    justificativa: x.justificativa,
-    restricao_id: x.restricao_id,
-    operador_id: x.operador_id,
-    operador_papel: x.operador_papel,
-    ocorrido_em: iso(e.ocorridoEm),
-    registrado_em: iso(e.registradoEm),
-    retroativo: x.retroativo,
-    formulario_contingencia: x.formulario_contingencia,
-    refere_evento_id: x.refere_evento_id,
-    corrige_evento_id: x.corrige_evento_id,
-    correcao_valores: x.correcao_valores,
-    empresa: x.empresa,
-    servico: x.servico,
-    observacao: x.observacao,
-    veiculo_placa: e.veiculoPlaca,
-    veiculo_modelo: e.veiculoModelo,
-    veiculo_cor: e.veiculoCor,
-    hash_anterior: x.hash_anterior,
-    hash: '',
-  }
-}
-
-const lit = (s: string) => `'${s.replace(/'/g, "''")}'`
-
-export async function sqlVetores(): Promise<string> {
-  const linhas: string[] = [
-    '-- GERADO por src/test/cadeia-vetores.test.ts (ATUALIZAR_VETORES=1). Não editar à mão.',
-    '-- Vetores de ouro da cadeia (desenho §3.4, item 5): o canônico e o hash calculados pelo @domain/hashChain.ts',
-    '-- têm de ser os mesmos do banco (evento_acesso_canonico + sha256 do trigger). Porte de hash-mock-banco.test.ts.',
-    'BEGIN;',
-    'CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;',
-    `SELECT plan(${VETORES.length * 2});`,
-  ]
-  for (const { nome, e } of VETORES) {
-    const canon = jsonCanonico(paraExportado(e))
-    const hash = await calcularHash(e)
-    const row = `jsonb_populate_record(NULL::public.evento_acesso, ${lit(JSON.stringify(linhaBanco(e)))}::jsonb)`
-    linhas.push('', `-- ${nome}`)
-    linhas.push(
-      `SELECT is(public.evento_acesso_canonico(${row}), ${lit(canon)}, ${lit(`canônico igual ao do TS: ${nome}`)});`,
-    )
-    linhas.push(
-      `SELECT is(encode(sha256(convert_to(${lit(e.hashAnterior)} || public.evento_acesso_canonico(${row}), 'UTF8')), 'hex'), ${lit(hash)}, ${lit(`hash igual ao do TS: ${nome}`)});`,
-    )
-  }
-  linhas.push('', 'SELECT * FROM finish();', 'ROLLBACK;', '')
-  return linhas.join('\n')
+async function calculados() {
+  const saida: Record<string, { canonico: string; hash: string }> = {}
+  for (const { nome, e } of VETORES)
+    saida[nome] = { canonico: jsonCanonico(paraExportado(e)), hash: await calcularHash(e) }
+  return saida
 }
 
 describe('cadeia de hash: vetores de ouro TS == SQL', () => {
-  it('o teste pgTAP commitado é exatamente o gerado do hashChain.ts de agora', async () => {
-    const gerado = await sqlVetores()
-    if (process.env.ATUALIZAR_VETORES === '1') writeFileSync(ARQUIVO, gerado)
-    expect(readFileSync(ARQUIVO, 'utf8')).toBe(gerado)
+  it('canônico e hash de cada vetor batem com o arquivo de referência', async () => {
+    const atual = await calculados()
+    if (process.env.ATUALIZAR_VETORES === '1')
+      writeFileSync(ARQUIVO, JSON.stringify(atual, null, 2) + '\n')
+    expect(JSON.parse(readFileSync(ARQUIVO, 'utf8'))).toEqual(atual)
   })
 
   it('os vetores cobrem v1, v2, correção, saída retroativa e negado', () => {

@@ -35,17 +35,14 @@ primeiros bytes (JPEG, PNG ou PDF) e o tamanho (até 4 MiB). Cada arquivo é cif
 guardado) e registrado com o SHA-256 numa tabela só de inclusão. Só síndico e administração baixam o conteúdo, e cada
 leitura vai à trilha (`documento.ler`). Decisões e trade-offs: [docs/anexos.md](docs/anexos.md).
 
-**Estrutura e demonstração** (migrações 0035 e 0036 e `supabase/seed.sql`): a estrutura do condomínio (configuração,
+**Estrutura do condomínio** (migrações 0035 e 0036): a estrutura do condomínio (configuração,
 ponto de acesso "Portaria social", áreas comuns e unidades) é dado de referência numa migração, para chegar ao projeto
 hospedado pelo mesmo `db push` revisável das outras, com registro de aplicação e sem credencial nova. Ela só insere
 (`ON CONFLICT DO NOTHING`; as unidades só com a tabela vazia), não toca na trilha nem na cabeça da cadeia (a gênese é
 da 0001) e não troca o id do ponto nem das unidades, que entram no hash dos eventos. Depois da carga, mudanças de
 unidade são feitas nas telas, com trilha. A 0036 acrescenta o 02 do térreo dos blocos G, H e I (165 unidades), com as
-mesmas regras; a distribuição é provisória até a confirmação do síndico. A
-demonstração (usuários com a senha pública `Demo-Portaria-2026`, pessoas e cadastros fictícios) roda só no
-`supabase db reset` local e recusa banco que já tenha usuário ou pessoa. O teste `scripts/integracao/sem-seed` confere,
-num banco só com as migrações, a estrutura completa, a ausência de qualquer dado da demonstração e que reaplicar a
-0035 e a 0036 num banco já usado não muda estrutura, eventos nem cadeia.
+mesmas regras; a distribuição é provisória até a confirmação do síndico. 
+Não há usuário nem dado de demonstração no banco: os dados fictícios entram pela carga (`scripts/popular`), pelas RPCs.
 
 **Paginação e totais** (migração 0037): as listagens que crescem (pessoas, vínculos, encomendas, ocorrências, trilha de
 acessos e trilha de alterações) aceitam `deslocamento` além do `cursor` (os dois juntos são recusados), com teto de 100
@@ -68,7 +65,7 @@ passam pela Edge, que decide no banco (`srv.usuario_*`, 0018 e 0039); a administ
 senha temporária sai uma vez na resposta e a tela a guarda só no estado do modal. Mudar o login não toca no Auth (a
 conta do Auth é o e-mail sintético); mudar o papel revoga as sessões do alvo na mesma transação, e ninguém muda o próprio
 papel. O sistema não fica sem síndico ativo: só o síndico desativa ou rebaixa síndico, ninguém desativa a si mesmo nem
-muda o próprio papel, e o ator fica travado e ativo até o fim da transação (pgTAP 12 e 13). A edição confere isso também
+muda o próprio papel, e o ator fica travado e ativo até o fim da transação (coberto por pgTAP na tag `pgtap-final`). A edição confere isso também
 de forma explícita: rebaixar o último síndico ativo dá 409, com os outros síndicos ativos travados.
 
 **Administrador do sistema** (migrações 0040 e 0041): o papel `admin_sistema` é o técnico que cuida das contas. Não lê dado
@@ -76,7 +73,7 @@ pessoal de morador por nenhuma tela ou RPC. Tem só `usuario.ver` e `usuario.ger
 minha senha"). Contas de síndico e de administrador do sistema, e atribuir um desses papéis, exigem
 `usuario.gerenciar_sindico`, só do síndico (`app.exigir_gestao_sindico`, chamado por todas as `srv.usuario_*`): o técnico
 não se promove, não cria outro técnico nem edita o próprio cadastro. Toda RPC de `api.*` começa por `app.exigir(ação)`,
-então o papel novo é negado no resto pela falta de linha na matriz (pgTAP 14 percorre todas). Ficam abertas a ele só a
+então o papel novo é negado no resto pela falta de linha na matriz (o pgTAP 14 da tag `pgtap-final` percorria todas). Ficam abertas a ele só a
 própria sessão, o catálogo (estrutura do condomínio, sem dado pessoal) e a lista de usuários. Limite conhecido, aceito e declarado (decisão do projeto): a restrição é de interface e de RPC, não impede o
 acesso indireto. Quem
 cria conta ou redefine senha de um papel com acesso a dado pessoal recebe a senha temporária e poderia entrar com ela;

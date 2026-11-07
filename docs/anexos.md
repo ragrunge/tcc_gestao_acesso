@@ -90,7 +90,7 @@ varredura (a varredura em si é da F5).
 ## Para o projeto hospedado (F6)
 
 - A migração 0033 cria o bucket e a política por SQL (`supabase db push`). Conferir depois que o bucket existe, está
-  privado e que não há política permissiva em `storage.objects`; o pgTAP `01_superficie` traz as consultas.
+  privado e que não há política permissiva em `storage.objects`; as consultas estão no `01_superficie` da tag `pgtap-final` (`git show pgtap-final:supabase/tests/database/01_superficie.test.sql`).
 - `supabase secrets set PORTARIA_KEK_V1=...` pelo terminal (`!`), nunca pelo chat nem pelo repo. Guardar a KEK fora do
   Supabase.
 - LGPD: a Edge processa o anexo em claro. Conferir a região de execução da Edge Function e se dá para fixá-la em

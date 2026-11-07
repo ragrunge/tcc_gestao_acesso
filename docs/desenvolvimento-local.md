@@ -1,19 +1,7 @@
-# Desenvolvimento local: dados de teste
+# Dados de teste e tipos do banco
 
-Este arquivo guarda o que o README não exibe: o seed de desenvolvimento do banco local e a carga de dados de teste.
-Nada daqui roda no projeto hospedado por padrão, e nenhum dado é real.
-
-## Seed de desenvolvimento (só local)
-
-O `supabase/seed.sql` (`[db.seed]` do `supabase/config.toml`) roda em `supabase db reset` e só no banco local.
-
-**Usuários de demonstração (só no banco local, criados por `supabase/seed.sql`; dados fictícios):** `roberto.faria`
-(síndico), `paula.nogueira` (administração), `joao.lima` (porteiro) e `luiza.campos` (auditor), todos com a senha
-`Demo-Portaria-2026`. Essa senha é pública: a demonstração nunca roda no projeto hospedado (não use `--include-seed` no
-`db push`), e o arquivo recusa um banco que já tenha usuário ou pessoa. Ela cria também pessoas fictícias para
-demonstrar a portaria: moradores com vínculo (por exemplo Fernanda Costa na B-21 e Carla Mendes na A-11), visitantes,
-prestadores, um funcionário em escala, uma autorização prévia e uma restrição (Sérgio Prado na A-11). Os CPFs são
-inventados, com dígito válido.
+Este arquivo guarda o que o README não exibe: a carga de dados de teste no projeto Supabase hospedado e os tipos gerados do banco.
+Não há banco local nem Docker no fluxo de trabalho; nenhum dado aqui é real.
 
 ## Carga de dados de teste (`scripts/popular/`)
 
@@ -45,39 +33,22 @@ idempotente e retomável (rodar de novo não duplica; se parar no meio, continua
 vêm de `local.credentials.txt` na raiz (linhas `login: ...` e `senha: ...`; o arquivo é ignorado pelo git) ou de
 `POPULAR_LOGIN` e `POPULAR_SENHA`; nenhum dos dois é impresso.
 
-**1. Ensaio local (recomendado antes de qualquer carga no hospedado).** Com o Docker aberto:
+**Carga no projeto hospedado** (a trilha é permanente: confira o alvo antes):
 
 ```bash
-supabase start
-supabase db reset --no-seed        # como o hospedado: só as migrações (inclusive a 0036), sem a demonstração
-supabase functions serve --env-file supabase/functions/.env.local   # outro terminal: auth-entrar
-npm run popular:sindico-local      # primeiro síndico local, com o login e a senha do arquivo de credenciais (ou POPULAR_LOGIN/POPULAR_SENHA)
-npm run popular:dry                # valida o conjunto, sem rede
-POPULAR_SUPABASE_URL=http://127.0.0.1:54321 POPULAR_SUPABASE_ANON_KEY=<ANON_KEY de supabase status> \
-  POPULAR_CONFIRMAR=127.0.0.1:54321 npm run popular
-# rode a mesma linha de novo: o relatório deve mostrar 0 criados em tudo. Interrompa uma terceira execução no meio
-# (Ctrl+C) e rode outra vez: deve terminar sem duplicar.
-npm run test:integracao:sem-seed      # opcional, depois: reseta o banco local e roda a suíte sem seed
-```
-
-Confira também nas telas (front apontado para o local, ver "Como rodar localmente"): unidades, vínculos legados,
-painel do turno, histórico e a verificação de integridade da trilha.
-
-**2. Projeto hospedado.** Depois do ensaio:
-
-```bash
-npm run db:push:dry                # deve listar só as pendentes (hoje: a 0039, edição de usuários e gestão só do síndico)
+npm run db:push:dry                # deve listar só as migrações pendentes
 npm run db:push
-npm run popular:dry
+npm run popular:dry                # valida o conjunto, sem rede
 POPULAR_CONFIRMAR=<id-do-projeto>.supabase.co npm run popular   # usa VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY do .env
 ```
 
-Se parar (rede, sessão, recusa do banco), corrija a causa e rode o mesmo comando: o que já foi gravado é conferido e
-não se repete. Os 44 vínculos legados vencem 90 dias depois da carga (os moradores passam a entrar como visitantes até
-a regularização pela tela).
+Rode `popular` de novo para conferir: o relatório deve mostrar 0 criados em tudo. Se parar (rede, sessão, recusa do
+banco), corrija a causa e rode o mesmo comando: o que já foi gravado é conferido e não se repete. Os 44 vínculos legados
+vencem 90 dias depois da carga (os moradores passam a entrar como visitantes até a regularização pela tela). Depois da
+carga, confira nas telas: unidades, vínculos legados, painel do turno, histórico e a verificação de integridade da trilha.
 
 ## Tipos do banco e lint
 
-- `npm run gen:types` (banco local no ar) regenera `src/integrations/supabase/type.ts` a partir do schema `api`. O arquivo é versionado: o `rpc()` do adaptador deriva dele o nome da RPC e as chaves dos argumentos, então depois de toda migração que cria ou renomeia função ou parâmetro, rodar o comando e commitar o resultado.
+- `npm run gen:types` (usa `VITE_SUPABASE_PROJECT_ID` e `SUPABASE_ACCESS_TOKEN` do `.env`) regenera `src/integrations/supabase/type.ts` a partir do schema `api`. O arquivo é versionado: o `rpc()` do adaptador deriva dele o nome da RPC e as chaves dos argumentos, então depois de toda migração que cria ou renomeia função ou parâmetro, rodar o comando e commitar o resultado.
 - O retorno das RPCs é `jsonb` e continua tipado à mão em `src/api/types/`; o gerador não cobre o formato do retorno.
-- `npm run lint` (ESLint 9 com `react-hooks`) está limpo. `npm run format:check` ainda aponta 143 arquivos fora do Prettier; não foi aplicado em massa para não poluir o histórico.
+- `npm run check` roda `type-check`, `lint` (ESLint 9 com `react-hooks`) e `format:check` (Prettier); o CI exige os três.

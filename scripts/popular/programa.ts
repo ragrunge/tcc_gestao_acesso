@@ -63,7 +63,7 @@ export async function executar(ctx: Contexto): Promise<number> {
     const intervalo = intervaloMs(ctx.env)
     const cred = obterCredenciais(ctx.env, ctx.lerArquivo, ctx.caminhoCredenciais)
     ctx.escrever(
-      `Alvo: ${alvo.host}${alvo.local ? ' (local)' : ' (HOSPEDADO: a trilha é permanente)'} · ritmo: 1 chamada a cada ${intervalo} ms\n`,
+      `Alvo: ${alvo.host} (HOSPEDADO: a trilha é permanente) · ritmo: 1 chamada a cada ${intervalo} ms\n`,
     )
     const c = await (ctx.conectar ?? conectarReal)(alvo, cred, intervalo)
     api = c.api

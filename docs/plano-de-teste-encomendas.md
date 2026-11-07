@@ -9,7 +9,7 @@
 
 | Tipo | Cobertura |
 | --- | --- |
-| Funcional | pgTAP `08_operacao` (receber, entregar, autorizar, listas) e a verificação manual da ficha da unidade |
+| Funcional | execução manual dos casos abaixo (eram o pgTAP `08_operacao`, retirado em 07/11/2026 e preservado na tag `pgtap-final`) e a verificação da ficha da unidade |
 | Regressão | todas as suítes abaixo; todo bug virou caso |
 | API | contrato das RPCs `api.encomenda*` e `api.unidade_detalhe`, limites de tamanho, códigos de erro |
 | Segurança | RBAC por papel (porteiro, administração, auditor, admin_sistema), pessoa desativada, anonimizada |
@@ -23,15 +23,15 @@ Técnicas: valor limite (7 dias, tamanhos de campo), transição de estado (agua
 
 | ID | Técnica | Esperado | Onde | Resultado |
 | --- | --- | --- | --- | --- |
-| TC-ENC-01 | valor limite | 7 d 23 h 59 min: não atrasada; 8 dias: atrasada | pgTAP 08 | passou |
-| TC-ENC-02 | valor limite | destinatário 120 ok e 121 `VALIDACAO`; transportadora e rastreio 60 ok e 61 `VALIDACAO` | pgTAP 08 | passou |
-| TC-ENC-03 | decisão por papel | administração opera (a matriz permite); auditor recebe `SEM_PERMISSAO` em receber, entregar e autorizar | pgTAP 08 | passou |
-| TC-ENC-04 | estado | autorizar retirada de encomenda já entregue: `ENCOMENDA_JA_ENTREGUE` | pgTAP 08 | passou |
-| TC-ENC-BUG1a | estado | autorizar retirada de pessoa desativada: `PESSOA_DESATIVADA` | pgTAP 08 | passou; falha na 0026 |
-| TC-ENC-BUG1b | estado | entregar a pessoa desativada que já tinha autorização: `PESSOA_DESATIVADA` | pgTAP 08 | passou; falha na 0026 |
-| TC-UNI-01 | decisão por papel | os 4 papéis com `unidade.ver` recebem a chave `encomendas`; `admin_sistema` recebe `SEM_PERMISSAO` | pgTAP 08 | passou |
-| TC-UNI-02 | valor limite | 21 aguardando: contagem 21, 20 itens, da mais antiga para a mais nova | pgTAP 08 | passou |
-| TC-UNI-03 | estado | unidade desativada ainda lista as aguardando | pgTAP 08 | passou |
+| TC-ENC-01 | valor limite | 7 d 23 h 59 min: não atrasada; 8 dias: atrasada | pgTAP 08, retirado (tag `pgtap-final`) | passou |
+| TC-ENC-02 | valor limite | destinatário 120 ok e 121 `VALIDACAO`; transportadora e rastreio 60 ok e 61 `VALIDACAO` | pgTAP 08, retirado (tag `pgtap-final`) | passou |
+| TC-ENC-03 | decisão por papel | administração opera (a matriz permite); auditor recebe `SEM_PERMISSAO` em receber, entregar e autorizar | pgTAP 08, retirado (tag `pgtap-final`) | passou |
+| TC-ENC-04 | estado | autorizar retirada de encomenda já entregue: `ENCOMENDA_JA_ENTREGUE` | pgTAP 08, retirado (tag `pgtap-final`) | passou |
+| TC-ENC-BUG1a | estado | autorizar retirada de pessoa desativada: `PESSOA_DESATIVADA` | pgTAP 08, retirado (tag `pgtap-final`) | passou; falha na 0026 |
+| TC-ENC-BUG1b | estado | entregar a pessoa desativada que já tinha autorização: `PESSOA_DESATIVADA` | pgTAP 08, retirado (tag `pgtap-final`) | passou; falha na 0026 |
+| TC-UNI-01 | decisão por papel | os 4 papéis com `unidade.ver` recebem a chave `encomendas`; `admin_sistema` recebe `SEM_PERMISSAO` | pgTAP 08, retirado (tag `pgtap-final`) | passou |
+| TC-UNI-02 | valor limite | 21 aguardando: contagem 21, 20 itens, da mais antiga para a mais nova | pgTAP 08, retirado (tag `pgtap-final`) | passou |
+| TC-UNI-03 | estado | unidade desativada ainda lista as aguardando | pgTAP 08, retirado (tag `pgtap-final`) | passou |
 | TC-UNI-04 | fluxo | encomenda recebida aparece na ficha com contagem, código e transportadora; entregue, sai | manual (sem E2E automatizado) | verificado em 06/11/2026 |
 
 Regressão do BUG-1: reaplicando as funções da 0026, falham exatamente os testes 50 e 53 de `08_operacao`; com a 0044 passa tudo.
@@ -42,7 +42,7 @@ Regressão do BUG-1: reaplicando as funções da 0026, falham exatamente os test
 
 **BUG-2 — baixa — corrigido.** Dois Enter no mesmo instante na conferência da unidade criavam duas encomendas (K108 e K109). Causa: `salvando` só muda após o re-render. Correção: trava por `useRef` em `EncomendasPage.tsx`. Sem teste automatizado: a corrida é difícil de provocar no navegador. Verificação manual: na conferência, pressionar Enter repetidamente e conferir que a lista tem uma encomenda só.
 
-**BUG-3 — baixa — corrigido (0046).** A tela exigia transportadora e o servidor aceitava vazio. Decisão: obrigatória nos dois (`TRANSPORTADORA_OBRIGATORIA`; a opção "Outra" cobre o resto). Teste TC-ENC-BUG3 em pgTAP 08.
+**BUG-3 — baixa — corrigido (0046).** A tela exigia transportadora e o servidor aceitava vazio. Decisão: obrigatória nos dois (`TRANSPORTADORA_OBRIGATORIA`; a opção "Outra" cobre o resto). Caso TC-ENC-BUG3 (era pgTAP 08).
 
 **BUG-4 — alta — corrigido antes da entrega.** O adaptador `detalhe` (`src/api/supabase/portaria/`) descartava a chave `encomendas`; a seção da ficha nunca aparecia, e `tsc` e Vitest passavam. Pego pelo E2E que existia na época (removido na padronização); hoje só a verificação manual da ficha da unidade cobre esse caminho.
 
@@ -56,7 +56,7 @@ Todos os casos críticos passam em banco recém-resetado; nenhum bug crítico ou
 ## Rodada 2 (parcial) — entrada retroativa na portaria
 
 Escopo lido: `api.evento_entrada`, `evento_saida`, `evento_corrigir`, `evento_prorrogar` e `app.resolver_instante` (0023). Não cobre autorização prévia nem restrição.
-Método: sondas pgTAP numa cópia de `07_portaria` (fora do repositório), rodadas no banco local. Resultado das sondas, não suíte permanente: dependem de decisão do síndico.
+Método: sondas pgTAP numa cópia de `07_portaria` (fora do repositório), rodadas no banco local antes de ele ser retirado. Resultado das sondas, não suíte permanente: dependem de decisão do síndico.
 
 **BUG-5 — média — corrigido (0045).** Retroativo de quem já está dentro é aceito. Passos: pessoa com entrada aberta; lançar entrada retroativa (formulário informado, data 1 h atrás). Esperado: `JA_ESTA_DENTRO`, como na entrada comum. Obtido: `ok`, e a pessoa passa a ter duas entradas abertas; uma saída fecha só uma e ela continua constando como dentro. A checagem é pulada de propósito (`IF NOT retro AND app.esta_dentro`), talvez porque o lançamento da contingência chega fora de ordem. Decisão aplicada: barra quando a pessoa já estava dentro no instante informado (entrada aberta igual ou anterior); retroativo anterior a uma entrada aberta mais nova continua aceito.
 

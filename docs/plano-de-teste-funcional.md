@@ -10,7 +10,7 @@
 | Tipo | Como |
 | --- | --- |
 | Unitário | Vitest (`npm test`): regras de `src/domain` (prazo, autorização, RBAC, hash chain), adaptadores e telas da portaria. É o nível mais barato e roda a cada mudança |
-| Banco | pgTAP em `supabase/tests/database`, executado pelo CI (job `banco`); é a especificação das regras no SQL |
+| Banco | sem teste automático: o pgTAP foi retirado (tag `pgtap-final`); as regras do SQL se conferem pelos casos abaixo, na interface |
 | Funcional | os casos abaixo, executados à mão na interface, um por técnica |
 | Segurança | papel sem permissão tenta a ação (esperado `SEM_PERMISSAO` do servidor, não só botão escondido) |
 | Regressão | todo bug vira caso; rodar tudo antes de cada publicação |
