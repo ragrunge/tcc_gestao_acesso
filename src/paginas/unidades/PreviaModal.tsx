@@ -2,15 +2,15 @@ import { useState, type FormEvent } from 'react'
 import { useApi, type PessoaBusca } from '@/api'
 import { Alert } from '@/componentes/Alert'
 import { Field } from '@/componentes/Field'
-import { SeletorDias } from '@/componentes/SeletorDias'
 import { Modal } from '@/componentes/Modal'
 import { PessoaPicker } from '@/componentes/PessoaPicker'
 import { MIN_JUSTIFICATIVA } from '@/domain/rules'
-import { fromInput, toInputDate, agora } from '@/domain/time'
+import { fromInput } from '@/domain/time'
 import { mensagemErro, useAsync } from '@/app/useAsync'
 import { UnidadeTitulo } from './EditarUnidadeModal'
 import { rodapeForm } from './formUtils'
 import { CadastroNoSeletor } from './CadastroNoSeletor'
+import { JanelaPreviaCampos } from './JanelaPreviaCampos'
 
 export function PreviaModal({
   unidade,
@@ -114,43 +114,16 @@ export function PreviaModal({
             />
           </Field>
         )}
-        <Field
-          label="Válida até (obrigatório)"
-          dica="Não existe autorização por prazo indeterminado (RN-07)."
-        >
-          <input
-            type="date"
-            className="input"
-            required
-            value={ate}
-            min={toInputDate(agora())}
-            onChange={(e) => setAte(e.target.value)}
-          />
-        </Field>
-        <fieldset>
-          <legend className="mb-1.5 text-[14px] font-medium">
-            Dias da semana (nenhum marcado = todos os dias)
-          </legend>
-          <SeletorDias valor={dias} onChange={setDias} />
-        </fieldset>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Horário inicial">
-            <input
-              type="time"
-              className="input"
-              value={hi}
-              onChange={(e) => setHi(e.target.value)}
-            />
-          </Field>
-          <Field label="Horário final">
-            <input
-              type="time"
-              className="input"
-              value={hf}
-              onChange={(e) => setHf(e.target.value)}
-            />
-          </Field>
-        </div>
+        <JanelaPreviaCampos
+          ate={ate}
+          setAte={setAte}
+          dias={dias}
+          setDias={setDias}
+          hi={hi}
+          setHi={setHi}
+          hf={hf}
+          setHf={setHf}
+        />
         {erro && (
           <Alert tom="vermelho" role="alert">
             {erro}
