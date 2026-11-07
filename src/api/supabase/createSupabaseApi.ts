@@ -1,160 +1,30 @@
 // Adaptador da interface Api sobre o Supabase (desenho §6). F1: autenticação e a parte de usuários que passa pela Edge
-// usuarios-admin. F2: a portaria (portaria.ts: pessoas, busca, catálogo, unidades, vínculos, eventos, autorizações,
-// restrições e turno). F3: as escritas de cadastro (portaria.ts) e a operação (operacao.ts: encomendas, ocorrências,
+// usuarios-admin. F2: a portaria (portaria/: pessoas, busca, catálogo, unidades, vínculos, eventos, autorizações,
+// restrições e turno). F3: as escritas de cadastro (portaria/) e a operação (operacao/: encomendas, ocorrências,
 // funcionários, relatórios, auditoria do histórico e importação). F4: anexos de ocorrência pela Edge anexos (anexos.ts).
-// F5: a listagem e os totais de usuários (api.usuarios_listar e usuarios_resumo, 0038). Os demais métodos (selo e
+// F5: a listagem e os totais de usuários (usuarios.ts; api.usuarios_listar e usuarios_resumo, 0038). Erros de RPC e
+// Edge: erros.ts. Os demais métodos (selo e
 // LGPD) respondem ApiError 501 NAO_MIGRADO e as rotas sem backend somem do menu por `suporta` (desenho §6).
 //
 // Sessão: o token do Supabase Auth (supabase-js) fica no navegador (armazenamento.ts). Quem decide se a sessão vale é
 // o banco (app.ator() em toda RPC): revogada, expirada, inativa ou de usuário desativado responde 401, e o adaptador
 // avisa o AuthContext ('expirada') e apaga a sessão local. Troca obrigatória pendente: 403 -> 'troca_obrigatoria'.
-import {
-  FunctionsFetchError,
-  FunctionsHttpError,
-  FunctionsRelayError,
-  type SupabaseClient,
-} from '@supabase/supabase-js'
-import type { UsuarioSistema } from '@/domain/types'
-import {
-  ApiError,
-  type Api,
-  type CondominioSessao,
-  type EventoSessao,
-  type ResumoUsuarios,
-  type UsuarioComSenhaTemporaria,
-  type UsuarioSessao,
-} from '@/api/types'
-import { segundosRetryAfter, tempoLegivel } from '@/lib/espera'
-import type { ArmazenamentoSessao } from './armazenamento'
+import { type Api, ApiError, type EventoSessao } from '@/api/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { criarAnexos } from './anexos'
+import type { ArmazenamentoSessao } from './armazenamento'
+import { erroDeEdge, erroDeRpc, semRede } from './erros'
 import { criarOperacao, ocorrenciaDe } from './operacao'
 import {
   type ArgsRpc,
   type NomeRpc,
-  contagem,
-  criarPortaria,
-  paginaDe,
-  posicao,
   ROTAS_MIGRADAS,
-  semIndefinidos,
+  criarPortaria,
+  respostaInvalida,
 } from './portaria'
+import { condominioDe, criarUsuarios, usuarioDe } from './usuarios'
 
-const respostaInvalida = () =>
-  new ApiError(502, 'RESPOSTA_INVALIDA', 'Resposta inesperada do servidor.')
-
-function mensagemPorStatus(status: number): string {
-  if (status === 401) return 'Entre no sistema para continuar.'
-  if (status === 403) return 'Seu perfil não tem permissão para esta ação.'
-  if (status === 404) return 'Recurso não encontrado.'
-  if (status === 429) return 'Muitas tentativas. Aguarde e tente novamente.'
-  if (status >= 500) return 'O servidor não respondeu como esperado. Tente novamente em instantes.'
-  return 'Requisição recusada.'
-}
-
-const semRede = () =>
-  new ApiError(
-    0,
-    'FALHA_DE_REDE',
-    typeof navigator !== 'undefined' && navigator.onLine === false
-      ? 'Sem conexão — o sistema precisa de internet para registrar.'
-      : 'Não foi possível falar com o servidor. Verifique a conexão e tente novamente.',
-  )
-
-/** Os detalhes vêm serializados do banco (o PostgREST só aceita texto ali). */
-function detalhesDe(d: unknown): unknown {
-  if (typeof d !== 'string') return d ?? undefined
-  try {
-    return JSON.parse(d)
-  } catch {
-    return d
-  }
-}
-
-/** Erro de RPC (PostgREST). Código nosso = MAIÚSCULAS (RAISE PGRST); outro (42501, PGRST301...) só pelo status. */
-export function erroDeRpc(
-  erro: { code?: string; message?: string; details?: unknown },
-  status: number,
-): ApiError {
-  if (!status) return semRede()
-  const nosso = typeof erro.code === 'string' && /^[A-Z_]+$/.test(erro.code)
-  const codigo = nosso
-    ? erro.code!
-    : status === 401 || status === 403
-      ? 'NAO_AUTENTICADO'
-      : `HTTP_${status}`
-  const st = !nosso && status === 403 ? 401 : status // sem EXECUTE (403/401 do PostgREST) = sem sessão de usuário
-  return new ApiError(
-    st,
-    codigo,
-    nosso && erro.message ? erro.message : mensagemPorStatus(st),
-    nosso ? detalhesDe(erro.details) : undefined,
-  )
-}
-
-/** Erro de Edge Function: corpo { code, message, details } e, no 429, Retry-After. */
-export async function erroDeEdge(erro: unknown): Promise<ApiError> {
-  if (erro instanceof FunctionsFetchError) return semRede()
-  if (erro instanceof FunctionsRelayError)
-    return new ApiError(502, 'HTTP_502', mensagemPorStatus(502))
-  if (!(erro instanceof FunctionsHttpError))
-    return new ApiError(0, 'ERRO_DESCONHECIDO', 'Erro inesperado.')
-  const r = erro.context as Response
-  let corpo: { code?: unknown; message?: unknown; details?: unknown } = {}
-  try {
-    corpo = await r.clone().json()
-  } catch {
-    /* corpo não JSON */
-  }
-  const codigo =
-    typeof corpo.code === 'string' && /^[A-Z_]+$/.test(corpo.code) ? corpo.code : `HTTP_${r.status}`
-  let mensagem =
-    typeof corpo.message === 'string' && corpo.message ? corpo.message : mensagemPorStatus(r.status)
-  let espera: number | undefined
-  if (r.status === 429) {
-    espera = segundosRetryAfter(r.headers.get('retry-after') ?? undefined)
-    if (espera !== undefined)
-      mensagem = `Muitas tentativas. Tente novamente em ${tempoLegivel(espera)}.`
-  }
-  const e = new ApiError(r.status, codigo, mensagem, corpo.details ?? undefined)
-  if (espera !== undefined) e.retryAfterSegundos = espera
-  return e
-}
-
-function usuarioDe(u: unknown): UsuarioSessao {
-  const x = u as Partial<UsuarioSessao> | null
-  if (!x || typeof x.id !== 'string' || typeof x.login !== 'string' || typeof x.papel !== 'string')
-    throw respostaInvalida()
-  return {
-    id: x.id,
-    nome: String(x.nome ?? ''),
-    login: x.login,
-    papel: x.papel,
-    ativo: x.ativo !== false,
-    ultimoAcesso: typeof x.ultimoAcesso === 'number' ? x.ultimoAcesso : null,
-    deveTrocarSenha: x.deveTrocarSenha === true,
-  }
-}
-
-function condominioDe(c: unknown): CondominioSessao | null {
-  const nome = (c as { nome?: unknown } | null)?.nome
-  return typeof nome === 'string' && nome.trim() ? { nome } : null
-}
-
-function gerido(u: unknown): UsuarioSistema {
-  const base = usuarioDe(u)
-  const x = u as { senhaTemporariaExpiraEm?: unknown }
-  return {
-    ...base,
-    senhaTemporariaExpiraEm:
-      typeof x.senhaTemporariaExpiraEm === 'number' ? x.senhaTemporariaExpiraEm : null,
-  }
-}
-
-function comSenhaTemporaria(r: unknown): UsuarioComSenhaTemporaria {
-  const x = r as { usuario?: unknown; senhaTemporaria?: unknown } | null
-  if (!x || typeof x.senhaTemporaria !== 'string') throw respostaInvalida()
-  return { usuario: gerido(x.usuario), senhaTemporaria: x.senhaTemporaria }
-}
+export { erroDeEdge, erroDeRpc } from './erros'
 
 interface RespostaLogin {
   usuario: unknown
@@ -364,77 +234,7 @@ export function createSupabaseApi(sb: SupabaseClient, opcoes: OpcoesSupabaseApi)
         return usuario
       },
     },
-    usuarios: {
-      async listarPagina(f = {}) {
-        return paginaDe<UsuarioSistema>(
-          await rpc('usuarios_listar', {
-            p: semIndefinidos({
-              ...posicao(f),
-              q: f.q?.trim() || undefined,
-              papel: f.papel,
-              situacao: f.situacao,
-            }),
-          }),
-          gerido,
-        )
-      },
-      async resumo(): Promise<ResumoUsuarios> {
-        const r = await rpc<{
-          ativos?: unknown
-          desativados?: unknown
-          porPapel?: Record<string, unknown>
-        }>('usuarios_resumo')
-        if (!r?.porPapel || typeof r.porPapel !== 'object') throw respostaInvalida()
-        const pp = r.porPapel
-        return {
-          ativos: contagem(r.ativos),
-          desativados: contagem(r.desativados),
-          porPapel: {
-            sindico: contagem(pp.sindico),
-            administracao: contagem(pp.administracao),
-            porteiro: contagem(pp.porteiro),
-            auditor: contagem(pp.auditor),
-            admin_sistema: contagem(pp.admin_sistema),
-          },
-        }
-      },
-      async criar(i) {
-        return comSenhaTemporaria(
-          await edge('usuarios-admin', {
-            acao: 'criar',
-            nome: i.nome,
-            login: i.login,
-            papel: i.papel,
-          }),
-        )
-      },
-      async editar(id, i) {
-        return gerido(
-          (
-            await edge<{ usuario: unknown }>('usuarios-admin', {
-              acao: 'editar',
-              id,
-              nome: i.nome,
-              login: i.login,
-              papel: i.papel,
-            })
-          ).usuario,
-        )
-      },
-      async desativar(id) {
-        return gerido(
-          (await edge<{ usuario: unknown }>('usuarios-admin', { acao: 'desativar', id })).usuario,
-        )
-      },
-      async reativar(id) {
-        return gerido(
-          (await edge<{ usuario: unknown }>('usuarios-admin', { acao: 'reativar', id })).usuario,
-        )
-      },
-      async redefinirAcesso(id) {
-        return comSenhaTemporaria(await edge('usuarios-admin', { acao: 'redefinir_senha', id }))
-      },
-    },
+    ...criarUsuarios((nome, args) => rpc(nome, args), edge),
   } satisfies Partial<Api>
 
   // Os outros namespaces ainda não migrados respondem NAO_MIGRADO, sem precisar listá-los.
